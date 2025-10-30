@@ -12,9 +12,7 @@ import {
   Clock, 
   LogOut
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { mockAuth, User as UserType } from '@/lib/mock-auth';
 
 interface SidebarProps {
@@ -77,14 +75,6 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
   const handleLogout = async () => {
     await mockAuth.logout();
     router.push('/login');
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
   };
 
   return (

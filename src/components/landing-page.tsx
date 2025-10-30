@@ -8,6 +8,7 @@ import TestimonialCard from '@/components/testimonialcard';
 import LandingHeader from '@/components/landing/header';
 import LandingFooter from '@/components/landing/footer';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const categories = ["Product", "Engineering", "Design", "Marketing", "Data Science", "Product Research"];
 
@@ -173,11 +174,14 @@ const LandingPage = () => {
           <div className="flex animate-marquee whitespace-nowrap">
             {[...Array(8)].map((_, repeatIndex) =>
               logos.map((logo, index) => (
-                <img
+                <Image
                   key={`${repeatIndex}-${index}`}
                   src={logo}
                   alt="Company Logo"
+                  height={48}
+                  width={120}
                   className="h-12 mx-12 w-auto inline-block opacity-60 hover:opacity-100 transition-opacity"
+                  priority={repeatIndex === 0 && index < 3} // optimize LCP for first few
                 />
               ))
             )}
@@ -189,7 +193,7 @@ const LandingPage = () => {
         <div className="flex flex-col items-center text-center">
           <h1 className="text-4xl font-bold max-w-4xl">Transforming your potential</h1>
           <p className="mt-4 max-w-2xl text-gray-700">
-            Become the best version of yourself by accessing to the perspectives and life experiences of others who've been there, done that.
+            Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
           </p>
         </div>
         <div className="mt-12 flex justify-center">
@@ -210,7 +214,7 @@ const LandingPage = () => {
                   <span className="font-bold text-lg text-red-500">1</span>
                 </div>
                 <div>
-                  <h3 className="mb-2 text-gray-700 font-bold">Access to the world's best from KU.</h3>
+                  <h3 className="mb-2 text-gray-700 font-bold">Access to the world&apos;s best from KU.</h3>
                   <small className="text-gray-400 font-bold">From Design to AI, connect with top KU alumni and industry experts for free guidance.</small>
                 </div>
               </div>
@@ -324,7 +328,7 @@ const LandingPage = () => {
         <div className="flex flex-col items-center">
           <h1 className="max-w-3xl mb-8 text-4xl font-bold">Get started for free in 1 minute or less</h1>
           <p className="max-w-2xl mb-8 text-gray-400 leading-8 text-lg">
-            Become the best version of yourself by accessing to the perspectives and life experiences of others who've been there, done that.
+            Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
           </p>
         </div>
         <div className="relative flex flex-col items-center pb-10">
