@@ -15,9 +15,7 @@ import {
   Linkedin,
   Twitter,
   Globe,
-  MapPin,
   Star,
-  Clock,
   Rocket,
   Award,
   Briefcase,
@@ -44,7 +42,7 @@ export default function MentorProfilePage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Mentor not found</h2>
-          <p className="text-gray-600 mb-4">The mentor profile you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-4">The mentor profile you&apos;re looking for doesn&apos;t exist.</p>
           <Button asChild className="bg-teal-600 hover:bg-teal-700">
             <Link href="/explore">Back to Explore</Link>
           </Button>
