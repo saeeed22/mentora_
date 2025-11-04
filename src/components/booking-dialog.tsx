@@ -79,9 +79,9 @@ export function BookingDialog({
     try {
       // Build ISO datetime from date + time slot
       const [time, period] = selectedTimeSlot.split(' '); // "9:00 AM" => ["9:00", "AM"]
-      let hours: number;
-      const minutes: number;
-      [hours, minutes] = time.split(':').map(Number);
+      const timeParts = time.split(':').map(Number);
+      let hours = timeParts[0];
+      const minutes = timeParts[1];
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
 
