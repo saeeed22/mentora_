@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -27,6 +27,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
+  // Redirect authenticated users to home
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const existing = mockAuth.getCurrentUser();
+    if (existing) router.replace('/home');
+  }, [router]);
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -48,7 +55,7 @@ export default function LoginPage() {
       } else {
         setError(result.error || 'Login failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -165,7 +172,7 @@ export default function LoginPage() {
             </form>
 
             <div className="text-center">
-              <span className="text-sm text-gray-600">Don't have an account? </span>
+              <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
               <Link
                 href="/signup"
                 className="text-sm text-teal-600 hover:text-teal-500 font-medium"

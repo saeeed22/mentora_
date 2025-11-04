@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
       } else {
         setError(result.error || 'Reset failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -67,8 +67,8 @@ export default function ResetPasswordPage() {
             <CardTitle className="text-2xl font-semibold">Forgot password?</CardTitle>
             <CardDescription>
               {success 
-                ? "We've sent you a password reset link"
-                : "Enter your email address and we'll send you a link to reset your password"
+                ? "We&apos;ve sent you a password reset link"
+                : "Enter your email address and we&apos;ll send you a link to reset your password"
               }
             </CardDescription>
           </CardHeader>
@@ -94,12 +94,12 @@ export default function ResetPasswordPage() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Check your email</h3>
                   <p className="mt-2 text-sm text-gray-600">
-                    We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
+                    We&apos;ve sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
                   </p>
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500">
-                    Didn't receive the email? Check your spam folder or try again.
+                    Didn&apos;t receive the email? Check your spam folder or try again.
                   </p>
                   <Button
                     variant="outline"
@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <p className="font-semibold text-blue-800">Can't access your email?</p>
+              <p className="font-semibold text-blue-800">Can&apos;t access your email?</p>
               <p className="text-blue-700">Contact our support team at support@mentorconnect.ku.edu.np</p>
             </div>
             <div>

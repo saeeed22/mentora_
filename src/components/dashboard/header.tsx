@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Bell, Calendar, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,16 +85,18 @@ export function Header({ user }: HeaderProps) {
         <div className="flex items-center space-x-4">
           {/* Book Session Button - Only for mentees */}
           {user.role === 'mentee' && (
-            <Button className="bg-teal-600 hover:bg-teal-700">
-              <Calendar className="w-4 h-4 mr-2" />
-              Book Session
+            <Button className="bg-teal-600 hover:bg-teal-700" asChild aria-label="Book a session">
+              <Link href="/explore">
+                <Calendar className="w-4 h-4 mr-2" />
+                Book Session
+              </Link>
             </Button>
           )}
 
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative p-2">
+              <Button variant="ghost" size="sm" className="relative p-2" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <Badge 

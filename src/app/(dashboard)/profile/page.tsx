@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockAuth, User } from '@/lib/mock-auth';
+import { profile } from '@/lib/api/profile';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -59,8 +61,21 @@ export default function ProfilePage() {
   };
 
   const handleSave = () => {
-    // In a real app, this would update the user profile via API
-    console.log('Saving profile:', formData);
+    if (!user) return;
+    const updated = profile.updateProfile(user.id, {
+      name: formData.name,
+      bio: formData.bio,
+      title: formData.title,
+      company: formData.company,
+      location: formData.location,
+      expertise: formData.expertise,
+    });
+    if (updated) {
+      setUser(updated);
+      toast.success('Profile updated');
+    } else {
+      toast.error('Failed to update profile');
+    }
     setIsEditing(false);
   };
 

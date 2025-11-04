@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getMentorById, getSimilarMentors } from '@/lib/mock-mentors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,9 +25,16 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import Link from 'next/link';
+import { BookingDialog } from '@/components/booking-dialog';
+import { mentors as mentorsApi } from '@/lib/api/mentors';
+import type { AvailabilitySlot } from '@/lib/types';
+import { messaging } from '@/lib/api/messages';
+import { auth } from '@/lib/api/auth';
+import { useRouter } from 'next/navigation';
 
 export default function MentorProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const mentorId = params.id as string;
   const mentor = getMentorById(mentorId);
   const similarMentors = getSimilarMentors(mentorId, 3);
@@ -36,6 +43,25 @@ export default function MentorProfilePage() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [showFullBio, setShowFullBio] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
+
+  // Load available slots (prefer generated availability; fallback to profile slots)
+  useEffect(() => {
+    if (!mentor) return;
+    let mounted = true;
+    (async () => {
+      const generated = await mentorsApi.getAvailableSlots(mentorId, 28);
+      const slots = (generated && generated.length > 0) ? generated : (mentor.availability_slots ?? []);
+      if (!mounted) return;
+      setAvailableSlots(slots);
+      if (slots.length > 0) {
+        setSelectedDate(slots[0].date);
+        if (slots[0].slots.length > 0) setSelectedTimeSlot(slots[0].slots[0]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [mentorId, mentor]);
 
   if (!mentor) {
     return (
@@ -61,24 +87,12 @@ export default function MentorProfilePage() {
 
   const handleBooking = () => {
     if (!selectedDate || !selectedTimeSlot) {
-      alert('Please select a date and time slot');
       return;
     }
-    // TODO: Implement actual booking logic
-    alert(`Booking session for ${selectedDate} at ${selectedTimeSlot}`);
+    setBookingDialogOpen(true);
   };
 
-  // Initialize first available date and slot
-  if (!selectedDate && mentor.availability_slots && mentor.availability_slots.length > 0) {
-    setSelectedDate(mentor.availability_slots[0].date);
-    if (mentor.availability_slots[0].slots.length > 0) {
-      setSelectedTimeSlot(mentor.availability_slots[0].slots[0]);
-    }
-  }
-
-  const selectedDateSlots = mentor.availability_slots?.find(
-    (slot) => slot.date === selectedDate
-  );
+  const selectedDateSlots = availableSlots?.find((slot) => slot.date === selectedDate);
 
   return (
     <div className="space-y-6 pb-12">
@@ -125,13 +139,26 @@ export default function MentorProfilePage() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" className="rounded-lg">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-lg"
+                        aria-label="Message"
+                        onClick={() => {
+                          const currentUser = auth.getCurrentUser();
+                          if (!currentUser) { router.push('/login'); return; }
+                          if (currentUser.role !== 'mentee') return; // mentees initiate
+                          const conv = messaging.getOrCreateConversation({ mentorId: mentorId, menteeId: currentUser.id });
+                          router.push(`/messages?c=${conv.id}`);
+                        }}
+                      >
                         <MessageCircle className="h-5 w-5" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
                         className="rounded-lg"
+                        aria-label="Favorite"
                         onClick={() => setIsFavorite(!isFavorite)}
                       >
                         <Heart
@@ -140,7 +167,7 @@ export default function MentorProfilePage() {
                           }`}
                         />
                       </Button>
-                      <Button variant="outline" size="icon" className="rounded-lg">
+                      <Button variant="outline" size="icon" className="rounded-lg" aria-label="More options">
                         <MoreVertical className="h-5 w-5" />
                       </Button>
                     </div>
@@ -589,7 +616,7 @@ export default function MentorProfilePage() {
               </Card>
 
               {/* Booking Widget */}
-              {mentor.availability_slots && mentor.availability_slots.length > 0 && (
+              {availableSlots && availableSlots.length > 0 && (
                 <Card className="rounded-2xl shadow-sm bg-white">
                   <CardContent className="p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
@@ -610,7 +637,7 @@ export default function MentorProfilePage() {
                         </Button>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
-                        {mentor.availability_slots.map((slot) => {
+                        {availableSlots.map((slot) => {
                           const date = new Date(slot.date);
                           const day = date.getDate();
                           return (
@@ -730,7 +757,16 @@ export default function MentorProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Booking Dialog */}
+      <BookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        mentorId={mentorId}
+        mentorName={mentor.name}
+        selectedDate={selectedDate}
+        selectedTimeSlot={selectedTimeSlot}
+      />
     </div>
   );
 }
-

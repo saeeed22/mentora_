@@ -57,7 +57,7 @@ export default function ExplorePage() {
 
   // Filter and sort mentors
   const filterMentors = () => {
-    let filtered = mockMentors.filter(mentor => {
+    const filtered = mockMentors.filter(mentor => {
       const mentorProfile = mockMentorProfiles.find(m => m.id === mentor.id);
       if (!mentorProfile) return false;
 
@@ -103,6 +103,7 @@ export default function ExplorePage() {
   // Apply filters whenever dependencies change
   React.useEffect(() => {
     filterMentors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedExpertise, selectedAvailability, sortBy]);
 
   return (

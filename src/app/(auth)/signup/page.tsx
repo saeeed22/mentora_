@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -36,6 +36,13 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
+  // Redirect authenticated users to home
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const existing = mockAuth.getCurrentUser();
+    if (existing) router.replace('/home');
+  }, [router]);
+
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -64,7 +71,7 @@ export default function SignupPage() {
       } else {
         setError(result.error || 'Signup failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { mockAuth, User } from '@/lib/mock-auth';
 import { mockMentorProfiles } from '@/lib/mock-mentors';
+import { bookings } from '@/lib/api/bookings';
+import { mentors } from '@/lib/api/mentors';
+import { mockUsers } from '@/lib/mock-auth';
+import type { Booking } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { CalendarWidget } from '@/components/dashboard/calendar-widget';
 import MentorCard from '@/components/mentorcard';
 import { 
@@ -16,12 +20,15 @@ import {
   ArrowRight,
   ChevronRight,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Video
 } from 'lucide-react';
 
 export default function DashboardHomePage() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [showBasicsCard, setShowBasicsCard] = useState(true);
+  const [upcomingSessions, setUpcomingSessions] = useState<Booking[]>([]);
 
   useEffect(() => {
     const currentUser = mockAuth.getCurrentUser();
@@ -31,6 +38,17 @@ export default function DashboardHomePage() {
     const hasSeenBasics = localStorage.getItem('hasSeenBasics');
     if (hasSeenBasics) {
       setShowBasicsCard(false);
+    }
+
+    // Load upcoming sessions from bookings service
+    if (currentUser) {
+      const userBookings = bookings.listForUser(currentUser.id, currentUser.role);
+      // Show next confirmed/pending future sessions
+      const upcoming = userBookings
+        .filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.datetime).getTime() >= Date.now())
+        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+        .slice(0, 2); // Top 2
+      setUpcomingSessions(upcoming);
     }
   }, []);
 
@@ -49,27 +67,48 @@ export default function DashboardHomePage() {
       .toUpperCase();
   };
 
-  // Mock data for dashboard widgets - use actual mentor data
-  const upcomingSessions = [
-    {
-      id: '1',
-      mentorName: mockMentorProfiles[0].name,
-      mentorAvatar: mockMentorProfiles[0].avatar,
-      date: 'Today',
-      time: '2:00 PM',
-      topic: 'Career Planning',
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    today.setHours(0, 0, 0, 0);
+    tomorrow.setHours(0, 0, 0, 0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    if (targetDate.getTime() === today.getTime()) {
+      return 'Today';
+    } else if (targetDate.getTime() === tomorrow.getTime()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    }
+  };
+
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  // Transform upcoming sessions to display format
+  const displaySessions = upcomingSessions.map(booking => {
+    const isUserMentor = user.role === 'mentor';
+    const otherPartyId = isUserMentor ? booking.menteeId : booking.mentorId;
+    const otherParty = mockUsers.find(u => u.id === otherPartyId);
+    const mentor = mentors.getById(booking.mentorId);
+
+    return {
+      id: booking.id,
+      mentorName: isUserMentor ? (otherParty?.name || 'Unknown') : (mentor?.name || 'Unknown'),
+      mentorAvatar: isUserMentor ? otherParty?.avatar : mentor?.avatar,
+      date: formatDate(booking.datetime),
+      time: formatTime(booking.datetime),
+      topic: booking.topic,
       type: 'Video Call',
-    },
-    {
-      id: '2',
-      mentorName: mockMentorProfiles[1].name,
-      mentorAvatar: mockMentorProfiles[1].avatar,
-      date: 'Tomorrow',
-      time: '10:30 AM',
-      topic: 'Resume Review',
-      type: 'Video Call',
-    },
-  ];
+    };
+  });
 
   // Helper function to calculate years of experience from period string
   const calculateExperience = (period: string): number => {
@@ -127,7 +166,7 @@ export default function DashboardHomePage() {
                 <X className="h-4 w-4 text-gray-500" />
               </button>
               <CardHeader>
-                <CardTitle className="text-2xl">Let's start with the basics</CardTitle>
+                <CardTitle className="text-2xl">Let&apos;s start with the basics</CardTitle>
                 <CardDescription>Get more by setting up a profile you love.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -172,16 +211,16 @@ export default function DashboardHomePage() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {upcomingSessions.length === 0 ? (
+                {displaySessions.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                     <p>No upcoming sessions</p>
-                    <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm">
-                      Book a session
+                    <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm" asChild>
+                      <Link href="/explore">Book a session</Link>
                     </Button>
                   </div>
                 ) : (
-                  upcomingSessions.map((session) => (
+                  displaySessions.map((session) => (
                     <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
@@ -195,7 +234,8 @@ export default function DashboardHomePage() {
                           {session.date} at {session.time}
                         </div>
                       </div>
-                      <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
+                      <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => router.push(`/session/${session.id}`)}>
+                        <Video className="w-4 h-4 mr-1" />
                         Join
                       </Button>
                     </div>
@@ -253,16 +293,18 @@ export default function DashboardHomePage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {upcomingSessions.length === 0 ? (
+            {displaySessions.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                 <p>No upcoming sessions</p>
-                <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm">
-                  {user.role === 'mentor' ? 'Set availability' : 'Book a session'}
+                <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm" asChild>
+                  <Link href={user.role === 'mentor' ? '/availability' : '/explore'}>
+                    {user.role === 'mentor' ? 'Set availability' : 'Book a session'}
+                  </Link>
                 </Button>
               </div>
             ) : (
-              upcomingSessions.map((session) => (
+              displaySessions.map((session) => (
                 <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
@@ -276,7 +318,8 @@ export default function DashboardHomePage() {
                       {session.date} at {session.time}
                     </div>
                   </div>
-                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
+                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => router.push(`/session/${session.id}`)}>
+                    <Video className="w-4 h-4 mr-1" />
                     Join
                   </Button>
                 </div>

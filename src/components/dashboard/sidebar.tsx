@@ -8,7 +8,6 @@ import {
   MessageCircle, 
   Calendar, 
   User, 
-  Users, 
   Clock, 
   LogOut
 } from 'lucide-react';
@@ -58,11 +57,6 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
       name: 'Profile',
       href: '/profile',
       icon: User,
-    },
-    {
-      name: 'Events',
-      href: '/events',
-      icon: Users,
     },
     {
       name: 'Availability',

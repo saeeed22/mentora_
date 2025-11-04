@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, Settings, Save } from 'lucide-react';
+import { Calendar, Plus, Settings, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockAuth, User } from '@/lib/mock-auth';
 import { useRouter } from 'next/navigation';
+import { availability as availabilityApi } from '@/lib/api/availability';
+import { toast } from 'sonner';
 
 // Mock availability data
 const mockAvailability = {
@@ -62,6 +64,13 @@ export default function AvailabilityPage() {
       return;
     }
     setUser(currentUser);
+    // Load persisted schedule for this mentor
+    try {
+      const sch = availabilityApi.getSchedule(currentUser.id);
+      setAvailability(sch as typeof mockAvailability);
+    } catch {
+      // keep defaults
+    }
   }, [router]);
 
   const handleDayToggle = (day: string, enabled: boolean) => {
@@ -126,9 +135,10 @@ export default function AvailabilityPage() {
   };
 
   const handleSave = () => {
-    // In a real app, this would save to the backend
-    console.log('Saving availability:', availability);
+    if (!user) return;
+    availabilityApi.saveSchedule(user.id, availability as typeof mockAvailability);
     setHasChanges(false);
+    toast.success('Availability saved');
   };
 
   if (!user || user.role !== 'mentor') {
@@ -310,7 +320,7 @@ export default function AvailabilityPage() {
                   <div className="space-y-2">
                     {daySchedule.slots.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center py-4">
-                        No time slots set. Click "Add Slot" to add availability.
+                        No time slots set. Click &quot;Add Slot&quot; to add availability.
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
