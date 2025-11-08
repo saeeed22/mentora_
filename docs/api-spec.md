@@ -68,7 +68,7 @@ Request:
 ```
 PATCH /users/abc123
 {
-  "name": "Priya Sharma",
+  "name": "Ayesha Khan",
   "title": "Senior Software Engineer",
   "company": "Google",
   "location": "San Francisco, CA",
@@ -79,8 +79,8 @@ Response 200:
 ```
 {
   "id": "abc123",
-  "email": "mentor@ku.edu.np",
-  "name": "Priya Sharma",
+  "email": "mentor@ku.edu.pk",
+  "name": "Ayesha Khan",
   "role": "mentor",
   "avatar": "/avatars/mentor1.jpg",
   "bio": "...",

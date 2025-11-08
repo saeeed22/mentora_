@@ -385,7 +385,7 @@ export default function ProfilePage() {
                         <SelectItem value="mst">Mountain Standard Time</SelectItem>
                         <SelectItem value="cst">Central Standard Time</SelectItem>
                         <SelectItem value="est">Eastern Standard Time</SelectItem>
-                        <SelectItem value="npt">Nepal Time</SelectItem>
+                        <SelectItem value="pkt">Pakistan Standard Time</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

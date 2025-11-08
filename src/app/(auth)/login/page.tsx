@@ -191,12 +191,12 @@ export default function LoginPage() {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="font-semibold text-blue-800">Mentor Account:</p>
-              <p className="text-blue-700">Email: mentor@ku.edu.np</p>
+              <p className="text-blue-700">Email: mentor@ku.edu.pk</p>
               <p className="text-blue-700">Password: mentor123</p>
             </div>
             <div>
               <p className="font-semibold text-blue-800">Mentee Account:</p>
-              <p className="text-blue-700">Email: mentee@ku.edu.np</p>
+              <p className="text-blue-700">Email: mentee@ku.edu.pk</p>
               <p className="text-blue-700">Password: mentee123</p>
             </div>
           </CardContent>

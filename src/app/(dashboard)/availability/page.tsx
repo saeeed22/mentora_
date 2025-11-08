@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 // Mock availability data
 const mockAvailability = {
-  timezone: 'America/Los_Angeles',
+  timezone: 'Asia/Karachi',
   weeklySchedule: {
     monday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }] },
     tuesday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }] },
@@ -195,7 +195,7 @@ export default function AvailabilityPage() {
                   <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
                   <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
                   <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                  <SelectItem value="Asia/Kathmandu">Nepal Time (NPT)</SelectItem>
+                  <SelectItem value="Asia/Karachi">Pakistan Standard Time (PKT)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

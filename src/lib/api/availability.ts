@@ -25,7 +25,7 @@ function getDefaultSchedule(): AvailabilitySchedule {
     slots: enabled ? [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }] : [],
   });
   return {
-    timezone: 'Asia/Kathmandu',
+    timezone: 'Asia/Karachi',
     weeklySchedule: {
       monday: defaultDay(true),
       tuesday: defaultDay(true),

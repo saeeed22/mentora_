@@ -18,8 +18,8 @@ const mockUsers: User[] = [
   // Mentors
   {
     id: '1',
-    email: 'mentor@ku.edu.np',
-    name: 'Priya Sharma',
+    email: 'mentor@ku.edu.pk',
+    name: 'Ayesha Khan',
     role: 'mentor',
     avatar: '/avatars/mentor1.jpg',
     bio: 'Senior Software Engineer at Google with 5+ years of experience in full-stack development.',
@@ -30,8 +30,8 @@ const mockUsers: User[] = [
   },
   {
     id: '2',
-    email: 'rahul.mentor@ku.edu.np',
-    name: 'Rahul Thapa',
+    email: 'rahul.mentor@ku.edu.pk',
+    name: 'Ahmed Hassan',
     role: 'mentor',
     avatar: '/avatars/mentor2.jpg',
     bio: 'Product Manager at Microsoft, KU Computer Engineering graduate 2018.',
@@ -43,36 +43,36 @@ const mockUsers: User[] = [
   // Mentees
   {
     id: '3',
-    email: 'mentee@ku.edu.np',
-    name: 'Sita Poudel',
+    email: 'mentee@ku.edu.pk',
+    name: 'Fatima Ali',
     role: 'mentee',
     avatar: '/avatars/mentee1.jpg',
     bio: 'Final year Computer Engineering student at KU, interested in software development.',
     expertise: ['JavaScript', 'Python', 'Learning'],
-    company: 'Kathmandu University',
+    company: 'Karachi University',
     title: 'Student',
-    location: 'Dhulikhel, Nepal'
+    location: 'Karachi, Pakistan'
   },
   {
     id: '4',
-    email: 'student@ku.edu.np',
-    name: 'Arjun Karki',
+    email: 'student@ku.edu.pk',
+    name: 'Usman Ahmed',
     role: 'mentee',
     avatar: '/avatars/mentee2.jpg',
     bio: 'Third year Business Administration student looking for career guidance.',
     expertise: ['Business', 'Marketing', 'Career Planning'],
-    company: 'Kathmandu University',
+    company: 'Karachi University',
     title: 'Student',
-    location: 'Dhulikhel, Nepal'
+    location: 'Karachi, Pakistan'
   }
 ];
 
 // Mock passwords (in real app, these would be hashed)
 const mockPasswords: Record<string, string> = {
-  'mentor@ku.edu.np': 'mentor123',
-  'rahul.mentor@ku.edu.np': 'mentor123',
-  'mentee@ku.edu.np': 'mentee123',
-  'student@ku.edu.np': 'mentee123'
+  'mentor@ku.edu.pk': 'mentor123',
+  'rahul.mentor@ku.edu.pk': 'mentor123',
+  'mentee@ku.edu.pk': 'mentee123',
+  'student@ku.edu.pk': 'mentee123'
 };
 
 // Current user state (in real app, this would be in a state management system)
@@ -127,9 +127,9 @@ export const mockAuth = {
       role: data.role,
       bio: data.role === 'mentor' ? 'New mentor on the platform' : 'New student looking for guidance',
       expertise: [],
-      company: data.role === 'mentee' ? 'Kathmandu University' : '',
+      company: data.role === 'mentee' ? 'Karachi University' : '',
       title: data.role === 'mentee' ? 'Student' : '',
-      location: 'Nepal'
+      location: 'Pakistan'
     };
     
     // Add to mock database

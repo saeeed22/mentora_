@@ -92,7 +92,7 @@ export default function SignupPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-semibold">Join our community</CardTitle>
             <CardDescription>
-              Connect with mentors and mentees from Kathmandu University
+              Connect with mentors and mentees from Karachi University
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

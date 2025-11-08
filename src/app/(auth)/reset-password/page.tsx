@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="font-semibold text-blue-800">Can&apos;t access your email?</p>
-              <p className="text-blue-700">Contact our support team at support@mentorconnect.ku.edu.np</p>
+              <p className="text-blue-700">Contact our support team at support@mentorconnect.ku.edu.pk</p>
             </div>
             <div>
               <p className="font-semibold text-blue-800">Remember your password?</p>
