@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Mentora",
   description: "Mentora Platform for Karachi University Students",
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({

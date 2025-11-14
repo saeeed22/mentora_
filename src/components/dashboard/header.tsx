@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Bell, Calendar, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,7 +67,13 @@ export function Header({ user }: HeaderProps) {
       <div className="flex items-center justify-between">
         {/* Branding */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="font-bold text-2xl">Mentora</span>
+          <Image 
+            src="/logos/logo.png" 
+            alt="Mentora Logo" 
+            width={60} 
+            height={60}
+            className="object-contain"
+          />
         </div>
 
         {/* Centered Search */}
@@ -186,7 +193,9 @@ export function Header({ user }: HeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
+                <Link href={`/profile`}>
                 Profile Settings
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 Account Settings

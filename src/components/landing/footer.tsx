@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingFooter() {
   return (
@@ -7,7 +8,13 @@ export default function LandingFooter() {
         <div className="grid grid-cols-1 gap-14 md:grid-cols-[35%_65%]">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-3xl">Mentora</span>
+              <Image 
+                src="/logos/logo.png" 
+                alt="Mentora Logo" 
+                width={48} 
+                height={48}
+                className="object-contain"
+              />
             </div>
             <p className="text-md text-gray-600 max-w-sm">
               On a mission to democratize mentorship for all. Designed and made

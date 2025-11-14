@@ -345,9 +345,11 @@ export default function DashboardHomePage() {
               View all <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-          <div className="flex gap-6 overflow-x-auto pb-4">
+          <div className="flex gap-6 overflow-x-auto pb-4 items-stretch">
             {suggestedMentors.map((mentor) => (
-              <MentorCard key={mentor.id} mentor={mentor} />
+              <div key={mentor.id} className="flex-shrink-0">
+                <MentorCard mentor={mentor} />
+              </div>
             ))}
           </div>
         </div>

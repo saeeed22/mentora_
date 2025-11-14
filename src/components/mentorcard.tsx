@@ -23,7 +23,7 @@ interface MentorCardProps {
 
 const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
   const cardContent = (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm w-[280px] flex flex-col hover:shadow-md transition-shadow cursor-pointer">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm w-[280px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer">
 
       {/* Image */}
       <div className="relative mb-4">

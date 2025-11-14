@@ -188,9 +188,11 @@ export default function ExplorePage() {
       </Card>
 
       {/* Mentors Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr place-content-evenly">
         {filteredMentors.map((mentor) => (
-          <MentorCard key={mentor.id} mentor={mentor} />
+          <div key={mentor.id} className="flex justify-center items-stretch">
+            <MentorCard mentor={mentor} />
+          </div>
         ))}
       </div>
 

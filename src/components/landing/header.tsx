@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from 'lucide-react'
 
@@ -12,7 +13,14 @@ export default function LandingHeader() {
     <header className="w-full bg-white shadow py-1 px-6 sticky top-0 z-50">
       <div className="mx-auto flex h-16 max-w-8xl items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-bold text-2xl">Mentora</span>
+          <Image 
+            src="/logos/logo.png" 
+            alt="Mentora Logo" 
+            width={60} 
+            height={60}
+            className="object-contain"
+          />
+        
         </Link>
 
         <div className="hidden lg:flex items-center gap-4">

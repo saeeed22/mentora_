@@ -262,9 +262,11 @@ const LandingPage = () => {
 
         <div className="px-4 md:px-12 lg:px-20">
           <div className="overflow-x-auto mb-30 scrollbar-hide">
-            <div className="flex space-x-8 pb-4">
+            <div className="flex space-x-8 pb-4 items-stretch">
               {dummyMentors.map((mentor, index) => (
-                <MentorCard key={index} mentor={mentor} />
+                <div key={index} className="flex-shrink-0">
+                  <MentorCard mentor={mentor} />
+                </div>
               ))}
             </div>
           </div>
