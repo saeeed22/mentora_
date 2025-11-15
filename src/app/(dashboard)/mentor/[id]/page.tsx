@@ -67,9 +67,9 @@ export default function MentorProfilePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Mentor not found</h2>
+          <h2 className="text-2xl font-bold text-brand-dark mb-2">Mentor not found</h2>
           <p className="text-gray-600 mb-4">The mentor profile you&apos;re looking for doesn&apos;t exist.</p>
-          <Button asChild className="bg-teal-600 hover:bg-teal-700">
+          <Button asChild className="bg-brand hover:bg-brand/90">
             <Link href="/explore">Back to Explore</Link>
           </Button>
         </div>
@@ -107,7 +107,7 @@ export default function MentorProfilePage() {
         >
           {/* Decorative circles */}
           <div className="absolute top-0 left-20 w-40 h-40 rounded-full bg-green-700 opacity-30" />
-          <div className="absolute bottom-0 right-20 w-60 h-60 rounded-full bg-teal-400 opacity-20" />
+          <div className="absolute bottom-0 right-20 w-60 h-60 rounded-full bg-brand-light opacity-20" />
         </div>
 
         {/* Profile Content */}
@@ -119,7 +119,7 @@ export default function MentorProfilePage() {
                 {/* Avatar */}
                 <Avatar className="h-44 w-44 border-8 border-white shadow-xl flex-shrink-0">
                   <AvatarImage src={mentor.avatar} alt={mentor.name} />
-                  <AvatarFallback className="bg-teal-100 text-teal-700 text-4xl">
+                  <AvatarFallback className="bg-brand-light/20 text-brand text-4xl">
                     {getInitials(mentor.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -128,7 +128,7 @@ export default function MentorProfilePage() {
                 <div className="flex-1 pt-24">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                      <h1 className="text-3xl font-bold text-brand-dark mb-1">
                         {mentor.name}
                       </h1>
                       <p className="text-lg text-gray-700">
@@ -227,19 +227,19 @@ export default function MentorProfilePage() {
               <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
                 <TabsTrigger
                   value="overview"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:bg-transparent"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
                 >
                   Overview
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviews"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:bg-transparent"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
                 >
                   Reviews
                 </TabsTrigger>
                 <TabsTrigger
                   value="achievements"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:bg-transparent"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
                 >
                   Achievements{' '}
                   <Badge variant="secondary" className="ml-2">
@@ -248,7 +248,7 @@ export default function MentorProfilePage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="sessions"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:bg-transparent"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
                 >
                   Group sessions
                 </TabsTrigger>
@@ -266,7 +266,7 @@ export default function MentorProfilePage() {
                           {mentor.fullBio && mentor.fullBio !== mentor.bio && (
                             <button
                               onClick={() => setShowFullBio(!showFullBio)}
-                              className="text-teal-600 hover:text-teal-700 font-medium mt-2"
+                              className="text-brand hover:text-brand/90 font-medium mt-2"
                             >
                               {showFullBio ? 'Show less' : 'Show more'}
                             </button>
@@ -279,7 +279,7 @@ export default function MentorProfilePage() {
                     {mentor.profileInsights && mentor.profileInsights.length > 0 && (
                       <Card className="rounded-2xl shadow-sm">
                         <CardContent className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-4">
+                          <h3 className="text-xl font-bold text-brand-dark mb-4">
                             Profile insights
                           </h3>
                           <div className="space-y-4">
@@ -304,7 +304,7 @@ export default function MentorProfilePage() {
                     {/* Background Section */}
                     <Card className="rounded-2xl shadow-sm">
                       <CardContent className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4">Background</h3>
+                        <h3 className="text-xl font-bold text-brand-dark mb-4">Background</h3>
 
                         {/* Expertise */}
                         <div className="mb-6">
@@ -356,7 +356,7 @@ export default function MentorProfilePage() {
                     <Card className="rounded-2xl shadow-sm">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-2 mb-4">
-                          <h3 className="text-xl font-bold text-gray-900">Experience</h3>
+                          <h3 className="text-xl font-bold text-brand-dark">Experience</h3>
                           <Badge variant="secondary">
                             {mentor.experience.length}
                           </Badge>
@@ -364,8 +364,8 @@ export default function MentorProfilePage() {
                         <div className="space-y-4">
                           {mentor.experience.map((exp, idx) => (
                             <div key={idx} className="flex gap-4">
-                              <div className="p-3 bg-teal-100 rounded-lg h-fit">
-                                <Briefcase className="h-5 w-5 text-teal-700" />
+                              <div className="p-3 bg-brand-light/20 rounded-lg h-fit">
+                                <Briefcase className="h-5 w-5 text-brand" />
                               </div>
                               <div className="flex-1">
                                 <h4 className="font-semibold text-gray-900">{exp.title}</h4>
@@ -389,7 +389,7 @@ export default function MentorProfilePage() {
                     {mentor.education && mentor.education.length > 0 && (
                       <Card className="rounded-2xl shadow-sm">
                         <CardContent className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-4">Education</h3>
+                          <h3 className="text-xl font-bold text-brand-dark mb-4">Education</h3>
                           <div className="space-y-4">
                             {mentor.education.map((edu, idx) => (
                               <div key={idx} className="flex gap-4">
@@ -416,7 +416,7 @@ export default function MentorProfilePage() {
                         <div className="mb-6">
                           <div className="flex items-center gap-4 mb-4">
                             <div className="text-center">
-                              <div className="text-4xl font-bold text-gray-900">
+                              <div className="text-4xl font-bold text-brand-dark">
                                 {mentor.rating}
                               </div>
                               <div className="flex items-center gap-1 mt-1">
@@ -500,7 +500,7 @@ export default function MentorProfilePage() {
                     {mentor.achievements?.sessionMilestones && (
                       <Card className="rounded-2xl shadow-sm">
                         <CardContent className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-6">
+                          <h3 className="text-xl font-bold text-brand-dark mb-6">
                             Session Milestones
                           </h3>
                           <div className="space-y-4">
@@ -513,7 +513,7 @@ export default function MentorProfilePage() {
                                   <h4 className="font-semibold text-gray-900">
                                     {milestone.title}
                                   </h4>
-                                  <button className="text-sm text-teal-600 hover:underline">
+                                  <button className="text-sm text-brand hover:underline">
                                     See credentials →
                                   </button>
                                 </div>
@@ -529,7 +529,7 @@ export default function MentorProfilePage() {
                     {mentor.achievements?.communityRecognition && (
                       <Card className="rounded-2xl shadow-sm">
                         <CardContent className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-6">
+                          <h3 className="text-xl font-bold text-brand-dark mb-6">
                             Community Recognition
                           </h3>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -554,7 +554,7 @@ export default function MentorProfilePage() {
                                   <p className="text-sm text-yellow-600 font-medium mb-2">
                                     {badge.date}
                                   </p>
-                                  <button className="text-sm text-teal-600 hover:underline">
+                                  <button className="text-sm text-brand hover:underline">
                                     See credentials →
                                   </button>
                                 </div>
@@ -583,8 +583,8 @@ export default function MentorProfilePage() {
             <Card className="rounded-2xl shadow-sm bg-white">
               <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">Community statistics</h3>
-                    <button className="text-sm text-teal-600 hover:underline">
+                    <h3 className="text-lg font-bold text-brand-dark">Community statistics</h3>
+                    <button className="text-sm text-brand hover:underline">
                       See more
                     </button>
                   </div>
@@ -594,7 +594,7 @@ export default function MentorProfilePage() {
                         <Rocket className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-2xl font-bold text-brand-dark">
                           {mentor.totalMentoringTime} mins
                         </p>
                         <p className="text-sm text-gray-600">Total mentoring time</p>
@@ -605,7 +605,7 @@ export default function MentorProfilePage() {
                         <Star className="h-6 w-6 text-red-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-2xl font-bold text-brand-dark">
                           {mentor.sessionsCompleted}
                         </p>
                         <p className="text-sm text-gray-600">Sessions completed</p>
@@ -619,7 +619,7 @@ export default function MentorProfilePage() {
               {availableSlots && availableSlots.length > 0 && (
                 <Card className="rounded-2xl shadow-sm bg-white">
                   <CardContent className="p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    <h3 className="text-lg font-bold text-brand-dark mb-4">
                       Available sessions
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
@@ -649,24 +649,24 @@ export default function MentorProfilePage() {
                               }}
                               className={`p-3 rounded-lg border-2 text-center transition-colors ${
                                 selectedDate === slot.date
-                                  ? 'border-teal-600 bg-teal-50'
+                                  ? 'border-brand bg-brand-light/10'
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
                             >
                               <div className="text-xs text-gray-600 font-medium mb-1">
                                 {slot.dayName}
                               </div>
-                              <div className="text-lg font-bold text-gray-900 mb-1">
+                              <div className="text-lg font-bold text-brand-dark mb-1">
                                 {day} Oct
                               </div>
-                              <div className="text-xs text-teal-600 font-medium">
+                              <div className="text-xs text-brand font-medium">
                                 {slot.slots.length} slots
                               </div>
                             </button>
                           );
                         })}
                       </div>
-                      <button className="text-sm text-teal-600 hover:underline mt-3 w-full text-center">
+                      <button className="text-sm text-brand hover:underline mt-3 w-full text-center">
                         View all →
                       </button>
                     </div>
@@ -685,7 +685,7 @@ export default function MentorProfilePage() {
                               onClick={() => setSelectedTimeSlot(time)}
                               className={`p-2 rounded-lg border-2 text-sm font-medium transition-colors ${
                                 selectedTimeSlot === time
-                                  ? 'border-teal-600 bg-teal-50 text-teal-700'
+                                  ? 'border-brand bg-brand-light/10 text-brand'
                                   : 'border-gray-200 hover:border-gray-300 text-gray-700'
                               }`}
                             >
@@ -699,7 +699,7 @@ export default function MentorProfilePage() {
                     {/* Book Button */}
                     <Button
                       onClick={handleBooking}
-                      className="w-full bg-teal-600 hover:bg-teal-700 py-6 text-lg font-medium"
+                      className="w-full bg-brand hover:bg-brand/90 py-6 text-lg font-medium"
                     >
                       Book Session for {selectedDate && new Date(selectedDate).getDate()} Oct{' '}
                       2025
@@ -712,7 +712,7 @@ export default function MentorProfilePage() {
               <Card className="rounded-2xl shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">Similar mentor profiles</h3>
+                    <h3 className="text-lg font-bold text-brand-dark">Similar mentor profiles</h3>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm">
                         <ChevronLeft className="h-4 w-4" />

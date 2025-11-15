@@ -77,7 +77,7 @@ export function FeedbackDialog({ open, onOpenChange, bookingId, mentorId, mentor
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-          <Button className="bg-teal-600 hover:bg-teal-700" onClick={submit} disabled={isSubmitting}>Submit</Button>
+          <Button className="bg-brand hover:bg-brand/90" onClick={submit} disabled={isSubmitting}>Submit</Button>
         </div>
       </DialogContent>
     </Dialog>

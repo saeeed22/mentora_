@@ -67,7 +67,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Mentor Connect KU</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">Mentor Connect KU</h1>
           <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
 
@@ -148,7 +148,7 @@ export default function LoginPage() {
                     id="remember"
                     name="remember"
                     type="checkbox"
-                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded"
                   />
                   <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
                     Remember me
@@ -156,7 +156,7 @@ export default function LoginPage() {
                 </div>
                 <Link
                   href="/reset-password"
-                  className="text-sm text-teal-600 hover:text-teal-500"
+                  className="text-sm text-brand hover:text-brand/90"
                 >
                   Forgot password?
                 </Link>
@@ -164,7 +164,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-teal-600 hover:bg-teal-700"
+                className="w-full bg-brand hover:bg-brand/90"
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
@@ -175,7 +175,7 @@ export default function LoginPage() {
               <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
               <Link
                 href="/signup"
-                className="text-sm text-teal-600 hover:text-teal-500 font-medium"
+                className="text-sm text-brand hover:text-brand/90 font-medium"
               >
                 Sign up
               </Link>

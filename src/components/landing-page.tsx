@@ -95,9 +95,9 @@ const LandingPage = () => {
                   onClick={() => setActiveTab('mentee')}
                   className={`relative px-6 py-2 text-md font-medium transition-all duration-200 
                     ${activeTab === 'mentee'
-                      ? 'text-teal-600 after:w-full'
-                      : 'text-gray-900 hover:text-teal-600 after:w-0'}
-                    after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-teal-600 after:transition-all after:duration-200`}
+                      ? 'text-brand after:w-full'
+                      : 'text-brand-dark hover:text-brand after:w-0'}
+                    after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-brand after:transition-all after:duration-200`}
                   role="tab"
                   aria-selected={activeTab === 'mentee'}
                 >
@@ -107,9 +107,9 @@ const LandingPage = () => {
                   onClick={() => setActiveTab('mentor')}
                   className={`relative px-6 py-2 text-md font-medium transition-all duration-200 
                     ${activeTab === 'mentor'
-                      ? 'text-teal-600 after:w-full'
-                      : 'text-gray-900 hover:text-teal-600 after:w-0'}
-                    after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-teal-600 after:transition-all after:duration-200`}
+                      ? 'text-brand after:w-full'
+                      : 'text-brand-dark hover:text-brand after:w-0'}
+                    after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-brand after:transition-all after:duration-200`}
                   role="tab"
                   aria-selected={activeTab === 'mentor'}
                 >
@@ -122,7 +122,7 @@ const LandingPage = () => {
             <div className="tab-content">
               {activeTab === 'mentee' && (
                 <div className="fade-in">
-                  <h1 className="mb-6 text-gray-900 font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
+                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
                     Reach your goals faster with expert mentors
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-lg md:text-lg lg:max-w-xl">
@@ -132,7 +132,7 @@ const LandingPage = () => {
                   <div className="max-w-md mx-auto">
                     <Link href="/explore">
                       <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <Search className="h-6 w-6 text-teal-600 mr-3" />
+                        <Search className="h-6 w-6 text-brand mr-3" />
                         <span className="text-sm text-gray-500 flex-1 text-left truncate">
                           What do you want to get better at?
                         </span>
@@ -146,7 +146,7 @@ const LandingPage = () => {
               )}
               {activeTab === 'mentor' && (
                 <div className="fade-in">
-                  <h1 className="mb-6 text-gray-900 font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
+                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
                     Your next chapter, made possible by mentoring
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-xl md:text-lg">
@@ -275,7 +275,7 @@ const LandingPage = () => {
         {/* Stats Section */}
         <div className="px-4 md:px-12 lg:px-20 py-20 bg-gradient-to-r from-red-50 via-pink-200 to-blue-300 my-18">
           <div className="flex flex-col items-center text-center">
-            <h2 className="mb-12 font-bold text-gray-900 text-3xl">A platform that delivers results</h2>
+            <h2 className="mb-12 font-bold text-brand-dark text-3xl">A platform that delivers results</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-4 lg:gap-6">
             <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg">

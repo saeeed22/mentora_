@@ -83,7 +83,7 @@ export default function SignupPage() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Mentor Connect KU</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">Mentor Connect KU</h1>
           <p className="mt-2 text-gray-600">Create your account</p>
         </div>
 
@@ -216,15 +216,15 @@ export default function SignupPage() {
                   name="terms"
                   type="checkbox"
                   required
-                  className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded mt-1"
+                  className="h-4 w-4 text-brand focus:ring-brand border-gray-300 rounded mt-1"
                 />
                 <label htmlFor="terms" className="text-sm text-gray-700">
                   I agree to the{' '}
-                  <Link href="#" className="text-teal-600 hover:text-teal-500">
+                  <Link href="#" className="text-brand hover:text-brand/90">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link href="#" className="text-teal-600 hover:text-teal-500">
+                  <Link href="#" className="text-brand hover:text-brand/90">
                     Privacy Policy
                   </Link>
                 </label>
@@ -232,7 +232,7 @@ export default function SignupPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-teal-600 hover:bg-teal-700"
+                className="w-full bg-brand hover:bg-brand/90"
                 disabled={isLoading}
               >
                 {isLoading ? 'Creating account...' : 'Create account'}
@@ -243,7 +243,7 @@ export default function SignupPage() {
               <span className="text-sm text-gray-600">Already have an account? </span>
               <Link
                 href="/login"
-                className="text-sm text-teal-600 hover:text-teal-500 font-medium"
+                className="text-sm text-brand hover:text-brand/90 font-medium"
               >
                 Sign in
               </Link>

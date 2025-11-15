@@ -64,7 +64,7 @@ export default function SessionPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto"></div>
           <p className="mt-4 text-gray-600">Preparing your session...</p>
         </div>
       </div>
@@ -76,9 +76,9 @@ export default function SessionPage() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <Card className="rounded-2xl shadow-sm max-w-lg w-full">
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access denied</h2>
+            <h2 className="text-2xl font-bold text-brand-dark mb-2">Access denied</h2>
             <p className="text-gray-600 mb-6">You are not a participant in this session.</p>
-            <Button onClick={() => router.push('/bookings')} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => router.push('/bookings')} className="bg-brand hover:bg-brand/90">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to bookings
             </Button>
           </CardContent>
@@ -92,9 +92,9 @@ export default function SessionPage() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <Card className="rounded-2xl shadow-sm max-w-lg w-full">
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Session not found</h2>
+            <h2 className="text-2xl font-bold text-brand-dark mb-2">Session not found</h2>
             <p className="text-gray-600 mb-6">This session does not exist or was removed.</p>
-            <Button onClick={() => router.push('/bookings')} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => router.push('/bookings')} className="bg-brand hover:bg-brand/90">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to bookings
             </Button>
           </CardContent>
@@ -115,7 +115,7 @@ export default function SessionPage() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Live Session</h1>
+            <h1 className="text-2xl font-bold text-brand-dark">Live Session</h1>
             <p className="text-gray-600 text-sm">
               {sessionDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </p>
@@ -134,7 +134,7 @@ export default function SessionPage() {
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={otherParty && 'avatar' in otherParty ? otherParty.avatar : undefined} alt={otherParty?.name || 'Participant'} />
-              <AvatarFallback className="bg-teal-100 text-teal-700">{otherParty?.name ? getInitials(otherParty.name) : '?'}</AvatarFallback>
+              <AvatarFallback className="bg-brand-light/20 text-brand">{otherParty?.name ? getInitials(otherParty.name) : '?'}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <p className="text-sm text-gray-600">Session with</p>

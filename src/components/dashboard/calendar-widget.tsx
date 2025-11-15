@@ -125,7 +125,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <h3 className="text-base font-bold text-gray-900">
+          <h3 className="text-base font-bold text-brand-dark">
             {formatDateRange()}
           </h3>
           
@@ -150,14 +150,14 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
                     text-base font-semibold transition-colors
                     ${today 
                       ? 'bg-gray-900 text-white' 
-                      : (bookingsByDate.get(localDateKey(date)) ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'text-gray-700 hover:bg-gray-100')
+                      : (bookingsByDate.get(localDateKey(date)) ? 'bg-brand-light/10 text-brand border border-brand-light/30' : 'text-gray-700 hover:bg-gray-100')
                     }
                   `}
                 >
                   {date.getDate()}
                 </div>
                 {bookingsByDate.get(localDateKey(date)) && (
-                  <div className="mt-1 h-1 w-1 mx-auto rounded-full bg-teal-600" />
+                  <div className="mt-1 h-1 w-1 mx-auto rounded-full bg-brand" />
                 )}
               </div>
             );
@@ -172,14 +172,14 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
         }).length === 0 ? (
           <div className="bg-gray-50 rounded-xl p-6 mb-4">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-teal-50 rounded-lg">
-                <CalendarIcon className="h-6 w-6 text-teal-600" />
+              <div className="p-3 bg-brand-light/10 rounded-lg">
+                <CalendarIcon className="h-6 w-6 text-brand" />
               </div>
               <div className="flex-1">
                 <p className="text-gray-600 mb-2">You have no sessions this week</p>
                 <Link 
                   href={userRole === 'mentor' ? '/availability' : '/explore'} 
-                  className="text-teal-600 hover:text-teal-700 font-semibold"
+                  className="text-brand hover:text-brand/90 font-semibold"
                 >
                   {userRole === 'mentor' ? 'Set availability' : 'Book a session'}
                 </Link>
@@ -224,7 +224,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
             <Bell className="h-4 w-4 text-gray-600" />
             <span>Get notified for your sessions</span>
           </div>
-          <button className="text-sm font-semibold text-teal-600 hover:text-teal-700">
+          <button className="text-sm font-semibold text-brand hover:text-brand/90">
             Allow
           </button>
         </div>

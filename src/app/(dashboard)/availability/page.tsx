@@ -150,7 +150,7 @@ export default function AvailabilityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Availability</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">Availability</h1>
           <p className="text-gray-600 mt-1">
             Manage your mentoring schedule and availability
           </p>
@@ -163,7 +163,7 @@ export default function AvailabilityPage() {
           <Button 
             onClick={handleSave}
             disabled={!hasChanges}
-            className="bg-teal-600 hover:bg-teal-700"
+            className="bg-brand hover:bg-brand/90"
           >
             <Save className="w-4 h-4 mr-2" />
             Save Changes

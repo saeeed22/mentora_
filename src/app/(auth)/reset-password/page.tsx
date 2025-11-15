@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Mentor Connect KU</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">Mentor Connect KU</h1>
           <p className="mt-2 text-gray-600">Reset your password</p>
         </div>
 
@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-teal-600 hover:bg-teal-700"
+                  className="w-full bg-brand hover:bg-brand/90"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Sending reset link...' : 'Send reset link'}
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
             <div className="text-center">
               <Link
                 href="/login"
-                className="text-sm text-teal-600 hover:text-teal-500 font-medium"
+                className="text-sm text-brand hover:text-brand/90 font-medium"
               >
                 ← Back to sign in
               </Link>

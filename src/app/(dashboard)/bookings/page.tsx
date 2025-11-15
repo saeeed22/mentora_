@@ -148,7 +148,7 @@ export default function BookingsPage() {
             <div className="flex items-start space-x-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={displayAvatar} alt={displayName} />
-                <AvatarFallback className="bg-teal-100 text-teal-700">
+                <AvatarFallback className="bg-brand-light/20 text-brand">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
@@ -223,7 +223,7 @@ export default function BookingsPage() {
           {booking.status === 'confirmed' && (
             <div className="flex space-x-3 mt-4">
               {canJoin && (
-                <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => handleJoinSession(booking)}>
+                <Button className="bg-brand hover:bg-brand/90" onClick={() => handleJoinSession(booking)}>
                   <Video className="w-4 h-4 mr-2" />
                   Join Session
                 </Button>
@@ -240,7 +240,7 @@ export default function BookingsPage() {
 
           {booking.status === 'completed' && !booking.feedback && (
             <div className="flex space-x-3 mt-4">
-              <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>
+              <Button className="bg-brand hover:bg-brand/90" onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>
                 <Star className="w-4 h-4 mr-2" />
                 Leave Feedback
               </Button>
@@ -280,7 +280,7 @@ export default function BookingsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading bookings...</p>
         </div>
       </div>
@@ -292,12 +292,12 @@ export default function BookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">My Bookings</h1>
           <p className="text-gray-600 mt-1">
             Manage your mentoring sessions and appointments
           </p>
         </div>
-        <Button className="bg-teal-600 hover:bg-teal-700" asChild>
+        <Button className="bg-brand hover:bg-brand/90" asChild>
           <Link href="/explore">
             <Calendar className="w-4 h-4 mr-2" />
             Book New Session
@@ -330,7 +330,7 @@ export default function BookingsPage() {
                 <p className="text-gray-600 mb-4">
                   You don&apos;t have any scheduled sessions. Book a session with a mentor to get started.
                 </p>
-                <Button className="bg-teal-600 hover:bg-teal-700" asChild>
+                <Button className="bg-brand hover:bg-brand/90" asChild>
                   <Link href="/explore">Explore Mentors</Link>
                 </Button>
               </CardContent>

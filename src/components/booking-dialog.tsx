@@ -139,17 +139,17 @@ export function BookingDialog({
 
         <div className="space-y-6 py-4">
           {/* Selected Date & Time */}
-          <div className="space-y-3 p-4 bg-teal-50 rounded-lg border border-teal-100">
+          <div className="space-y-3 p-4 bg-brand-light/10 rounded-lg border border-brand-light/30">
             <div className="flex items-center text-sm text-gray-700">
-              <Calendar className="h-4 w-4 mr-2 text-teal-600" />
+              <Calendar className="h-4 w-4 mr-2 text-brand" />
               <span className="font-medium">{selectedDate ? formatDate(selectedDate) : 'No date selected'}</span>
             </div>
             <div className="flex items-center text-sm text-gray-700">
-              <Clock className="h-4 w-4 mr-2 text-teal-600" />
+              <Clock className="h-4 w-4 mr-2 text-brand" />
               <span className="font-medium">{selectedTimeSlot || 'No time selected'}</span>
             </div>
             <div className="flex items-center text-sm text-gray-700">
-              <Video className="h-4 w-4 mr-2 text-teal-600" />
+              <Video className="h-4 w-4 mr-2 text-brand" />
               <span className="font-medium">60 minutes via video call</span>
             </div>
           </div>
@@ -210,7 +210,7 @@ export function BookingDialog({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedDate || !selectedTimeSlot || !topic.trim()}
-            className="bg-teal-600 hover:bg-teal-700"
+            className="bg-brand hover:bg-brand/90"
           >
             {isSubmitting ? 'Booking...' : 'Confirm Booking'}
           </Button>

@@ -115,7 +115,7 @@ export default function MessagesPage() {
             <div
               key={conversation.id}
               className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedConversation?.id === conversation.id ? 'bg-teal-50 border-r-2 border-teal-600' : ''
+                selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
               }`}
               onClick={() => {
                 setSelectedConversation(conversation);
@@ -126,7 +126,7 @@ export default function MessagesPage() {
                 <div className="relative">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={avatar} alt={displayName} />
-                    <AvatarFallback className="bg-teal-100 text-teal-700">
+                    <AvatarFallback className="bg-brand-light/20 text-brand">
                       {getInitials(displayName)}
                     </AvatarFallback>
                   </Avatar>
@@ -169,7 +169,7 @@ export default function MessagesPage() {
                         const name = other?.name || 'Participant';
                         return <>
                           <AvatarImage src={avatar} alt={name} />
-                          <AvatarFallback className="bg-teal-100 text-teal-700">{getInitials(name)}</AvatarFallback>
+                          <AvatarFallback className="bg-brand-light/20 text-brand">{getInitials(name)}</AvatarFallback>
                         </>;
                       })()}
                     </Avatar>
@@ -222,14 +222,14 @@ export default function MessagesPage() {
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
                       isYou
-                        ? 'bg-teal-600 text-white'
+                        ? 'bg-brand text-white'
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
                     <p className="text-sm">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isYou ? 'text-teal-100' : 'text-gray-500'
+                        isYou ? 'text-white/90' : 'text-gray-500'
                       }`}
                     >
                       {time}
@@ -263,7 +263,7 @@ export default function MessagesPage() {
                 <Button 
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="bg-teal-600 hover:bg-teal-700"
+                  className="bg-brand hover:bg-brand/90"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

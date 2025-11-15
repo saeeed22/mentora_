@@ -27,7 +27,7 @@ export default function LandingHeader() {
           <Button 
             variant="outline" 
             size="lg" 
-            className="border-[#05051B] hover:text-white hover:bg-[#05051B]"
+            className="border-brand-dark hover:text-white hover:bg-brand-dark"
             asChild
           >
             <Link href="/login">Log in</Link>
@@ -35,7 +35,7 @@ export default function LandingHeader() {
           <Button 
             variant="default" 
             size="lg" 
-            className="hover:bg-[#077E7E]"
+            className="bg-brand hover:bg-brand/90"
             asChild
           >
             <Link href="/signup">Get started today</Link>
@@ -82,14 +82,14 @@ export default function LandingHeader() {
         <div className="flex flex-col items-center gap-4 p-4">
           <Button 
             variant="outline" 
-            className="w-full border-[#05051B] hover:text-white hover:bg-[#05051B] py-6"
+            className="w-full border-brand-dark hover:text-white hover:bg-brand-dark py-6"
             asChild
           >
             <Link href="/login">Log in</Link>
           </Button>
           <Button 
             variant="default" 
-            className="w-full hover:bg-[#077E7E] py-6"
+            className="w-full bg-brand hover:bg-brand/90 py-6"
             asChild
           >
             <Link href="/signup">Sign up</Link>

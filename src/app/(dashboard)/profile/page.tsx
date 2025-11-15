@@ -122,7 +122,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+          <h1 className="text-3xl font-bold text-brand-dark">Profile</h1>
           <p className="text-gray-600 mt-1">
             Manage your profile information and preferences
           </p>
@@ -133,12 +133,12 @@ export default function ProfilePage() {
               <Button variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700">
+              <Button onClick={handleSave} className="bg-brand hover:bg-brand/90">
                 Save Changes
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => setIsEditing(true)} className="bg-brand hover:bg-brand/90">
               Edit Profile
             </Button>
           )}
@@ -152,7 +152,7 @@ export default function ProfilePage() {
             <div className="relative mx-auto">
               <Avatar className="h-32 w-32 mx-auto">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl">
+                <AvatarFallback className="bg-brand-light/20 text-brand text-2xl">
                   {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>

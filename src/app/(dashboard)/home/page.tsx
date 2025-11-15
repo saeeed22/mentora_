@@ -140,7 +140,7 @@ export default function DashboardHomePage() {
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-brand-dark">
             Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {user.name}👋!
           </h1>
           <p className="text-gray-600 mt-1">
@@ -175,7 +175,7 @@ export default function DashboardHomePage() {
                   <span className="text-sm font-medium text-gray-700">50% completed</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-teal-600 h-2 rounded-full" style={{ width: '50%' }} />
+                  <div className="bg-brand h-2 rounded-full" style={{ width: '50%' }} />
                 </div>
 
                 {/* Task List */}
@@ -190,7 +190,7 @@ export default function DashboardHomePage() {
                   <div className="flex items-center gap-3">
                     <div className="h-5 w-5 rounded-full border-2 border-gray-300 flex-shrink-0" />
                     <div className="flex-1">
-                      <Link href="/bookings" className="text-teal-600 hover:text-teal-700 font-medium">
+                      <Link href="/bookings" className="text-brand hover:text-brand/90 font-medium">
                         Book your first session
                       </Link>
                       <span className="text-gray-500"> — Learn/network with mentors.</span>
@@ -215,7 +215,7 @@ export default function DashboardHomePage() {
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                     <p>No upcoming sessions</p>
-                    <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm" asChild>
+                    <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
                       <Link href="/explore">Book a session</Link>
                     </Button>
                   </div>
@@ -234,7 +234,7 @@ export default function DashboardHomePage() {
                           {session.date} at {session.time}
                         </div>
                       </div>
-                      <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => router.push(`/session/${session.id}`)}>
+                      <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
                         <Video className="w-4 h-4 mr-1" />
                         Join
                       </Button>
@@ -297,7 +297,7 @@ export default function DashboardHomePage() {
               <div className="text-center py-8 text-gray-500">
                 <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                 <p>No upcoming sessions</p>
-                <Button className="mt-4 bg-teal-600 hover:bg-teal-700" size="sm" asChild>
+                <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
                   <Link href={user.role === 'mentor' ? '/availability' : '/explore'}>
                     {user.role === 'mentor' ? 'Set availability' : 'Book a session'}
                   </Link>
@@ -318,7 +318,7 @@ export default function DashboardHomePage() {
                       {session.date} at {session.time}
                     </div>
                   </div>
-                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => router.push(`/session/${session.id}`)}>
+                  <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
                     <Video className="w-4 h-4 mr-1" />
                     Join
                   </Button>
@@ -338,7 +338,7 @@ export default function DashboardHomePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Suggested Mentors</h2>
+              <h2 className="text-xl font-bold text-brand-dark">Suggested Mentors</h2>
               <p className="text-sm text-gray-600">Mentors that match your interests</p>
             </div>
             <Button variant="ghost" size="sm">

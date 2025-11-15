@@ -89,12 +89,12 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
                 className={`
                   group flex flex-col items-center justify-center px-2 py-3 text-[11px] font-medium rounded-lg transition-colors
                   ${isActive
-                    ? 'bg-teal-50 text-teal-700'
+                    ? 'bg-brand-light/10 text-brand'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
               >
-                <Icon className={`${isActive ? 'text-teal-600' : 'text-gray-400 group-hover:text-gray-500'} h-5 w-5 mb-1`} />
+                <Icon className={`${isActive ? 'text-brand' : 'text-gray-400 group-hover:text-gray-500'} h-5 w-5 mb-1`} />
                 <span className="leading-none text-center">{item.name}</span>
               </Link>
             );

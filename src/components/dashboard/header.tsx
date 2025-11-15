@@ -14,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User } from '@/lib/mock-auth';
 
@@ -54,14 +53,6 @@ export function Header({ user }: HeaderProps) {
   const [notifications] = useState(mockNotifications);
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-  };
-
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -92,7 +83,7 @@ export function Header({ user }: HeaderProps) {
         <div className="flex items-center space-x-4">
           {/* Book Session Button - Only for mentees */}
           {user.role === 'mentee' && (
-            <Button className="bg-teal-600 hover:bg-teal-700" asChild aria-label="Book a session">
+            <Button className="bg-brand hover:bg-brand/90" asChild aria-label="Book a session">
               <Link href="/explore">
                 <Calendar className="w-4 h-4 mr-2" />
                 Book Session
@@ -139,7 +130,7 @@ export function Header({ user }: HeaderProps) {
                     >
                       <div className="flex items-start space-x-3 w-full">
                         <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                          !notification.read ? 'bg-teal-600' : 'bg-gray-300'
+                          !notification.read ? 'bg-brand' : 'bg-gray-300'
                         }`} />
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm ${
@@ -161,51 +152,8 @@ export function Header({ user }: HeaderProps) {
               )}
               
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-center text-teal-600 hover:text-teal-700">
+              <DropdownMenuItem className="text-center text-brand hover:text-brand/90">
                 <span className="w-full text-sm">View all notifications</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="bg-teal-100 text-teal-700">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                  <Badge variant="outline" className="w-fit text-xs capitalize mt-1">
-                    {user.role}
-                  </Badge>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link href={`/profile`}>
-                Profile Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Account Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Help & Support
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
-                Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
