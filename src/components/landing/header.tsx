@@ -1,13 +1,19 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from 'lucide-react'
+import { mockAuth } from '@/lib/mock-auth'
 
 export default function LandingHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    setIsAuthenticated(mockAuth.isAuthenticated())
+  }, [])
 
   return (
     <header className="w-full bg-white shadow py-1 px-6 sticky top-0 z-50">
@@ -24,22 +30,35 @@ export default function LandingHeader() {
         </Link>
 
         <div className="hidden lg:flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="border-brand-dark hover:text-white hover:bg-brand-dark"
-            asChild
-          >
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button 
-            variant="default" 
-            size="lg" 
-            className="bg-brand hover:bg-brand/90"
-            asChild
-          >
-            <Link href="/signup">Get started today</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="bg-brand hover:bg-brand/90"
+              asChild
+            >
+              <Link href="/home">Go to Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-brand-dark hover:text-white hover:bg-brand-dark"
+                asChild
+              >
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button 
+                variant="default" 
+                size="lg" 
+                className="bg-brand hover:bg-brand/90"
+                asChild
+              >
+                <Link href="/signup">Get started today</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Hamburger Icon (visible on screens smaller than 1000px) */}
@@ -80,20 +99,32 @@ export default function LandingHeader() {
           </Button>
         </div>
         <div className="flex flex-col items-center gap-4 p-4">
-          <Button 
-            variant="outline" 
-            className="w-full border-brand-dark hover:text-white hover:bg-brand-dark py-6"
-            asChild
-          >
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button 
-            variant="default" 
-            className="w-full bg-brand hover:bg-brand/90 py-6"
-            asChild
-          >
-            <Link href="/signup">Sign up</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button 
+              variant="default" 
+              className="w-full bg-brand hover:bg-brand/90 py-6"
+              asChild
+            >
+              <Link href="/home">Go to Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                className="w-full border-brand-dark hover:text-white hover:bg-brand-dark py-6"
+                asChild
+              >
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button 
+                variant="default" 
+                className="w-full bg-brand hover:bg-brand/90 py-6"
+                asChild
+              >
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

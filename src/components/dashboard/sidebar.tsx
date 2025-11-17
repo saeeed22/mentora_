@@ -72,10 +72,10 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
   };
 
   return (
-    <div className="w-20 bg-white shadow-sm border-r border-gray-200 flex flex-col items-center pt-2">
+    <div className="w-20 h-screen bg-white shadow-sm border-r border-gray-200 flex flex-col items-center pt-2 sticky top-0">
 
       {/* Navigation (icons with labels below) */}
-      <nav className="flex-1 w-full px-2 py-4 space-y-2">
+      <nav className="w-full px-2 py-4 space-y-2">
         {navItems
           .filter(item => !item.mentorOnly || user.role === 'mentor')
           .map((item) => {
@@ -99,19 +99,21 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
               </Link>
             );
           })}
+        
+        {/* Logout Button - Below Profile */}
+        <div className="pt-2">
+          <button
+            onClick={handleLogout}
+            className="group flex flex-col items-center justify-center px-2 py-3 text-[11px] font-medium rounded-lg transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full"
+          >
+            <LogOut className="text-gray-400 group-hover:text-red-500 h-5 w-5 mb-1" />
+            <span className="leading-none text-center">Logout</span>
+          </button>
+        </div>
       </nav>
 
-      {/* Bottom Section */}
-      <div className="p-2 w-full border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className="w-full justify-center text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="sr-only">Logout</span>
-        </Button>
-      </div>
+      {/* Spacer to push content */}
+      <div className="flex-1"></div>
     </div>
   );
 }

@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Bell, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { bookings } from '@/lib/api/bookings';
 import { auth } from '@/lib/api/auth';
 import { mentors } from '@/lib/api/mentors';
 import { mockUsers } from '@/lib/mock-auth';
-import type { Booking } from '@/lib/types';
+import { availability } from '@/lib/api/availability';
+import type { Booking, AvailabilitySlot } from '@/lib/types';
 
 interface CalendarWidgetProps {
   userRole: 'mentor' | 'mentee';
@@ -18,12 +19,19 @@ interface CalendarWidgetProps {
 export function CalendarWidget({ userRole }: CalendarWidgetProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
 
   useEffect(() => {
     const currentUser = auth.getCurrentUser();
     if (!currentUser) return;
     const list = bookings.listForUser(currentUser.id, currentUser.role);
     setUserBookings(list);
+
+    // For mentors, load their availability schedule
+    if (currentUser.role === 'mentor') {
+      const slots = availability.getGeneratedSlots(currentUser.id, 28);
+      setAvailabilitySlots(slots);
+    }
 
     // Auto-jump to the week of the next upcoming booking (confirmed/pending)
     const upcoming = list
@@ -85,6 +93,21 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
     }
     return map;
   }, [userBookings, weekDates]);
+
+  const availabilityByDate = useMemo(() => {
+    const map = new Map<string, AvailabilitySlot>();
+    const start = new Date(weekDates[0]);
+    const end = new Date(weekDates[6]);
+    end.setHours(23, 59, 59, 999);
+    for (const slot of availabilitySlots) {
+      const d = new Date(slot.date);
+      const isInThisWeek = d >= start && d <= end;
+      if (isInThisWeek && slot.slots.length > 0) {
+        map.set(slot.date, slot);
+      }
+    }
+    return map;
+  }, [availabilitySlots, weekDates]);
   
   const previousWeek = () => {
     const newDate = new Date(currentWeekStart);
@@ -138,6 +161,9 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
         <div className="grid grid-cols-7 gap-2 mb-6">
           {weekDates.map((date, index) => {
             const today = isToday(date);
+            const dateKey = localDateKey(date);
+            const hasBookings = bookingsByDate.get(dateKey);
+            const hasAvailability = userRole === 'mentor' && availabilityByDate.get(dateKey);
             
             return (
               <div key={index} className="text-center">
@@ -147,22 +173,58 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
                 <div
                   className={`
                     mx-auto w-10 h-10 flex items-center justify-center rounded-lg
-                    text-base font-semibold transition-colors
+                    text-base font-semibold transition-colors relative
                     ${today 
                       ? 'bg-gray-900 text-white' 
-                      : (bookingsByDate.get(localDateKey(date)) ? 'bg-brand-light/10 text-brand border border-brand-light/30' : 'text-gray-700 hover:bg-gray-100')
+                      : (hasBookings ? 'bg-brand-light/10 text-brand border border-brand-light/30' : 
+                         hasAvailability ? 'bg-green-50 text-green-700 border border-green-200' : 
+                         'text-gray-700 hover:bg-gray-100')
                     }
                   `}
                 >
                   {date.getDate()}
+                  {hasAvailability && !hasBookings && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white" />
+                  )}
                 </div>
-                {bookingsByDate.get(localDateKey(date)) && (
+                {hasBookings && (
                   <div className="mt-1 h-1 w-1 mx-auto rounded-full bg-brand" />
+                )}
+                {hasAvailability && !hasBookings && (
+                  <div className="mt-1 flex justify-center gap-0.5">
+                    <div className="h-0.5 w-0.5 rounded-full bg-green-500" />
+                    <div className="h-0.5 w-0.5 rounded-full bg-green-500" />
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
+
+        {/* Mentor Availability Summary */}
+        {userRole === 'mentor' && availabilitySlots.length > 0 && (
+          <div className="mb-4">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Clock className="h-5 w-5 text-green-700" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-green-900 mb-1">Availability Active</h4>
+                  <p className="text-xs text-green-700">
+                    {availabilitySlots.reduce((total, slot) => total + slot.slots.length, 0)} time slots available this month
+                  </p>
+                  <Link 
+                    href="/availability" 
+                    className="text-xs text-green-800 hover:text-green-900 font-medium inline-flex items-center mt-2"
+                  >
+                    Manage availability →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upcoming in this week */}
         {userBookings.filter(b => {
@@ -215,6 +277,25 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
                   </div>
                 );
               })}
+          </div>
+        )}
+
+        {/* Calendar Legend for Mentors */}
+        {userRole === 'mentor' && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="text-xs font-medium text-gray-600 mb-2">Calendar Legend:</div>
+            <div className="flex flex-wrap gap-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-brand-light/10 border border-brand-light/30 rounded"></div>
+                <span className="text-gray-600">Booked</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-green-50 border border-green-200 rounded relative">
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-gray-600">Available</span>
+              </div>
+            </div>
           </div>
         )}
 

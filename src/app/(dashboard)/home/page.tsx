@@ -206,8 +206,10 @@ export default function DashboardHomePage() {
                   <CardTitle className="text-xl">Upcoming Sessions</CardTitle>
                   <CardDescription>Your scheduled mentoring sessions</CardDescription>
                 </div>
-                <Button variant="ghost" size="sm">
-                  View all <ArrowRight className="ml-2 h-4 w-4" />
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/bookings">
+                    View all <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -288,8 +290,10 @@ export default function DashboardHomePage() {
               <CardTitle className="text-xl">Upcoming Sessions</CardTitle>
               <CardDescription>Your scheduled mentoring sessions</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">
-              View all <ArrowRight className="ml-2 h-4 w-4" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/bookings">
+                View all <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -341,8 +345,10 @@ export default function DashboardHomePage() {
               <h2 className="text-xl font-bold text-brand-dark">Suggested Mentors</h2>
               <p className="text-sm text-gray-600">Mentors that match your interests</p>
             </div>
-            <Button variant="ghost" size="sm">
-              View all <ArrowRight className="ml-2 h-4 w-4" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/explore">
+                View all <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </div>
           <div className="flex gap-6 overflow-x-auto pb-4 items-stretch">
@@ -360,8 +366,10 @@ export default function DashboardHomePage() {
               <CardTitle className="text-xl">Recent Activity</CardTitle>
               <CardDescription>Your recent mentoring activities</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">
-              View all <ArrowRight className="ml-2 h-4 w-4" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/bookings">
+                View all <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </CardHeader>
           <CardContent>

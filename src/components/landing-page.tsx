@@ -339,10 +339,15 @@ const LandingPage = () => {
             <input
               type="email"
               placeholder="Your email address"
-              className="w-full h-14 pl-12 pr-32 rounded-lg border border-gray-100 transition-colors duration-300"
+              className="w-full h-14 pl-12 pr-32 rounded-lg border border-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              aria-label="Email address for getting started"
             />
-            <Button variant="rainbow" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg h-10 px-6">
-              Get Started
+            <Button 
+              variant="rainbow" 
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg h-10 px-6"
+              asChild
+            >
+              <Link href="/signup">Get Started</Link>
             </Button>
           </div>
         </div>
