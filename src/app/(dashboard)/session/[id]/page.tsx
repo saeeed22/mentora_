@@ -103,7 +103,16 @@ export default function SessionPage() {
     );
   }
 
-  const joinUrl = booking.videoCallLink || `https://meet.jit.si/mentora-${booking.id}`;
+  // Build Jitsi URL with config to disable lobby and enable direct join
+  const roomName = `mentora-${booking.id}`;
+  const jitsiConfig = [
+    'config.prejoinPageEnabled=false',
+    'config.startWithAudioMuted=true',
+    'config.startWithVideoMuted=false',
+    'config.disableModeratorIndicator=true',
+    'config.enableLobbyChat=false',
+  ].join('&');
+  const joinUrl = booking.videoCallLink || `https://meet.jit.si/${roomName}#${jitsiConfig}`;
   const sessionDate = new Date(booking.datetime);
 
   return (
