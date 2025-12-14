@@ -1,4 +1,4 @@
-import { auth } from './auth';
+import { auth, CurrentUser } from './auth';
 import { mockUsers, User } from '../mock-auth';
 
 const STORAGE_KEY = 'currentUser';
@@ -9,10 +9,25 @@ type UpdateProfileInput = Partial<Pick<User,
   socialLinks?: { linkedin?: string; twitter?: string; portfolio?: string };
 };
 
+// Helper to convert CurrentUser to User-like object
+function currentUserToUser(cu: CurrentUser): User | null {
+  const mockUser = mockUsers.find(u => u.id === cu.id);
+  if (mockUser) return mockUser;
+  // Return a minimal User object for backend users
+  return {
+    id: cu.id,
+    email: cu.email,
+    name: cu.name,
+    role: cu.role as 'mentor' | 'mentee',
+    avatar: cu.avatar,
+    bio: cu.bio,
+  } as User;
+}
+
 export const profile = {
   getProfile(userId: string): User | null {
     const current = auth.getCurrentUser();
-    if (current && current.id === userId) return current;
+    if (current && current.id === userId) return currentUserToUser(current);
     const other = mockUsers.find(u => u.id === userId) || null;
     return other;
   },

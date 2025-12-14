@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockAuth, User } from '@/lib/mock-auth';
+import { auth, CurrentUser } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
 import { availability as availabilityApi } from '@/lib/api/availability';
 import { toast } from 'sonner';
@@ -49,12 +49,12 @@ const daysOfWeek = [
 
 export default function AvailabilityPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [availability, setAvailability] = useState(mockAvailability);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
+    const currentUser = auth.getCurrentUser();
     if (!currentUser) {
       router.push('/login');
       return;
@@ -160,7 +160,7 @@ export default function AvailabilityPage() {
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={!hasChanges}
             className="bg-brand hover:bg-brand/90"
@@ -286,7 +286,7 @@ export default function AvailabilityPage() {
         <CardContent className="space-y-4">
           {daysOfWeek.map((day) => {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
-            
+
             return (
               <div key={day.key} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">

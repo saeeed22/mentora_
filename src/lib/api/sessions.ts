@@ -94,7 +94,7 @@ export const sessions = {
             user: {
                 id: currentUser.id,
                 name: currentUser.name,
-                role: currentUser.role,
+                role: currentUser.role === 'admin' ? 'mentor' : currentUser.role,
                 avatar: currentUser.avatar,
             },
             participant: {

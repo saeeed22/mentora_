@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Camera, MapPin, Link as LinkIcon, Plus, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Camera, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,46 +10,57 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockAuth, User } from '@/lib/mock-auth';
-import { profile } from '@/lib/api/profile';
+import { auth, CurrentUser } from '@/lib/api/auth';
+import { users } from '@/lib/api/users';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
-    name: '',
+    full_name: '',
     bio: '',
-    title: '',
-    company: '',
-    location: '',
-    expertise: [] as string[],
-    socialLinks: {
-      linkedin: '',
-      twitter: '',
-      portfolio: '',
-    },
+    timezone: 'UTC',
+    languages: [] as string[],
   });
-  const [newSkill, setNewSkill] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
-    if (currentUser) {
+    const loadProfile = async () => {
+      const currentUser = auth.getCurrentUser();
+      if (!currentUser) {
+        setIsLoading(false);
+        return;
+      }
       setUser(currentUser);
-      setFormData({
-        name: currentUser.name,
-        bio: currentUser.bio || '',
-        title: currentUser.title || '',
-        company: currentUser.company || '',
-        location: currentUser.location || '',
-        expertise: currentUser.expertise || [],
-        socialLinks: {
-          linkedin: '',
-          twitter: '',
-          portfolio: '',
-        },
-      });
-    }
+      
+      // Try to fetch fresh profile from backend
+      const result = await users.getCurrentProfile();
+      if (result.success && result.data) {
+        const { profile } = result.data;
+        setFormData({
+          full_name: profile.full_name || currentUser.name,
+          bio: profile.bio || '',
+          timezone: profile.timezone || 'UTC',
+          languages: profile.languages || [],
+        });
+      } else {
+        // Use cached data
+        setFormData({
+          full_name: currentUser.name,
+          bio: currentUser.bio || '',
+          timezone: 'UTC',
+          languages: [],
+        });
+      }
+      setIsLoading(false);
+    };
+    loadProfile();
   }, []);
 
   const getInitials = (name: string) => {
@@ -60,60 +71,83 @@ export default function ProfilePage() {
       .toUpperCase();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
-    const updated = profile.updateProfile(user.id, {
-      name: formData.name,
+    setIsSaving(true);
+    
+    const result = await users.updateProfile({
+      full_name: formData.full_name,
       bio: formData.bio,
-      title: formData.title,
-      company: formData.company,
-      location: formData.location,
-      expertise: formData.expertise,
+      timezone: formData.timezone,
+      languages: formData.languages,
     });
-    if (updated) {
-      setUser(updated);
-      toast.success('Profile updated');
+    
+    if (result.success) {
+      await auth.refreshCurrentUser();
+      const updatedUser = auth.getCurrentUser();
+      if (updatedUser) setUser(updatedUser);
+      toast.success('Profile updated!');
     } else {
-      toast.error('Failed to update profile');
+      toast.error(result.error || 'Failed to update profile');
     }
+    setIsSaving(false);
     setIsEditing(false);
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploadingAvatar(true);
+    const result = await users.uploadAvatar(file);
+    
+    if (result.success) {
+      await auth.refreshCurrentUser();
+      const updatedUser = auth.getCurrentUser();
+      if (updatedUser) setUser(updatedUser);
+      toast.success('Avatar uploaded!');
+    } else {
+      toast.error(result.error || 'Failed to upload avatar');
+    }
+    setIsUploadingAvatar(false);
   };
 
   const handleCancel = () => {
     if (user) {
       setFormData({
-        name: user.name,
+        full_name: user.name,
         bio: user.bio || '',
-        title: user.title || '',
-        company: user.company || '',
-        location: user.location || '',
-        expertise: user.expertise || [],
-        socialLinks: {
-          linkedin: '',
-          twitter: '',
-          portfolio: '',
-        },
+        timezone: 'UTC',
+        languages: [],
       });
     }
     setIsEditing(false);
   };
 
-  const addSkill = () => {
-    if (newSkill.trim() && !formData.expertise.includes(newSkill.trim())) {
+  const addLanguage = () => {
+    if (newLanguage.trim() && !formData.languages.includes(newLanguage.trim())) {
       setFormData({
         ...formData,
-        expertise: [...formData.expertise, newSkill.trim()],
+        languages: [...formData.languages, newLanguage.trim()],
       });
-      setNewSkill('');
+      setNewLanguage('');
     }
   };
 
-  const removeSkill = (skill: string) => {
+  const removeLanguage = (lang: string) => {
     setFormData({
       ...formData,
-      expertise: formData.expertise.filter(s => s !== skill),
+      languages: formData.languages.filter(l => l !== lang),
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -124,17 +158,17 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-3xl font-bold text-brand-dark">Profile</h1>
           <p className="text-gray-600 mt-1">
-            Manage your profile information and preferences
+            Manage your profile information
           </p>
         </div>
         <div className="flex space-x-3">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} className="bg-brand hover:bg-brand/90">
-                Save Changes
+              <Button onClick={handleSave} className="bg-brand hover:bg-brand/90" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </>
           ) : (
@@ -157,20 +191,35 @@ export default function ProfilePage() {
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
-                <Button
-                  size="sm"
-                  className="absolute bottom-0 right-0 rounded-full h-10 w-10 p-0"
-                  variant="outline"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                  <Button
+                    size="sm"
+                    className="absolute bottom-0 right-0 rounded-full h-10 w-10 p-0"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                  >
+                    {isUploadingAvatar ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-brand rounded-full border-t-transparent" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                </>
               )}
             </div>
             <div className="mt-4">
               {isEditing ? (
                 <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="text-center font-semibold text-xl"
                 />
               ) : (
@@ -182,48 +231,33 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Title */}
+            {/* Email (read-only) */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">Title</Label>
-              {isEditing ? (
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Senior Software Engineer"
-                />
-              ) : (
-                <p className="text-sm text-gray-900 mt-1">{user.title || 'Not specified'}</p>
-              )}
+              <Label className="text-sm font-medium text-gray-700">Email</Label>
+              <p className="text-sm text-gray-900 mt-1">{user.email}</p>
             </div>
 
-            {/* Company */}
+            {/* Timezone */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">Company</Label>
+              <Label className="text-sm font-medium text-gray-700">Timezone</Label>
               {isEditing ? (
-                <Input
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  placeholder="e.g., Google"
-                />
+                <Select 
+                  value={formData.timezone} 
+                  onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="Asia/Karachi">Pakistan (PKT)</SelectItem>
+                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
-                <p className="text-sm text-gray-900 mt-1">{user.company || 'Not specified'}</p>
-              )}
-            </div>
-
-            {/* Location */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Location</Label>
-              {isEditing ? (
-                <Input
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., San Francisco, CA"
-                />
-              ) : (
-                <div className="flex items-center mt-1">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-1" />
-                  <span className="text-sm text-gray-900">{user.location || 'Not specified'}</span>
-                </div>
+                <p className="text-sm text-gray-900 mt-1">{formData.timezone}</p>
               )}
             </div>
           </CardContent>
@@ -234,7 +268,7 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
             <CardDescription>
-              Tell others about yourself and your expertise
+              Tell others about yourself
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -245,9 +279,10 @@ export default function ProfilePage() {
                 <Textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  placeholder="Tell us about yourself, your experience, and what you're passionate about..."
+                  placeholder="Tell us about yourself..."
                   className="mt-1"
                   rows={4}
+                  maxLength={1000}
                 />
               ) : (
                 <p className="text-sm text-gray-900 mt-1">
@@ -256,16 +291,16 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Expertise */}
+            {/* Languages */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">Expertise & Skills</Label>
+              <Label className="text-sm font-medium text-gray-700">Languages</Label>
               <div className="mt-2 flex flex-wrap gap-2">
-                {formData.expertise.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="flex items-center space-x-1">
-                    <span>{skill}</span>
+                {formData.languages.map((lang) => (
+                  <Badge key={lang} variant="secondary" className="flex items-center space-x-1">
+                    <span>{lang}</span>
                     {isEditing && (
                       <button
-                        onClick={() => removeSkill(skill)}
+                        onClick={() => removeLanguage(lang)}
                         className="ml-1 hover:text-red-600"
                       >
                         <X className="h-3 w-3" />
@@ -273,162 +308,47 @@ export default function ProfilePage() {
                     )}
                   </Badge>
                 ))}
-                {formData.expertise.length === 0 && !isEditing && (
-                  <p className="text-sm text-gray-500">No skills added yet.</p>
+                {formData.languages.length === 0 && !isEditing && (
+                  <p className="text-sm text-gray-500">No languages added yet.</p>
                 )}
               </div>
               {isEditing && (
                 <div className="flex space-x-2 mt-3">
                   <Input
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="Add a skill..."
+                    value={newLanguage}
+                    onChange={(e) => setNewLanguage(e.target.value)}
+                    placeholder="Add a language..."
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        addSkill();
+                        addLanguage();
                       }
                     }}
                   />
-                  <Button onClick={addSkill} size="sm" variant="outline">
+                  <Button onClick={addLanguage} size="sm" variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               )}
             </div>
-
-            {/* Social Links */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Social Links</Label>
-              <div className="space-y-3 mt-2">
-                <div>
-                  <Label className="text-xs text-gray-500">LinkedIn</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.socialLinks.linkedin}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        socialLinks: { ...formData.socialLinks, linkedin: e.target.value }
-                      })}
-                      placeholder="https://linkedin.com/in/yourprofile"
-                    />
-                  ) : (
-                    <div className="flex items-center mt-1">
-                      <LinkIcon className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900">
-                        {formData.socialLinks.linkedin || 'Not provided'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-xs text-gray-500">Portfolio/Website</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.socialLinks.portfolio}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        socialLinks: { ...formData.socialLinks, portfolio: e.target.value }
-                      })}
-                      placeholder="https://yourportfolio.com"
-                    />
-                  ) : (
-                    <div className="flex items-center mt-1">
-                      <LinkIcon className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900">
-                        {formData.socialLinks.portfolio || 'Not provided'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Additional Settings for Mentors */}
-      {user.role === 'mentor' && (
-        <Card className="rounded-2xl shadow-sm">
-          <CardHeader>
-            <CardTitle>Mentor Settings</CardTitle>
-            <CardDescription>
-              Configure your mentoring preferences and availability
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Session Types</Label>
-                <div className="mt-2 space-y-2">
-                  {['Career Guidance', 'Resume Review', 'Interview Prep', 'Technical Discussion', 'Portfolio Review'].map((type) => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <input type="checkbox" id={type} className="rounded" defaultChecked />
-                      <label htmlFor={type} className="text-sm text-gray-700">{type}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Availability</Label>
-                <div className="mt-2 space-y-3">
-                  <div>
-                    <Label className="text-xs text-gray-500">Timezone</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pst">Pacific Standard Time</SelectItem>
-                        <SelectItem value="mst">Mountain Standard Time</SelectItem>
-                        <SelectItem value="cst">Central Standard Time</SelectItem>
-                        <SelectItem value="est">Eastern Standard Time</SelectItem>
-                        <SelectItem value="pkt">Pakistan Standard Time</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    Manage Availability
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Profile Completion */}
+      {/* Info Card */}
       <Card className="rounded-2xl shadow-sm bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-blue-800">Profile Completion</CardTitle>
+          <CardTitle className="text-blue-800">Coming Soon</CardTitle>
           <CardDescription className="text-blue-700">
-            Complete your profile to get better matches and opportunities
+            Additional profile features are being added by the backend team
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-2xl font-bold text-blue-900">85%</span>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Good</Badge>
-          </div>
-          <div className="w-full bg-blue-200 rounded-full h-3 mb-4">
-            <div className="bg-blue-600 h-3 rounded-full" style={{ width: '85%' }} />
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center text-green-700">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-3" />
-              Profile photo uploaded
-            </div>
-            <div className="flex items-center text-green-700">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-3" />
-              Bio completed
-            </div>
-            <div className="flex items-center text-blue-700">
-              <div className="w-2 h-2 border-2 border-blue-400 rounded-full mr-3" />
-              Add more skills and expertise
-            </div>
-          </div>
+        <CardContent className="text-sm text-blue-700">
+          <ul className="list-disc list-inside space-y-1">
+            <li>Mentor-specific settings (headline, skills, pricing)</li>
+            <li>Company and location info</li>
+            <li>Social media links</li>
+          </ul>
         </CardContent>
       </Card>
     </div>

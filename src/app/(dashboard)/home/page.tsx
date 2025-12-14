@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { mockAuth, User } from '@/lib/mock-auth';
+import { auth, CurrentUser } from '@/lib/api/auth';
+import { mentorsApi } from '@/lib/api/mentors-api';
 import { mockMentorProfiles } from '@/lib/mock-mentors';
 import { bookings } from '@/lib/api/bookings';
 import { mentors } from '@/lib/api/mentors';
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CalendarWidget } from '@/components/dashboard/calendar-widget';
 import MentorCard from '@/components/mentorcard';
-import { 
+import {
   Calendar,
   Clock,
   ArrowRight,
@@ -26,14 +27,26 @@ import {
 
 export default function DashboardHomePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [showBasicsCard, setShowBasicsCard] = useState(true);
   const [upcomingSessions, setUpcomingSessions] = useState<Booking[]>([]);
+  const [suggestedMentors, setSuggestedMentors] = useState<Array<{
+    id: string;
+    image: string;
+    name: string;
+    countryCode: string;
+    jobTitle: string;
+    company: string;
+    sessions: number;
+    reviews: number;
+    attendance: number;
+    experience: number;
+  }>>([]);
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
+    const currentUser = auth.getCurrentUser();
     setUser(currentUser);
-    
+
     // Check if user has dismissed the basics card
     const hasSeenBasics = localStorage.getItem('hasSeenBasics');
     if (hasSeenBasics) {
@@ -49,8 +62,47 @@ export default function DashboardHomePage() {
         .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
         .slice(0, 2); // Top 2
       setUpcomingSessions(upcoming);
+
+      // Load suggested mentors from API
+      if (currentUser.role === 'mentee') {
+        loadSuggestedMentors();
+      }
     }
   }, []);
+
+  const loadSuggestedMentors = async () => {
+    const result = await mentorsApi.searchMentors({ limit: 3, sort: 'rating' });
+    if (result.success && result.data) {
+      const mentorCards = result.data.data.map(m => ({
+        id: m.user.id,
+        image: m.profile.avatar_url || '',
+        name: m.profile.full_name,
+        countryCode: 'PK',
+        jobTitle: m.mentor_profile.headline || 'Mentor',
+        company: '',
+        sessions: m.stats.total_sessions,
+        reviews: m.mentor_profile.rating_count,
+        attendance: 95,
+        experience: m.mentor_profile.experience_years,
+      }));
+      setSuggestedMentors(mentorCards);
+    } else {
+      // Fallback to mock data
+      const mockCards = mockMentorProfiles.slice(0, 3).map(mentor => ({
+        id: mentor.id,
+        image: mentor.avatar,
+        name: mentor.name,
+        countryCode: 'US',
+        jobTitle: mentor.title,
+        company: mentor.company,
+        sessions: mentor.sessionsCompleted,
+        reviews: mentor.reviewCount,
+        attendance: 95,
+        experience: 5,
+      }));
+      setSuggestedMentors(mockCards);
+    }
+  };
 
   const dismissBasicsCard = () => {
     setShowBasicsCard(false);
@@ -114,26 +166,13 @@ export default function DashboardHomePage() {
   const calculateExperience = (period: string): number => {
     const parts = period.split(' - ');
     if (parts.length !== 2) return 5; // Default
-    
+
     const startYear = parseInt(parts[0]);
     const endPart = parts[1].trim();
     const endYear = endPart === 'Present' ? new Date().getFullYear() : parseInt(endPart);
-    
+
     return Math.max(1, endYear - startYear);
   };
-
-  const suggestedMentors = mockMentorProfiles.slice(0, 3).map(mentor => ({
-    id: mentor.id,
-    image: mentor.avatar,
-    name: mentor.name,
-    countryCode: mentor.location.split(',').pop()?.trim() || 'US',
-    jobTitle: mentor.title,
-    company: mentor.company,
-    sessions: mentor.sessionsCompleted,
-    reviews: mentor.reviewCount,
-    attendance: 95, // Default attendance
-    experience: mentor.experience.length > 0 ? calculateExperience(mentor.experience[0].period) : 5,
-  }));
 
   return (
     <div className="space-y-6">
@@ -144,8 +183,8 @@ export default function DashboardHomePage() {
             Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {user.name}👋!
           </h1>
           <p className="text-gray-600 mt-1">
-            {user.role === 'mentor' 
-              ? "Ready to inspire and guide today's learners?" 
+            {user.role === 'mentor'
+              ? "Ready to inspire and guide today's learners?"
               : "Ready to learn and grow today?"
             }
           </p>
@@ -251,7 +290,7 @@ export default function DashboardHomePage() {
           <div className="space-y-6">
             {/* Profile Strength Card */}
             <Link href="/profile">
-              <div 
+              <div
                 className="rounded-2xl shadow-sm p-6 relative cursor-pointer hover:shadow-md transition-shadow"
                 style={{
                   background: 'linear-gradient(135deg, #4a1942 0%, #6b2463 50%, #3d1438 100%)',
@@ -267,9 +306,9 @@ export default function DashboardHomePage() {
                   <ChevronRight className="h-6 w-6 text-white" />
                 </div>
                 <div className="mt-4 w-full bg-purple-900/50 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full" 
-                    style={{ width: '30%' }} 
+                  <div
+                    className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full"
+                    style={{ width: '30%' }}
                   />
                 </div>
               </div>
@@ -285,56 +324,56 @@ export default function DashboardHomePage() {
         {/* Upcoming Sessions - Only show here for mentors */}
         {user.role !== 'mentee' && (
           <Card className="rounded-2xl shadow-sm lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">Upcoming Sessions</CardTitle>
-              <CardDescription>Your scheduled mentoring sessions</CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/bookings">
-                View all <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {displaySessions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                <p>No upcoming sessions</p>
-                <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
-                  <Link href={user.role === 'mentor' ? '/availability' : '/explore'}>
-                    {user.role === 'mentor' ? 'Set availability' : 'Book a session'}
-                  </Link>
-                </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">Upcoming Sessions</CardTitle>
+                <CardDescription>Your scheduled mentoring sessions</CardDescription>
               </div>
-            ) : (
-              displaySessions.map((session) => (
-                <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
-                    <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
-                  </Avatar>
-                  <div className="ml-4 flex-1">
-                    <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
-                    <p className="text-sm text-gray-600">{session.topic}</p>
-                    <div className="flex items-center mt-1 text-xs text-gray-500">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {session.date} at {session.time}
-                    </div>
-                  </div>
-                  <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
-                    <Video className="w-4 h-4 mr-1" />
-                    Join
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/bookings">
+                  View all <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {displaySessions.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No upcoming sessions</p>
+                  <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
+                    <Link href={user.role === 'mentor' ? '/availability' : '/explore'}>
+                      {user.role === 'mentor' ? 'Set availability' : 'Book a session'}
+                    </Link>
                   </Button>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                displaySessions.map((session) => (
+                  <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
+                      <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 flex-1">
+                      <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
+                      <p className="text-sm text-gray-600">{session.topic}</p>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {session.date} at {session.time}
+                      </div>
+                    </div>
+                    <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
+                      <Video className="w-4 h-4 mr-1" />
+                      Join
+                    </Button>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Calendar Widget - Only for mentors (mentees have it in right column above) */}
-        {user.role !== 'mentee' && <CalendarWidget userRole={user.role} />}
+        {user.role !== 'mentee' && <CalendarWidget userRole={user.role === 'admin' ? 'mentor' : user.role} />}
       </div>
 
       {/* Suggested Mentors (for mentees) / Recent Activity (for mentors) */}

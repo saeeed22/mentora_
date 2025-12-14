@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { mockAuth, User } from '@/lib/mock-auth';
+import { auth, CurrentUser } from '@/lib/api/auth';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
 
@@ -13,11 +13,11 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
+    const currentUser = auth.getCurrentUser();
     if (!currentUser) {
       router.push('/login');
       return;

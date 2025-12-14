@@ -2,7 +2,7 @@
 
 import type { User } from './mock-auth';
 
-export type Role = 'mentor' | 'mentee';
+export type Role = 'mentor' | 'mentee' | 'admin';
 
 // Bookings
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -105,6 +105,127 @@ export interface AvailabilitySlot {
   slots: string[];    // "9:00 AM" etc.
 }
 
+// ============================================
+// Backend API Types (from OpenAPI spec)
+// ============================================
+
+// Auth Request/Response Types
+export type UserRole = 'mentor' | 'mentee' | 'admin';
+
+export interface SignupRequest {
+  email: string;
+  role: UserRole;
+  full_name: string;
+  password: string;
+  confirm_password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  remember_me?: boolean;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  otp: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  new_password: string;
+}
+
+// User Types from Backend
+export interface BackendUser {
+  id: string;           // UUID
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface BackendProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  bio?: string;
+  avatar_url?: string;
+  timezone: string;
+  languages: string[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ProfileUpdateRequest {
+  full_name?: string;
+  bio?: string;
+  avatar_url?: string;
+  timezone?: string;
+  languages?: string[];
+}
+
+// Mentor Types from Backend
+export interface MentorProfile {
+  user_id: string;
+  headline?: string;
+  experience_years: number;
+  skills: string[];
+  price_per_minute?: number;
+  visible: boolean;
+  rating_avg: number;
+  rating_count: number;
+}
+
+export interface MentorStats {
+  total_sessions: number;
+  active_mentees: number;
+  rating_avg: number;
+  response_time_hours: number;
+}
+
+export interface MentorDetailResponse {
+  user: BackendUser;
+  profile: BackendProfile;
+  mentor_profile: MentorProfile;
+  stats: MentorStats;
+}
+
+export interface BackendAvailabilitySlot {
+  start_at: string;  // ISO datetime
+  end_at: string;
+}
+
+export interface MentorAvailabilityResponse {
+  from_date: string;
+  to_date: string;
+  slots: BackendAvailabilitySlot[];
+}
+
+export interface FeedbackCreateRequest {
+  rating: number;      // 1-5
+  comment?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  limit: number;
+  total: number;
+  hasNext: boolean;
+}
+
 // Re-export User for convenience
 export type { User };
-

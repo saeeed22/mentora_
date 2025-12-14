@@ -2,18 +2,18 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockAuth } from '@/lib/mock-auth';
+import { auth } from '@/lib/api/auth';
 
 export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
+    const currentUser = auth.getCurrentUser();
     if (!currentUser) {
       router.push('/login');
       return;
     }
-    
+
     // Redirect to the actual dashboard home page
     router.replace('/home');
   }, [router]);

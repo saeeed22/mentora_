@@ -2,20 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Home, 
-  Search, 
-  MessageCircle, 
-  Calendar, 
-  User, 
-  Clock, 
+import {
+  Home,
+  Search,
+  MessageCircle,
+  Calendar,
+  User,
+  Clock,
   LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { mockAuth, User as UserType } from '@/lib/mock-auth';
+import { auth, CurrentUser } from '@/lib/api/auth';
 
 interface SidebarProps {
-  user: UserType;
+  user: CurrentUser;
   currentPath: string;
 }
 
@@ -67,7 +67,7 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
   ];
 
   const handleLogout = async () => {
-    await mockAuth.logout();
+    await auth.logout();
     router.push('/login');
   };
 
@@ -81,7 +81,7 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
           .map((item) => {
             const isActive = currentPath === item.href;
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.name}
@@ -99,7 +99,7 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
               </Link>
             );
           })}
-        
+
         {/* Logout Button - Below Profile */}
         <div className="pt-2">
           <button

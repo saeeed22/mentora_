@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,48 +11,215 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockAuth } from '@/lib/mock-auth';
+import { auth } from '@/lib/api/auth';
+import { Mail, KeyRound, CheckCircle } from 'lucide-react';
 
-// Validation schema
-const resetSchema = z.object({
+// Step 1: Request OTP
+const emailSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
 });
 
+// Step 2: Enter OTP and new password
+const resetSchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits'),
+  new_password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirm_password: z.string().min(8, 'Please confirm your password'),
+}).refine((data) => data.new_password === data.confirm_password, {
+  message: "Passwords don't match",
+  path: ['confirm_password'],
+});
+
+type EmailFormData = z.infer<typeof emailSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
 
+type Step = 'email' | 'reset' | 'success';
+
 export default function ResetPasswordPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<boolean>(false);
 
-  const form = useForm<ResetFormData>({
-    resolver: zodResolver(resetSchema),
-    defaultValues: {
-      email: '',
-    },
+  const emailForm = useForm<EmailFormData>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: '' },
   });
 
-  const onSubmit = async (data: ResetFormData) => {
+  const resetForm = useForm<ResetFormData>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: { otp: '', new_password: '', confirm_password: '' },
+  });
+
+  // Step 1: Request OTP
+  const onEmailSubmit = async (data: EmailFormData) => {
     setIsLoading(true);
     setError('');
-    setSuccess(false);
 
     try {
-      const result = await mockAuth.resetPassword(data.email);
-      
+      const result = await auth.forgotPassword({ email: data.email });
+
       if (result.success) {
-        setSuccess(true);
-        form.reset();
+        setEmail(data.email);
+        setStep('reset');
       } else {
-        setError(result.error || 'Reset failed');
+        setError(result.error || 'Failed to send reset code. Please try again.');
       }
     } catch {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Step 2: Reset password with OTP
+  const onResetSubmit = async (data: ResetFormData) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await auth.resetPassword({
+        email,
+        otp: data.otp,
+        new_password: data.new_password,
+      });
+
+      if (result.success) {
+        setStep('success');
+        // Auto-redirect to login after 3 seconds
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        setError(result.error || 'Failed to reset password. Please check your code.');
+      }
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Success screen
+  if (step === 'success') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <Card className="rounded-2xl shadow-md max-w-md w-full">
+          <CardContent className="pt-8 pb-8 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Password Reset!</h2>
+            <p className="text-gray-600">
+              Your password has been successfully reset. Redirecting to login...
+            </p>
+            <Button onClick={() => router.push('/login')} className="bg-brand hover:bg-brand/90">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Step 2: Enter OTP and new password
+  if (step === 'reset') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-brand-dark">Reset Password</h1>
+            <p className="mt-2 text-gray-600">Enter the code and your new password</p>
+          </div>
+
+          <Card className="rounded-2xl shadow-md">
+            <CardHeader className="space-y-1 text-center">
+              <div className="mx-auto w-12 h-12 bg-brand/10 rounded-full flex items-center justify-center mb-2">
+                <KeyRound className="w-6 h-6 text-brand" />
+              </div>
+              <CardTitle className="text-xl">Create new password</CardTitle>
+              <CardDescription>
+                We sent a 6-digit code to <strong>{email}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-4">
+                {error && (
+                  <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Verification Code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                    className="text-center text-2xl tracking-widest"
+                    {...resetForm.register('otp')}
+                  />
+                  {resetForm.formState.errors.otp && (
+                    <p className="text-sm text-red-600">{resetForm.formState.errors.otp.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_password">New Password</Label>
+                  <Input
+                    id="new_password"
+                    type="password"
+                    placeholder="Enter new password (min 8 characters)"
+                    {...resetForm.register('new_password')}
+                  />
+                  {resetForm.formState.errors.new_password && (
+                    <p className="text-sm text-red-600">{resetForm.formState.errors.new_password.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm_password">Confirm New Password</Label>
+                  <Input
+                    id="confirm_password"
+                    type="password"
+                    placeholder="Confirm new password"
+                    {...resetForm.register('confirm_password')}
+                  />
+                  {resetForm.formState.errors.confirm_password && (
+                    <p className="text-sm text-red-600">{resetForm.formState.errors.confirm_password.message}</p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-brand hover:bg-brand/90"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                </Button>
+              </form>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                  onClick={() => {
+                    setStep('email');
+                    setError('');
+                  }}
+                >
+                  ← Back to email
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 1: Enter email
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -63,87 +231,44 @@ export default function ResetPasswordPage() {
 
         {/* Reset Password Card */}
         <Card className="rounded-2xl shadow-md">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 text-center">
+            <div className="mx-auto w-12 h-12 bg-brand/10 rounded-full flex items-center justify-center mb-2">
+              <Mail className="w-6 h-6 text-brand" />
+            </div>
             <CardTitle className="text-2xl font-semibold">Forgot password?</CardTitle>
             <CardDescription>
-              {success 
-                ? "We&apos;ve sent you a password reset link"
-                : "Enter your email address and we&apos;ll send you a link to reset your password"
-              }
+              Enter your email and we&apos;ll send you a code to reset your password
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {success ? (
-              // Success State
-              <div className="text-center space-y-4">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                  <svg
-                    className="h-6 w-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+            <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  {error}
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Check your email</h3>
-                  <p className="mt-2 text-sm text-gray-600">
-                    We&apos;ve sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-500">
-                    Didn&apos;t receive the email? Check your spam folder or try again.
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSuccess(false);
-                      setError('');
-                    }}
-                    className="w-full"
-                  >
-                    Try again
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // Reset Form
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                    {error}
-                  </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  {...emailForm.register('email')}
+                />
+                {emailForm.formState.errors.email && (
+                  <p className="text-sm text-red-600">{emailForm.formState.errors.email.message}</p>
                 )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    {...form.register('email')}
-                  />
-                  {form.formState.errors.email && (
-                    <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-brand hover:bg-brand/90"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Sending reset link...' : 'Send reset link'}
-                </Button>
-              </form>
-            )}
+              <Button
+                type="submit"
+                className="w-full bg-brand hover:bg-brand/90"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Sending code...' : 'Send reset code'}
+              </Button>
+            </form>
 
             <div className="text-center">
               <Link
@@ -164,18 +289,12 @@ export default function ResetPasswordPage() {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="font-semibold text-blue-800">Can&apos;t access your email?</p>
-              <p className="text-blue-700">Contact our support team at support@mentorconnect.ku.edu.pk</p>
+              <p className="text-blue-700">Contact support@mentorconnect.ku.edu.pk</p>
             </div>
             <div>
               <p className="font-semibold text-blue-800">Remember your password?</p>
               <Link href="/login" className="text-blue-700 hover:text-blue-800 underline">
                 Sign in to your account
-              </Link>
-            </div>
-            <div>
-              <p className="font-semibold text-blue-800">New to Mentor Connect KU?</p>
-              <Link href="/signup" className="text-blue-700 hover:text-blue-800 underline">
-                Create a new account
               </Link>
             </div>
           </CardContent>
@@ -184,4 +303,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-
