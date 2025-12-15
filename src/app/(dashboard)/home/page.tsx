@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { mentorsApi } from '@/lib/api/mentors-api';
 import { mockMentorProfiles } from '@/lib/mock-mentors';
-import { bookings } from '@/lib/api/bookings';
-import { mentors } from '@/lib/api/mentors';
-import { mockUsers } from '@/lib/mock-auth';
+import { bookingsApi, BookingWithDetails } from '@/lib/api/bookings-api';
+import { users } from '@/lib/api/users';
 import type { Booking } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,8 @@ export default function DashboardHomePage() {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [showBasicsCard, setShowBasicsCard] = useState(true);
-  const [upcomingSessions, setUpcomingSessions] = useState<Booking[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<BookingWithDetails[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [suggestedMentors, setSuggestedMentors] = useState<Array<{
     id: string;
     image: string;
@@ -53,15 +53,9 @@ export default function DashboardHomePage() {
       setShowBasicsCard(false);
     }
 
-    // Load upcoming sessions from bookings service
+    // Load upcoming sessions from real API
     if (currentUser) {
-      const userBookings = bookings.listForUser(currentUser.id, currentUser.role);
-      // Show next confirmed/pending future sessions
-      const upcoming = userBookings
-        .filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.datetime).getTime() >= Date.now())
-        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
-        .slice(0, 2); // Top 2
-      setUpcomingSessions(upcoming);
+      loadUpcomingSessions(currentUser);
 
       // Load suggested mentors from API
       if (currentUser.role === 'mentee') {
@@ -69,6 +63,64 @@ export default function DashboardHomePage() {
       }
     }
   }, []);
+
+  const loadUpcomingSessions = async (currentUser: CurrentUser) => {
+    setIsLoadingBookings(true);
+    try {
+      // Get confirmed and pending bookings
+      const result = await bookingsApi.getMyBookings({ 
+        limit: 100
+      });
+
+      if (result.success && result.data) {
+        // Fetch user info for each booking
+        const bookingsWithInfo = await Promise.all(
+          result.data.data.map(async (booking) => {
+            const enhanced: BookingWithDetails = { ...booking };
+
+            // Fetch mentor info
+            try {
+              const mentorResult = await users.getUserById(booking.mentor_id);
+              if (mentorResult.success && mentorResult.data) {
+                enhanced.mentorName = mentorResult.data.email.split('@')[0];
+              }
+            } catch {
+              enhanced.mentorName = 'Mentor';
+            }
+
+            // Fetch mentee info (for mentors)
+            try {
+              const menteeResult = await users.getUserById(booking.mentee_id);
+              if (menteeResult.success && menteeResult.data) {
+                enhanced.menteeName = menteeResult.data.email.split('@')[0];
+              }
+            } catch {
+              enhanced.menteeName = 'Mentee';
+            }
+
+            return enhanced;
+          })
+        );
+
+        // Filter and sort upcoming sessions (confirmed or pending, and in the future)
+        const now = Date.now();
+        const upcoming = bookingsWithInfo
+          .filter(b => 
+            (b.status === 'confirmed' || b.status === 'pending') && 
+            new Date(b.start_at).getTime() >= now
+          )
+          .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+          .slice(0, 2); // Top 2
+
+        console.log('[Home] Loaded upcoming sessions:', upcoming);
+        setUpcomingSessions(upcoming);
+      }
+    } catch (error) {
+      console.error('[Home] Error loading bookings:', error);
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
 
   const loadSuggestedMentors = async () => {
     const result = await mentorsApi.searchMentors({ limit: 3, sort: 'rating' });
@@ -147,18 +199,15 @@ export default function DashboardHomePage() {
 
   // Transform upcoming sessions to display format
   const displaySessions = upcomingSessions.map(booking => {
-    const isUserMentor = user.role === 'mentor';
-    const otherPartyId = isUserMentor ? booking.menteeId : booking.mentorId;
-    const otherParty = mockUsers.find(u => u.id === otherPartyId);
-    const mentor = mentors.getById(booking.mentorId);
-
+    const isUserMentor = user?.role === 'mentor';
+    
     return {
       id: booking.id,
-      mentorName: isUserMentor ? (otherParty?.name || 'Unknown') : (mentor?.name || 'Unknown'),
-      mentorAvatar: isUserMentor ? otherParty?.avatar : mentor?.avatar,
-      date: formatDate(booking.datetime),
-      time: formatTime(booking.datetime),
-      topic: booking.topic,
+      mentorName: isUserMentor ? (booking.menteeName || 'Mentee') : (booking.mentorName || 'Mentor'),
+      mentorAvatar: undefined,
+      date: formatDate(booking.start_at),
+      time: formatTime(booking.start_at),
+      topic: booking.notes || 'Session',
       type: 'Video Call',
     };
   });
@@ -253,7 +302,12 @@ export default function DashboardHomePage() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {displaySessions.length === 0 ? (
+                {isLoadingBookings ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">Loading sessions...</p>
+                  </div>
+                ) : displaySessions.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                     <p>No upcoming sessions</p>
@@ -337,7 +391,12 @@ export default function DashboardHomePage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {displaySessions.length === 0 ? (
+              {isLoadingBookings ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">Loading sessions...</p>
+                </div>
+              ) : displaySessions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                   <p>No upcoming sessions</p>
