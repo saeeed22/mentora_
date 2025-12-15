@@ -60,9 +60,12 @@ export default function MessagesPage() {
           setSelectedConversation(result.data.data[0]);
           loadMessages(result.data.data[0].id);
         }
-      } else {
+      }
+      
+      if (!result.success) {
         console.error('[Messages] Failed to load conversations:', result.error);
       }
+      
       setIsLoading(false);
     };
 
