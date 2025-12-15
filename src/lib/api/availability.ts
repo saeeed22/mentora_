@@ -98,6 +98,7 @@ export const availability = {
 
       // Build slots: step by sessionDuration with buffer in each range
       const slots: string[] = [];
+      const slotTimes: string[] = []; // ISO timestamps
       for (const range of day.slots) {
         const startMin = parseTimeToMinutes(range.start);
         const endMin = parseTimeToMinutes(range.end);
@@ -106,11 +107,15 @@ export const availability = {
           const hr = Math.floor(t / 60);
           const min = t % 60;
           slots.push(formatAmPm(hr, min));
+          // Create ISO timestamp for this slot
+          const slotDate = new Date(d);
+          slotDate.setHours(hr, min, 0, 0);
+          slotTimes.push(slotDate.toISOString());
         }
       }
 
       if (slots.length) {
-        results.push({ date: isoDate, dayName, slots });
+        results.push({ date: isoDate, dayName, slots, slotTimes });
       }
     }
 

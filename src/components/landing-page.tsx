@@ -120,7 +120,31 @@ const LandingPage = () => {
       <div className="relative bg-white overflow-hidden">
         {/* Hero Section */}
         <div className="relative pb-0 px-4 md:px-12 lg:px-20 pt-12">
-          <div className="flex flex-col items-center justify-center text-center">
+          {/* Left decorative images - hidden on mobile */}
+          <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2">
+            <Image
+              src="/hero_section.png"
+              alt="Mentors"
+              width={250}
+              height={400}
+              className="object-contain h-[400px] w-auto"
+              priority
+            />
+          </div>
+
+          {/* Right decorative images - hidden on mobile */}
+          <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2">
+            <Image
+              src="/hero_section.png"
+              alt="Mentors"
+              width={250}
+              height={400}
+              className="object-contain h-[400px] w-auto scale-x-[-1]"
+              priority
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center text-center relative z-10">
             <div className="mb-8">
               <nav className="inline-flex rounded-lg p-1" role="tablist">
                 <button
@@ -155,7 +179,7 @@ const LandingPage = () => {
               {activeTab === 'mentee' && (
                 <div className="fade-in">
                   <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
-                    Reach your goals faster with expert mentors
+                    Reach your goals faster with <span className="text-brand">expert mentors</span>
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-lg md:text-lg lg:max-w-xl">
                     Accelerate your professional growth with 1:1 expert guidance from{' '}
@@ -194,7 +218,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center text-center p-4 pt-7">
+          <div className="flex flex-col items-center justify-center text-center p-4 pt-7 relative z-10">
             <p className="px-6 mx-auto mb-8 text-gray-900 max-w-lg md:text-lg lg:max-w-xl">
               Trusted by students and professionals from top organizations
             </p>

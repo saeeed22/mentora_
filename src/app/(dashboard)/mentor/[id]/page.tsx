@@ -38,7 +38,7 @@ import { useRouter } from 'next/navigation';
 // Convert backend availability slots to frontend format
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  const slotsByDate = new Map<string, string[]>();
+  const slotsByDate = new Map<string, { display: string; iso: string }[]>();
 
   backendSlots.forEach(slot => {
     const startDate = new Date(slot.start_at);
@@ -52,21 +52,20 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
     if (!slotsByDate.has(dateKey)) {
       slotsByDate.set(dateKey, []);
     }
-    slotsByDate.get(dateKey)!.push(timeStr);
+    slotsByDate.get(dateKey)!.push({ display: timeStr, iso: slot.start_at });
   });
 
   // Convert to array and sort by date
   const result: AvailabilitySlot[] = [];
-  slotsByDate.forEach((slots, date) => {
+  slotsByDate.forEach((slotsData, date) => {
     const dateObj = new Date(date + 'T00:00:00');
+    // Sort by ISO time
+    const sorted = slotsData.sort((a, b) => a.iso.localeCompare(b.iso));
     result.push({
       date,
       dayName: dayNames[dateObj.getDay()],
-      slots: slots.sort((a, b) => {
-        const timeA = new Date(`1970/01/01 ${a}`).getTime();
-        const timeB = new Date(`1970/01/01 ${b}`).getTime();
-        return timeA - timeB;
-      }),
+      slots: sorted.map(s => s.display),
+      slotTimes: sorted.map(s => s.iso),
     });
   });
 
@@ -84,6 +83,7 @@ export default function MentorProfilePage() {
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null); // ISO timestamp for booking
   const [showFullBio, setShowFullBio] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -182,7 +182,10 @@ export default function MentorProfilePage() {
         setAvailableSlots(slots);
         if (slots.length > 0) {
           setSelectedDate(slots[0].date);
-          if (slots[0].slots.length > 0) setSelectedTimeSlot(slots[0].slots[0]);
+          if (slots[0].slots.length > 0) {
+            setSelectedTimeSlot(slots[0].slots[0]);
+            setSelectedSlotStartTime(slots[0].slotTimes[0]);
+          }
         }
       } else {
         // No availability from backend
@@ -858,10 +861,13 @@ export default function MentorProfilePage() {
                         <ChevronRight className="h-4 w-4" />
                       </h4>
                       <div className="grid grid-cols-3 gap-2">
-                        {selectedDateSlots.slots.map((time) => (
+                        {selectedDateSlots.slots.map((time, idx) => (
                           <button
                             key={time}
-                            onClick={() => setSelectedTimeSlot(time)}
+                            onClick={() => {
+                              setSelectedTimeSlot(time);
+                              setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
+                            }}
                             className={`p-2 rounded-lg border-2 text-sm font-medium transition-colors ${selectedTimeSlot === time
                               ? 'border-brand bg-brand-light/10 text-brand'
                               : 'border-gray-200 hover:border-gray-300 text-gray-700'
@@ -983,6 +989,7 @@ export default function MentorProfilePage() {
         mentorName={mentor.name}
         selectedDate={selectedDate}
         selectedTimeSlot={selectedTimeSlot}
+        selectedSlotStartTime={selectedSlotStartTime}
       />
     </div>
   );

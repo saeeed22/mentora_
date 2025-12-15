@@ -102,7 +102,8 @@ export interface AvailabilitySchedule {
 export interface AvailabilitySlot {
   date: string;       // YYYY-MM-DD
   dayName: string;    // MON/TUE/...
-  slots: string[];    // "9:00 AM" etc.
+  slots: string[];    // "9:00 AM" display text
+  slotTimes: string[]; // Original ISO timestamps for booking
 }
 
 // ============================================

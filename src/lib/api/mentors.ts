@@ -15,7 +15,12 @@ export const mentors = {
       // ignore, fall back below
     }
     const mentor = getMentorById(mentorId);
-    return mentor?.availability_slots ?? [];
+    const slots = mentor?.availability_slots ?? [];
+    // Add slotTimes if missing (mock data compatibility)
+    return slots.map(s => ({
+      ...s,
+      slotTimes: 'slotTimes' in s ? s.slotTimes as string[] : s.slots.map(() => new Date().toISOString()),
+    }));
   },
   applyFeedback(mentorId: string, rating: number): void {
     const idx = mockMentorProfiles.findIndex(m => m.id === mentorId);

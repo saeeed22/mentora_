@@ -26,6 +26,7 @@ interface BookingDialogProps {
   mentorName: string;
   selectedDate: string | null;
   selectedTimeSlot: string | null;
+  selectedSlotStartTime: string | null; // Original ISO timestamp from backend
 }
 
 const SESSION_TYPES = [
@@ -45,6 +46,7 @@ export function BookingDialog({
   mentorName,
   selectedDate,
   selectedTimeSlot,
+  selectedSlotStartTime,
 }: BookingDialogProps) {
   const router = useRouter();
   const [sessionType, setSessionType] = useState(SESSION_TYPES[0]);
@@ -78,19 +80,25 @@ export function BookingDialog({
     setIsSubmitting(true);
 
     try {
-      // Build ISO datetime from date + time slot
-      const [time, period] = selectedTimeSlot.split(' '); // "9:00 AM" => ["9:00", "AM"]
-      const timeParts = time.split(':').map(Number);
-      let hours = timeParts[0];
-      const minutes = timeParts[1];
-      if (period === 'PM' && hours !== 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-
-      const datetime = new Date(`${selectedDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+      // Use the original ISO timestamp from backend if available
+      let startAt: string;
+      if (selectedSlotStartTime) {
+        startAt = selectedSlotStartTime;
+      } else {
+        // Fallback: Build ISO datetime from date + time slot (may have timezone issues)
+        const [time, period] = selectedTimeSlot.split(' '); // "9:00 AM" => ["9:00", "AM"]
+        const timeParts = time.split(':').map(Number);
+        let hours = timeParts[0];
+        const minutes = timeParts[1];
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        const datetime = new Date(`${selectedDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+        startAt = datetime.toISOString();
+      }
 
       const requestData = {
         mentor_id: mentorId,
-        start_at: datetime.toISOString(),
+        start_at: startAt,
         duration_minutes: 60,
         notes: `${sessionType}: ${topic.trim()}${goals.trim() ? '\n\nGoals: ' + goals.trim() : ''}`,
       };
