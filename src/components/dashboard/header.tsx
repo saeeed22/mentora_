@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Bell, Calendar, Search, X } from 'lucide-react';
+import { Bell, Calendar, Search, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,42 +23,50 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { CurrentUser } from '@/lib/api/auth';
+import {
+  Notification,
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  formatRelativeTime
+} from '@/lib/notifications';
 
 interface HeaderProps {
   user: CurrentUser;
 }
 
-// Mock notifications data
-const mockNotifications = [
-  {
-    id: '1',
-    title: 'New booking request',
-    description: 'Sarah Johnson wants to book a session with you',
-    time: '5 minutes ago',
-    read: false,
-    type: 'booking',
-  },
-  {
-    id: '2',
-    title: 'Session reminder',
-    description: 'You have a session with Alex Chen in 30 minutes',
-    time: '25 minutes ago',
-    read: false,
-    type: 'reminder',
-  },
-  {
-    id: '3',
-    title: 'Profile viewed',
-    description: '3 people viewed your profile today',
-    time: '2 hours ago',
-    read: true,
-    type: 'profile',
-  },
-];
-
 export function Header({ user }: HeaderProps) {
-  const [notifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
+
+  // Load notifications and refresh periodically
+  const loadNotifications = useCallback(() => {
+    const notifs = getNotifications();
+    // Update relative times
+    const updated = notifs.map(n => ({
+      ...n,
+      time: formatRelativeTime(n.createdAt),
+    }));
+    setNotifications(updated);
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  const handleMarkAsRead = (notificationId: string) => {
+    markAsRead(notificationId);
+    loadNotifications();
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+    loadNotifications();
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -131,10 +139,16 @@ export function Header({ user }: HeaderProps) {
                 </div>
               ) : (
                 <div className="max-h-96 overflow-y-auto">
-                  {notifications.map((notification) => (
+                  {notifications.slice(0, 5).map((notification) => (
                     <DropdownMenuItem
                       key={notification.id}
                       className="p-4 cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        handleMarkAsRead(notification.id);
+                        if (notification.link) {
+                          window.location.href = notification.link;
+                        }
+                      }}
                     >
                       <div className="flex items-start space-x-3 w-full">
                         <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${!notification.read ? 'bg-brand' : 'bg-gray-300'
@@ -185,8 +199,8 @@ export function Header({ user }: HeaderProps) {
                 <div
                   key={notification.id}
                   className={`p-4 rounded-lg border transition-colors ${!notification.read
-                      ? 'bg-brand-light/5 border-brand-light/30'
-                      : 'bg-gray-50 border-gray-200'
+                    ? 'bg-brand-light/5 border-brand-light/30'
+                    : 'bg-gray-50 border-gray-200'
                     } hover:bg-gray-100`}
                 >
                   <div className="flex items-start space-x-3">
@@ -221,11 +235,10 @@ export function Header({ user }: HeaderProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                // Mark all as read functionality
-                console.log('Mark all as read');
-              }}
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0}
             >
+              <Check className="w-4 h-4 mr-2" />
               Mark all as read
             </Button>
             <Button

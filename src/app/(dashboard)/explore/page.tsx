@@ -80,7 +80,13 @@ export default function ExplorePage() {
     });
 
     if (result.success && result.data) {
+      console.log('[Explore] API Response:', {
+        total: result.data.total,
+        dataLength: result.data.data.length,
+        rawData: result.data.data,
+      });
       const cardData = result.data.data.map(backendMentorToCard);
+      console.log('[Explore] Converted cards:', cardData);
 
       // Filter by search query on client side
       const filtered = searchQuery

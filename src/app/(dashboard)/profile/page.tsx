@@ -73,14 +73,22 @@ export default function ProfilePage() {
         });
       }
 
-      // If mentor, load mentor profile
+      // If mentor, load mentor profile from /v1/mentors/{user_id}
       if (currentUser.role === 'mentor') {
-        // We need to get mentor profile data - using /v1/users/me returns it
-        const meResult = await users.getCurrentProfile();
-        if (meResult.success && meResult.data) {
-          // The mentor profile data comes with the user profile
-          // We need a separate endpoint call or parse from response
-          // For now, set defaults - actual data will load when user edits
+        const { mentorsApi } = await import('@/lib/api/mentors-api');
+        const mentorResult = await mentorsApi.getMentorById(currentUser.id);
+        if (mentorResult.success && mentorResult.data) {
+          const mp = mentorResult.data.mentor_profile;
+          // Update form data with fetched mentor profile
+          setMentorFormData({
+            headline: mp?.headline || '',
+            experience_years: mp?.experience_years || 0,
+            skills: mp?.skills || [],
+            price_per_minute: mp?.price_per_minute || 0,
+            visible: mp?.visible ?? true,
+          });
+        } else {
+          // Set defaults if mentor profile not found
           setMentorFormData({
             headline: '',
             experience_years: 0,

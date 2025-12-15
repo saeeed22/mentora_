@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, Settings, Save } from 'lucide-react';
+import { Calendar, Plus, Settings, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,26 +10,35 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
-import { availability as availabilityApi } from '@/lib/api/availability';
+import { mentorManagementApi, AvailabilityTemplate } from '@/lib/api/mentor-management-api';
 import { toast } from 'sonner';
 
-// Mock availability data
-const mockAvailability = {
+// Default availability data structure
+const defaultAvailability = {
   timezone: 'Asia/Karachi',
   weeklySchedule: {
-    monday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }] },
-    tuesday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }] },
-    wednesday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }] },
-    thursday: { enabled: true, slots: [{ start: '14:00', end: '17:00' }] },
-    friday: { enabled: true, slots: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '16:00' }] },
-    saturday: { enabled: false, slots: [] },
-    sunday: { enabled: false, slots: [] },
+    monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
   },
-  blockedDates: ['2024-01-20', '2024-01-21'], // Vacation/unavailable dates
-  sessionDuration: 60, // minutes
-  bufferTime: 15, // minutes between sessions
+  sessionDuration: 60,
+  bufferTime: 15,
   maxSessionsPerDay: 4,
   autoAcceptBookings: true,
+};
+
+// Helper to map weekday number to day key
+const weekdayToKey: Record<number, string> = {
+  0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
+  4: 'friday', 5: 'saturday', 6: 'sunday',
+};
+const keyToWeekday: Record<string, number> = {
+  monday: 0, tuesday: 1, wednesday: 2, thursday: 3,
+  friday: 4, saturday: 5, sunday: 6,
 };
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => {
@@ -50,8 +59,10 @@ const daysOfWeek = [
 export default function AvailabilityPage() {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [availability, setAvailability] = useState(mockAvailability);
+  const [availability, setAvailability] = useState(defaultAvailability);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.getCurrentUser();
@@ -64,13 +75,35 @@ export default function AvailabilityPage() {
       return;
     }
     setUser(currentUser);
-    // Load persisted schedule for this mentor
-    try {
-      const sch = availabilityApi.getSchedule(currentUser.id);
-      setAvailability(sch as typeof mockAvailability);
-    } catch {
-      // keep defaults
-    }
+
+    // Load templates from backend
+    const loadTemplates = async () => {
+      setIsLoading(true);
+      const result = await mentorManagementApi.getAvailabilityTemplates();
+
+      if (result.success && result.data) {
+        console.log('[Availability] Loaded templates:', result.data);
+        // Convert backend templates to frontend format
+        const schedule = { ...defaultAvailability.weeklySchedule };
+
+        result.data.forEach((template: AvailabilityTemplate) => {
+          const dayKey = weekdayToKey[template.weekday];
+          if (dayKey) {
+            schedule[dayKey as keyof typeof schedule].enabled = true;
+            schedule[dayKey as keyof typeof schedule].slots.push({
+              start: template.start_time,
+              end: template.end_time,
+              templateId: template.id,
+            });
+          }
+        });
+
+        setAvailability(prev => ({ ...prev, weeklySchedule: schedule }));
+      }
+      setIsLoading(false);
+    };
+
+    loadTemplates();
   }, [router]);
 
   const handleDayToggle = (day: string, enabled: boolean) => {
@@ -120,7 +153,18 @@ export default function AvailabilityPage() {
     setHasChanges(true);
   };
 
-  const removeTimeSlot = (day: string, index: number) => {
+  const removeTimeSlot = async (day: string, index: number) => {
+    const slot = availability.weeklySchedule[day as keyof typeof availability.weeklySchedule].slots[index];
+
+    // If slot has a templateId, delete from backend
+    if (slot.templateId) {
+      const result = await mentorManagementApi.deleteAvailabilityTemplate(slot.templateId);
+      if (!result.success) {
+        toast.error('Failed to remove time slot');
+        return;
+      }
+    }
+
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -131,15 +175,82 @@ export default function AvailabilityPage() {
         },
       },
     }));
-    setHasChanges(true);
+    toast.success('Time slot removed');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
-    availabilityApi.saveSchedule(user.id, availability as typeof mockAvailability);
-    setHasChanges(false);
-    toast.success('Availability saved');
+    setIsSaving(true);
+
+    try {
+      // Collect all new slots (without templateId) to create
+      const newSlots: { day: string; start: string; end: string }[] = [];
+
+      for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
+        if (dayData.enabled) {
+          for (const slot of dayData.slots) {
+            if (!slot.templateId) {
+              newSlots.push({ day: dayKey, start: slot.start, end: slot.end });
+            }
+          }
+        }
+      }
+
+      // Create new templates
+      let createdCount = 0;
+      for (const slot of newSlots) {
+        const result = await mentorManagementApi.createAvailabilityTemplate({
+          weekday: keyToWeekday[slot.day],
+          start_time: slot.start,
+          end_time: slot.end,
+          slot_duration_minutes: availability.sessionDuration,
+        });
+
+        if (result.success) {
+          createdCount++;
+        } else {
+          console.error('[Availability] Failed to create slot:', result.error);
+        }
+      }
+
+      setHasChanges(false);
+      toast.success(`Availability saved! Created ${createdCount} new slot(s).`);
+
+      // Reload to get the new template IDs
+      const reloadResult = await mentorManagementApi.getAvailabilityTemplates();
+      if (reloadResult.success && reloadResult.data) {
+        const schedule = { ...defaultAvailability.weeklySchedule };
+        reloadResult.data.forEach((template) => {
+          const dayKey = weekdayToKey[template.weekday];
+          if (dayKey) {
+            schedule[dayKey as keyof typeof schedule].enabled = true;
+            schedule[dayKey as keyof typeof schedule].slots.push({
+              start: template.start_time,
+              end: template.end_time,
+              templateId: template.id,
+            });
+          }
+        });
+        setAvailability(prev => ({ ...prev, weeklySchedule: schedule }));
+      }
+    } catch (error) {
+      console.error('[Availability] Save error:', error);
+      toast.error('Failed to save availability');
+    }
+
+    setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-4" />
+          <p className="text-gray-600">Loading availability...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || user.role !== 'mentor') {
     return null;
@@ -162,11 +273,15 @@ export default function AvailabilityPage() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!hasChanges}
+            disabled={!hasChanges || isSaving}
             className="bg-brand hover:bg-brand/90"
           >
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </div>

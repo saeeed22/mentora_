@@ -169,12 +169,16 @@ export default function MentorProfilePage() {
       const fromDateStr = fromDate.toISOString().split('T')[0];
       const toDateStr = toDate.toISOString().split('T')[0];
 
+      console.log('[Availability] Fetching from:', fromDateStr, 'to:', toDateStr);
       const result = await mentorsApi.getMentorAvailability(mentorId, fromDateStr, toDateStr);
+      console.log('[Availability] API Response:', result);
 
       if (!mounted) return;
 
       if (result.success && result.data && result.data.slots.length > 0) {
+        console.log('[Availability] Raw slots from backend:', result.data.slots);
         const slots = convertBackendSlots(result.data.slots);
+        console.log('[Availability] Converted slots:', slots);
         setAvailableSlots(slots);
         if (slots.length > 0) {
           setSelectedDate(slots[0].date);
@@ -832,7 +836,7 @@ export default function MentorProfilePage() {
                               {slot.dayName}
                             </div>
                             <div className="text-lg font-bold text-brand-dark mb-1">
-                              {day} Oct
+                              {day} {date.toLocaleDateString('en-US', { month: 'short' })}
                             </div>
                             <div className="text-xs text-brand font-medium">
                               {slot.slots.length} slots
@@ -875,8 +879,12 @@ export default function MentorProfilePage() {
                     onClick={handleBooking}
                     className="w-full bg-brand hover:bg-brand/90 py-6 text-lg font-medium"
                   >
-                    Book Session for {selectedDate && new Date(selectedDate).getDate()} Oct{' '}
-                    2025
+                    Book Session for{' '}
+                    {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
                   </Button>
                 </CardContent>
               </Card>

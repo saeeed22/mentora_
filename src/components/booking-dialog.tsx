@@ -17,6 +17,7 @@ import { bookingsApi } from '@/lib/api/bookings-api';
 import { auth } from '@/lib/api/auth';
 import { toast } from 'sonner';
 import { Calendar, Clock, Video } from 'lucide-react';
+import { addBookingNotification } from '@/lib/notifications';
 
 interface BookingDialogProps {
   open: boolean;
@@ -87,15 +88,30 @@ export function BookingDialog({
 
       const datetime = new Date(`${selectedDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
 
-      // Use real backend API
-      const result = await bookingsApi.createBooking({
+      const requestData = {
         mentor_id: mentorId,
         start_at: datetime.toISOString(),
         duration_minutes: 60,
         notes: `${sessionType}: ${topic.trim()}${goals.trim() ? '\n\nGoals: ' + goals.trim() : ''}`,
-      });
+      };
+      console.log('[Booking] Request data:', requestData);
+
+      // Use real backend API
+      const result = await bookingsApi.createBooking(requestData);
+      console.log('[Booking] API result:', result);
 
       if (result.success) {
+        // Create booking notification
+        const formattedDate = selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        }) : '';
+        addBookingNotification(
+          `Session booked with ${mentorName}`,
+          `${formattedDate} at ${selectedTimeSlot} - ${sessionType}`
+        );
+
         toast.success('Session booked successfully!', {
           description: `Your session with ${mentorName} is confirmed.`,
           action: {
