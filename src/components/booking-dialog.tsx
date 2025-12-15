@@ -18,6 +18,7 @@ import { auth } from '@/lib/api/auth';
 import { toast } from 'sonner';
 import { Calendar, Clock, Video } from 'lucide-react';
 import { addBookingNotification } from '@/lib/notifications';
+import { convertToUTCISO } from '@/lib/datetime-utils';
 
 interface BookingDialogProps {
   open: boolean;
@@ -85,15 +86,13 @@ export function BookingDialog({
       if (selectedSlotStartTime) {
         startAt = selectedSlotStartTime;
       } else {
-        // Fallback: Build ISO datetime from date + time slot (may have timezone issues)
-        const [time, period] = selectedTimeSlot.split(' '); // "9:00 AM" => ["9:00", "AM"]
-        const timeParts = time.split(':').map(Number);
-        let hours = timeParts[0];
-        const minutes = timeParts[1];
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        const datetime = new Date(`${selectedDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
-        startAt = datetime.toISOString();
+        // Fallback: Convert date + time slot to UTC ISO string
+        startAt = convertToUTCISO(selectedDate, selectedTimeSlot);
+        console.log('[Booking] Converted datetime:', {
+          selectedDate,
+          selectedTimeSlot,
+          resultISO: startAt
+        });
       }
 
       const requestData = {

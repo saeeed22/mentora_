@@ -34,6 +34,7 @@ import type { AvailabilitySlot, BackendAvailabilitySlot } from '@/lib/types';
 import { messagingApi } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
+import { parseDateAsUTC } from '@/lib/datetime-utils';
 
 // Convert backend availability slots to frontend format
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
@@ -58,12 +59,13 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
   // Convert to array and sort by date
   const result: AvailabilitySlot[] = [];
   slotsByDate.forEach((slotsData, date) => {
-    const dateObj = new Date(date + 'T00:00:00');
+    // Parse date as UTC to avoid timezone shifts
+    const dateObj = parseDateAsUTC(date);
     // Sort by ISO time
     const sorted = slotsData.sort((a, b) => a.iso.localeCompare(b.iso));
     result.push({
       date,
-      dayName: dayNames[dateObj.getDay()],
+      dayName: dayNames[dateObj.getUTCDay()],
       slots: sorted.map(s => s.display),
       slotTimes: sorted.map(s => s.iso),
     });
