@@ -126,6 +126,11 @@ apiClient.interceptors.response.use(
     }
 );
 
+// Generic API result type
+export type ApiResult<T = void> =
+    | { success: true; data?: T }
+    | { success: false; error: string };
+
 // API error helper
 export interface ApiError {
     message: string;

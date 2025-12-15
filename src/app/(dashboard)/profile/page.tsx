@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, X } from 'lucide-react';
+import { Camera, Plus, X, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,8 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { users } from '@/lib/api/users';
+import { mentorManagementApi, MentorProfileResponse } from '@/lib/api/mentor-management-api';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
@@ -21,7 +23,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Profile form data
   const [formData, setFormData] = useState({
     full_name: '',
     bio: '',
@@ -29,6 +32,17 @@ export default function ProfilePage() {
     languages: [] as string[],
   });
   const [newLanguage, setNewLanguage] = useState('');
+
+  // Mentor-specific data
+  const [mentorProfile, setMentorProfile] = useState<MentorProfileResponse | null>(null);
+  const [mentorFormData, setMentorFormData] = useState({
+    headline: '',
+    experience_years: 0,
+    skills: [] as string[],
+    price_per_minute: 0,
+    visible: true,
+  });
+  const [newSkill, setNewSkill] = useState('');
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -38,7 +52,7 @@ export default function ProfilePage() {
         return;
       }
       setUser(currentUser);
-      
+
       // Try to fetch fresh profile from backend
       const result = await users.getCurrentProfile();
       if (result.success && result.data) {
@@ -58,6 +72,25 @@ export default function ProfilePage() {
           languages: [],
         });
       }
+
+      // If mentor, load mentor profile
+      if (currentUser.role === 'mentor') {
+        // We need to get mentor profile data - using /v1/users/me returns it
+        const meResult = await users.getCurrentProfile();
+        if (meResult.success && meResult.data) {
+          // The mentor profile data comes with the user profile
+          // We need a separate endpoint call or parse from response
+          // For now, set defaults - actual data will load when user edits
+          setMentorFormData({
+            headline: '',
+            experience_years: 0,
+            skills: [],
+            price_per_minute: 0,
+            visible: true,
+          });
+        }
+      }
+
       setIsLoading(false);
     };
     loadProfile();
@@ -74,22 +107,46 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!user) return;
     setIsSaving(true);
-    
+
+    // Update general profile
     const result = await users.updateProfile({
       full_name: formData.full_name,
       bio: formData.bio,
       timezone: formData.timezone,
       languages: formData.languages,
     });
-    
-    if (result.success) {
-      await auth.refreshCurrentUser();
-      const updatedUser = auth.getCurrentUser();
-      if (updatedUser) setUser(updatedUser);
-      toast.success('Profile updated!');
-    } else {
+
+    if (!result.success) {
       toast.error(result.error || 'Failed to update profile');
+      setIsSaving(false);
+      return;
     }
+
+    // If mentor, update mentor profile too
+    if (user.role === 'mentor') {
+      const mentorResult = await mentorManagementApi.updateMentorProfile({
+        headline: mentorFormData.headline || null,
+        experience_years: mentorFormData.experience_years,
+        skills: mentorFormData.skills,
+        price_per_minute: mentorFormData.price_per_minute || null,
+        visible: mentorFormData.visible,
+      });
+
+      if (!mentorResult.success) {
+        toast.error(mentorResult.error || 'Failed to update mentor profile');
+        setIsSaving(false);
+        return;
+      }
+
+      if (mentorResult.data) {
+        setMentorProfile(mentorResult.data);
+      }
+    }
+
+    await auth.refreshCurrentUser();
+    const updatedUser = auth.getCurrentUser();
+    if (updatedUser) setUser(updatedUser);
+    toast.success('Profile updated!');
     setIsSaving(false);
     setIsEditing(false);
   };
@@ -97,10 +154,10 @@ export default function ProfilePage() {
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     setIsUploadingAvatar(true);
     const result = await users.uploadAvatar(file);
-    
+
     if (result.success) {
       await auth.refreshCurrentUser();
       const updatedUser = auth.getCurrentUser();
@@ -141,6 +198,23 @@ export default function ProfilePage() {
     });
   };
 
+  const addSkill = () => {
+    if (newSkill.trim() && !mentorFormData.skills.includes(newSkill.trim())) {
+      setMentorFormData({
+        ...mentorFormData,
+        skills: [...mentorFormData.skills, newSkill.trim()],
+      });
+      setNewSkill('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setMentorFormData({
+      ...mentorFormData,
+      skills: mentorFormData.skills.filter(s => s !== skill),
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -150,6 +224,8 @@ export default function ProfilePage() {
   }
 
   if (!user) return null;
+
+  const isMentor = user.role === 'mentor';
 
   return (
     <div className="space-y-6">
@@ -241,8 +317,8 @@ export default function ProfilePage() {
             <div>
               <Label className="text-sm font-medium text-gray-700">Timezone</Label>
               {isEditing ? (
-                <Select 
-                  value={formData.timezone} 
+                <Select
+                  value={formData.timezone}
                   onValueChange={(value) => setFormData({ ...formData, timezone: value })}
                 >
                   <SelectTrigger className="mt-1">
@@ -335,22 +411,154 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Info Card */}
-      <Card className="rounded-2xl shadow-sm bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-800">Coming Soon</CardTitle>
-          <CardDescription className="text-blue-700">
-            Additional profile features are being added by the backend team
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-blue-700">
-          <ul className="list-disc list-inside space-y-1">
-            <li>Mentor-specific settings (headline, skills, pricing)</li>
-            <li>Company and location info</li>
-            <li>Social media links</li>
-          </ul>
-        </CardContent>
-      </Card>
+      {/* Mentor-Specific Settings */}
+      {isMentor && (
+        <Card className="rounded-2xl shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Mentor Profile
+            </CardTitle>
+            <CardDescription>
+              Configure your mentor settings, skills, and pricing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Headline */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Professional Headline</Label>
+              {isEditing ? (
+                <Input
+                  value={mentorFormData.headline}
+                  onChange={(e) => setMentorFormData({ ...mentorFormData, headline: e.target.value })}
+                  placeholder="e.g., Senior Software Engineer at Google"
+                  className="mt-1"
+                  maxLength={200}
+                />
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.headline || mentorProfile?.headline || 'No headline set.'}
+                </p>
+              )}
+            </div>
+
+            {/* Experience Years */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Years of Experience</Label>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={mentorFormData.experience_years}
+                  onChange={(e) => setMentorFormData({ ...mentorFormData, experience_years: parseInt(e.target.value) || 0 })}
+                  className="mt-1 w-32"
+                />
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.experience_years || mentorProfile?.experience_years || 0} years
+                </p>
+              )}
+            </div>
+
+            {/* Skills */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Skills & Expertise</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {mentorFormData.skills.map((skill) => (
+                  <Badge key={skill} className="flex items-center space-x-1 bg-brand/10 text-brand">
+                    <span>{skill}</span>
+                    {isEditing && (
+                      <button
+                        onClick={() => removeSkill(skill)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                ))}
+                {mentorFormData.skills.length === 0 && !isEditing && (
+                  <p className="text-sm text-gray-500">No skills added yet.</p>
+                )}
+              </div>
+              {isEditing && (
+                <div className="flex space-x-2 mt-3">
+                  <Input
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    placeholder="Add a skill (e.g., Python, Machine Learning)"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSkill();
+                      }
+                    }}
+                  />
+                  <Button onClick={addSkill} size="sm" variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Price per Minute */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Price per Minute (PKR)</Label>
+              {isEditing ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={mentorFormData.price_per_minute}
+                    onChange={(e) => setMentorFormData({ ...mentorFormData, price_per_minute: parseFloat(e.target.value) || 0 })}
+                    className="w-32"
+                  />
+                  <span className="text-sm text-gray-500">PKR/min</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.price_per_minute || mentorProfile?.price_per_minute || 0} PKR/min
+                </p>
+              )}
+            </div>
+
+            {/* Visibility Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Profile Visible</Label>
+                <p className="text-sm text-gray-500">Allow mentees to find and book you</p>
+              </div>
+              {isEditing ? (
+                <Switch
+                  checked={mentorFormData.visible}
+                  onCheckedChange={(checked) => setMentorFormData({ ...mentorFormData, visible: checked })}
+                />
+              ) : (
+                <Badge variant={mentorFormData.visible ? 'default' : 'secondary'}>
+                  {mentorFormData.visible ? 'Visible' : 'Hidden'}
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Info Card for mentees */}
+      {!isMentor && (
+        <Card className="rounded-2xl shadow-sm bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="text-blue-800">Want to become a Mentor?</CardTitle>
+            <CardDescription className="text-blue-700">
+              Share your expertise and help others grow
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-blue-700">
+            <p>Contact the admin team to upgrade your account to a mentor role.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Search, ChevronRight, Mail, ArrowLeft, ArrowRight } from 'lucide-react';
 import MentorCard from '@/components/mentorcard';
@@ -9,30 +9,29 @@ import LandingHeader from '@/components/landing/header';
 import LandingFooter from '@/components/landing/footer';
 import Link from 'next/link';
 import Image from 'next/image';
+import { mentorsApi } from '@/lib/api/mentors-api';
 
 const categories = ["Product", "Engineering", "Design", "Marketing", "Data Science", "Product Research"];
 
-// Import mock mentors from central source
-import { mockMentorProfiles } from '@/lib/mock-mentors';
-
-const dummyMentors = mockMentorProfiles.map(mentor => ({
-  id: mentor.id,
-  image: mentor.avatar,
-  name: mentor.name,
-  countryCode: mentor.location.includes('US') ? 'US' : 'NP',
-  jobTitle: mentor.title,
-  company: mentor.company,
-  sessions: mentor.sessionsCompleted,
-  reviews: mentor.reviewCount,
-  attendance: 95 + Math.floor(Math.random() * 5),
-  experience: mentor.experience.length > 0 ? parseInt(mentor.experience[0].period.split('-')[1]) - parseInt(mentor.experience[0].period.split('-')[0]) : 10,
-  isTopRated: mentor.rating >= 4.8,
-  isAvailableASAP: mentor.isOnline,
-})).slice(0, 4); // Only show first 4 on landing page
+// Mentor card type for landing page
+interface LandingMentor {
+  id: string;
+  image: string;
+  name: string;
+  countryCode: string;
+  jobTitle: string;
+  company: string;
+  sessions: number;
+  reviews: number;
+  attendance: number;
+  experience: number;
+  isTopRated: boolean;
+  isAvailableASAP: boolean;
+}
 
 const dummyTestimonials = [
   {
-    mentorImage: "/images/mentor3.jpg",
+    mentorImage: "/mentor_fallback_2.jpg",
     mentorName: "Dr. Zainab Malik",
     mentorCountryCode: "PK",
     mentorJobTitle: "Data Scientist",
@@ -40,13 +39,13 @@ const dummyTestimonials = [
     mentorSessions: 278,
     mentorReviews: 67,
     reviewText: "Great chat with Dr. Zainab! She helped me rethink about machine learning metrics when working on my capstone project. I liked that she had research papers & resources ready to share. The fact that she showed openness for future conversations is also amazing.",
-    reviewerImage: "/images/reviewer1.jpg",
+    reviewerImage: "/mentor_fallback_2.jpg",
     reviewerName: "Usman Ahmed",
     reviewerRole: "Computer Engineering Student",
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/images/mentor2.jpg",
+    mentorImage: "/mentor_fallback_2.jpg",
     mentorName: "Ahmed Hassan",
     mentorCountryCode: "US",
     mentorJobTitle: "Product Manager",
@@ -54,13 +53,13 @@ const dummyTestimonials = [
     mentorSessions: 189,
     mentorReviews: 10,
     reviewText: "Ahmed is very knowledgeable, informative and super helpful Product Manager who has great ideas! Thank you Ahmed for your advice, dedication to mentoring aspiring PMs and willingness to share your knowledge & experiences!!",
-    reviewerImage: "/images/reviewer2.jpg",
+    reviewerImage: "/mentor_fallback_2.jpg",
     reviewerName: "Fatima Ali",
     reviewerRole: "Business Student",
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/images/mentor4.jpg",
+    mentorImage: "/mentor_fallback_2.jpg",
     mentorName: "Sara Raza",
     mentorCountryCode: "PK",
     mentorJobTitle: "UX Designer",
@@ -68,23 +67,56 @@ const dummyTestimonials = [
     mentorSessions: 118,
     mentorReviews: 23,
     reviewText: "The conversation with Sara completely blew me out of the water. Sara is an amazing mentor and even offered to do some portfolio reviews with me. I can't wait to book another session with her. You rock, Sara!",
-    reviewerImage: "/images/reviewer3.jpg",
+    reviewerImage: "/mentor_fallback_2.jpg",
     reviewerName: "Hassan Malik",
     reviewerRole: "Design Student",
     reviewerCompany: "Karachi University",
   },
 ];
 
-const logos = ['/google.png','/slack.png','/grammarly.png','/microsoft.png','/paypal.png','/amazon.png','/nasa.png','/liftpro.png'];
+const logos = ['/google.png', '/slack.png', '/grammarly.png', '/microsoft.png', '/paypal.png', '/amazon.png', '/nasa.png', '/liftpro.png'];
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('mentee');
   const [activeCategory, setActiveCategory] = useState("Product");
+  const [mentors, setMentors] = useState<LandingMentor[]>([]);
+  const [mentorsLoading, setMentorsLoading] = useState(true);
+
+  // Fetch real mentors from API
+  useEffect(() => {
+    (async () => {
+      setMentorsLoading(true);
+      const result = await mentorsApi.searchMentors({ page: 1, limit: 4 });
+
+      if (result.success && result.data && result.data.data.length > 0) {
+        // Convert backend data to landing page mentor format
+        const apiMentors: LandingMentor[] = result.data.data.map((mentor, index) => ({
+          id: mentor.profile?.user_id || mentor.user?.id || '',
+          image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
+          name: mentor.profile?.full_name || 'Mentor',
+          countryCode: 'PK',
+          jobTitle: mentor.mentor_profile?.headline || 'Mentor',
+          company: '',
+          sessions: mentor.stats?.total_sessions || 25,
+          reviews: mentor.mentor_profile?.rating_count || 12,
+          attendance: 95,
+          experience: mentor.mentor_profile?.experience_years || 3,
+          isTopRated: (mentor.mentor_profile?.rating_avg || 5.0) >= 4.5,
+          isAvailableASAP: true,
+        }));
+        setMentors(apiMentors);
+      } else {
+        // No mentors from API - show empty state
+        setMentors([]);
+      }
+      setMentorsLoading(false);
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
       <LandingHeader />
-      
+
       <div className="relative bg-white overflow-hidden">
         {/* Hero Section */}
         <div className="relative pb-0 px-4 md:px-12 lg:px-20 pt-12">
@@ -189,21 +221,21 @@ const LandingPage = () => {
         </div>
 
         {/* Transforming your potential */}
-      <div className="px-4 md:px-12 lg:px-20 py-12">
-        <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl font-bold max-w-4xl">Transforming your potential</h1>
-          <p className="mt-4 max-w-2xl text-gray-700">
-            Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
-          </p>
-        </div>
-        <div className="mt-12 flex justify-center">
-          <div className="w-full max-w-6xl overflow-hidden rounded-xl transition-all duration-300 hover:shadow-2xl">
-            <video className="w-full h-auto" src="https://lazarev.kiev.ua/la24/la-reel--min.mp4" controls preload="none">
-              Your browser does not support the video tag.
-            </video>
+        <div className="px-4 md:px-12 lg:px-20 py-12">
+          <div className="flex flex-col items-center text-center">
+            <h1 className="text-4xl font-bold max-w-4xl">Transforming your potential</h1>
+            <p className="mt-4 max-w-2xl text-gray-700">
+              Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
+            </p>
+          </div>
+          <div className="mt-12 flex justify-center">
+            <div className="w-full max-w-6xl overflow-hidden rounded-xl transition-all duration-300 hover:shadow-2xl">
+              <video className="w-full h-auto" src="https://lazarev.kiev.ua/la24/la-reel--min.mp4" controls preload="none">
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Steps Section */}
         <div className="px-4 md:px-12 lg:px-20 py-12">
@@ -262,13 +294,23 @@ const LandingPage = () => {
 
         <div className="px-4 md:px-12 lg:px-20">
           <div className="overflow-x-auto mb-30 scrollbar-hide">
-            <div className="flex space-x-8 pb-4 items-stretch">
-              {dummyMentors.map((mentor, index) => (
-                <div key={index} className="flex-shrink-0">
-                  <MentorCard mentor={mentor} />
-                </div>
-              ))}
-            </div>
+            {mentorsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
+              </div>
+            ) : mentors.length > 0 ? (
+              <div className="flex space-x-8 pb-4 items-stretch">
+                {mentors.map((mentor, index) => (
+                  <div key={mentor.id || index} className="flex-shrink-0">
+                    <MentorCard mentor={mentor} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No mentors available yet. Check back soon!</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -326,32 +368,32 @@ const LandingPage = () => {
         </div>
 
         {/* CTA */}
-      <div className="px-4 md:px-12 lg:px-20 py-20 text-center">
-        <div className="flex flex-col items-center">
-          <h1 className="max-w-3xl mb-8 text-4xl font-bold">Get started for free in 1 minute or less</h1>
-          <p className="max-w-2xl mb-8 text-gray-400 leading-8 text-lg">
-            Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
-          </p>
-        </div>
-        <div className="relative flex flex-col items-center pb-10">
-          <div className="relative max-w-lg w-full">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-            <input
-              type="email"
-              placeholder="Your email address"
-              className="w-full h-14 pl-12 pr-32 rounded-lg border border-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              aria-label="Email address for getting started"
-            />
-            <Button 
-              variant="rainbow" 
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg h-10 px-6"
-              asChild
-            >
-              <Link href="/signup">Get Started</Link>
-            </Button>
+        <div className="px-4 md:px-12 lg:px-20 py-20 text-center">
+          <div className="flex flex-col items-center">
+            <h1 className="max-w-3xl mb-8 text-4xl font-bold">Get started for free in 1 minute or less</h1>
+            <p className="max-w-2xl mb-8 text-gray-400 leading-8 text-lg">
+              Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
+            </p>
+          </div>
+          <div className="relative flex flex-col items-center pb-10">
+            <div className="relative max-w-lg w-full">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
+              <input
+                type="email"
+                placeholder="Your email address"
+                className="w-full h-14 pl-12 pr-32 rounded-lg border border-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                aria-label="Email address for getting started"
+              />
+              <Button
+                variant="rainbow"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg h-10 px-6"
+                asChild
+              >
+                <Link href="/signup">Get Started</Link>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
         <style jsx>{`
           .fade-in {
@@ -387,7 +429,7 @@ const LandingPage = () => {
           }
         `}</style>
       </div>
-      
+
       <LandingFooter />
     </div>
   );

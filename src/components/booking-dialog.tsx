@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bookings } from '@/lib/api/bookings';
+import { bookingsApi } from '@/lib/api/bookings-api';
 import { auth } from '@/lib/api/auth';
 import { toast } from 'sonner';
 import { Calendar, Clock, Video } from 'lucide-react';
@@ -87,31 +87,34 @@ export function BookingDialog({
 
       const datetime = new Date(`${selectedDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
 
-      bookings.create({
-        mentorId,
-        menteeId: currentUser.id,
-        datetime: datetime.toISOString(),
-        durationMin: 60,
-        sessionType,
-        topic: topic.trim(),
-        goals: goals.trim() || undefined,
-        status: 'confirmed',
+      // Use real backend API
+      const result = await bookingsApi.createBooking({
+        mentor_id: mentorId,
+        start_at: datetime.toISOString(),
+        duration_minutes: 60,
+        notes: `${sessionType}: ${topic.trim()}${goals.trim() ? '\n\nGoals: ' + goals.trim() : ''}`,
       });
 
-      toast.success('Session booked successfully!', {
-        description: `Your session with ${mentorName} is confirmed.`,
-        action: {
-          label: 'View Booking',
-          onClick: () => router.push('/bookings'),
-        },
-      });
+      if (result.success) {
+        toast.success('Session booked successfully!', {
+          description: `Your session with ${mentorName} is confirmed.`,
+          action: {
+            label: 'View Booking',
+            onClick: () => router.push('/bookings'),
+          },
+        });
 
-      onOpenChange(false);
-      
-      // Small delay before redirecting
-      setTimeout(() => {
-        router.push('/bookings');
-      }, 1000);
+        onOpenChange(false);
+
+        // Small delay before redirecting
+        setTimeout(() => {
+          router.push('/bookings');
+        }, 1000);
+      } else {
+        toast.error('Failed to create booking', {
+          description: result.error || 'Please try again later.',
+        });
+      }
     } catch (error) {
       console.error('Booking error:', error);
       toast.error('Failed to create booking', {

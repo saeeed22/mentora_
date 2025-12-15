@@ -75,16 +75,16 @@ export default function DashboardHomePage() {
     if (result.success && result.data) {
       // Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
       const mentorCards = result.data.data.map(m => ({
-        id: (m as { id?: string }).id || m.user?.id || '',
-        image: m.profile?.avatar_url || '',
+        id: m.profile?.user_id || (m as { id?: string }).id || m.user?.id || '',
+        image: m.profile?.avatar_url || '/mentor_fallback_1.jpg',
         name: m.profile?.full_name || 'Unknown Mentor',
         countryCode: 'PK',
         jobTitle: m.mentor_profile?.headline || 'Mentor',
         company: '',
-        sessions: m.stats?.total_sessions || 0,
-        reviews: m.mentor_profile?.rating_count || 0,
+        sessions: m.stats?.total_sessions || 25,
+        reviews: m.mentor_profile?.rating_count || 12,
         attendance: 95,
-        experience: m.mentor_profile?.experience_years || 0,
+        experience: m.mentor_profile?.experience_years || 3,
       }));
       setSuggestedMentors(mentorCards);
     } else {

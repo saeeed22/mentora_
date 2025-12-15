@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, Video, MessageCircle, Star, MoreVertical } from 'lucide-react';
+import { Calendar, Clock, Video, MessageCircle, Star, MoreVertical, Check, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,35 +14,79 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { bookings } from '@/lib/api/bookings';
+import { bookingsApi, BookingResponse } from '@/lib/api/bookings-api';
 import { auth } from '@/lib/api/auth';
-import { mentors } from '@/lib/api/mentors';
-import { mockUsers } from '@/lib/mock-auth';
-import type { Booking } from '@/lib/types';
+import { users } from '@/lib/api/users';
 import { toast } from 'sonner';
 import { FeedbackDialog } from '@/components/feedback-dialog';
 import Link from 'next/link';
-import { messaging } from '@/lib/api/messages';
+import { messagingApi } from '@/lib/api/messaging-api';
+
+// Extended booking with user info
+interface BookingWithUserInfo extends BookingResponse {
+  mentorName?: string;
+  mentorAvatar?: string;
+  menteeName?: string;
+  menteeAvatar?: string;
+}
 
 export default function BookingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('upcoming');
-  const [userBookings, setUserBookings] = useState<Booking[]>([]);
+  const [userBookings, setUserBookings] = useState<BookingWithUserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackTarget, setFeedbackTarget] = useState<Booking | null>(null);
+  const [feedbackTarget, setFeedbackTarget] = useState<BookingWithUserInfo | null>(null);
 
-  useEffect(() => {
+  const loadBookings = async () => {
     const currentUser = auth.getCurrentUser();
     if (!currentUser) {
       router.push('/login');
       return;
     }
 
-    const allBookings = bookings.listForUser(currentUser.id, currentUser.role);
-    setUserBookings(allBookings);
+    setLoading(true);
+    const result = await bookingsApi.getMyBookings({ limit: 100 });
+
+    if (result.success && result.data) {
+      // Fetch user info for each booking
+      const bookingsWithInfo = await Promise.all(
+        result.data.data.map(async (booking) => {
+          const enhanced: BookingWithUserInfo = { ...booking };
+
+          // Fetch mentor info
+          try {
+            const mentorResult = await users.getUserById(booking.mentor_id);
+            if (mentorResult.success && mentorResult.data) {
+              enhanced.mentorName = mentorResult.data.email.split('@')[0];
+            }
+          } catch {
+            enhanced.mentorName = 'Mentor';
+          }
+
+          // Fetch mentee info (for mentors)
+          try {
+            const menteeResult = await users.getUserById(booking.mentee_id);
+            if (menteeResult.success && menteeResult.data) {
+              enhanced.menteeName = menteeResult.data.email.split('@')[0];
+            }
+          } catch {
+            enhanced.menteeName = 'Mentee';
+          }
+
+          return enhanced;
+        })
+      );
+
+      setUserBookings(bookingsWithInfo);
+    }
     setLoading(false);
-  }, [router]);
+  };
+
+  useEffect(() => {
+    loadBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentUser = auth.getCurrentUser();
   if (!currentUser) return null;
@@ -61,8 +105,10 @@ export default function BookingsPage() {
       confirmed: { variant: 'default' as const, label: 'Confirmed' },
       completed: { variant: 'secondary' as const, label: 'Completed' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled' },
+      expired: { variant: 'destructive' as const, label: 'Expired' },
+      rescheduled: { variant: 'secondary' as const, label: 'Rescheduled' },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.confirmed;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -83,11 +129,11 @@ export default function BookingsPage() {
     } else if (targetDate.getTime() === tomorrow.getTime()) {
       return 'Tomorrow';
     } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     }
   };
@@ -97,49 +143,68 @@ export default function BookingsPage() {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
-  const handleCancelBooking = (bookingId: string) => {
-    bookings.cancel(bookingId);
-    toast.success('Booking cancelled');
-    // Refresh list
-    const allBookings = bookings.listForUser(currentUser.id, currentUser.role);
-    setUserBookings(allBookings);
-  };
-
-  const handleJoinSession = (booking: Booking) => {
-    if (booking.videoCallLink) {
-      router.push(`/session/${booking.id}`);
+  const handleCancelBooking = async (bookingId: string) => {
+    const result = await bookingsApi.cancelBooking(bookingId);
+    if (result.success) {
+      toast.success('Booking cancelled');
+      loadBookings(); // Refresh list
+    } else {
+      toast.error('Failed to cancel booking');
     }
   };
 
-  const handleMessage = (booking: Booking) => {
-    const currentUser = auth.getCurrentUser();
-    if (!currentUser) return;
-    const conv = messaging.getOrCreateConversation({ mentorId: booking.mentorId, menteeId: booking.menteeId, bookingId: booking.id });
-    router.push(`/messages?c=${conv.id}`);
+  const handleConfirmBooking = async (bookingId: string) => {
+    const result = await bookingsApi.updateBookingStatus(bookingId, 'confirmed');
+    if (result.success) {
+      toast.success('Booking confirmed!');
+      loadBookings(); // Refresh list
+    } else {
+      toast.error(result.error || 'Failed to confirm booking');
+    }
   };
 
-  const upcomingBookings = userBookings.filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.datetime).getTime() >= Date.now())
-    .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+  const handleCompleteBooking = async (bookingId: string) => {
+    const result = await bookingsApi.updateBookingStatus(bookingId, 'completed');
+    if (result.success) {
+      toast.success('Session marked as completed!');
+      loadBookings(); // Refresh list
+    } else {
+      toast.error(result.error || 'Failed to complete booking');
+    }
+  };
+
+  const handleJoinSession = (booking: BookingWithUserInfo) => {
+    router.push(`/session/${booking.id}`);
+  };
+
+  const handleMessage = async (booking: BookingWithUserInfo) => {
+    const currentUser = auth.getCurrentUser();
+    if (!currentUser) return;
+
+    // Create or get conversation via backend API
+    const result = await messagingApi.createConversation([currentUser.id, booking.mentor_id]);
+    if (result.success && result.data) {
+      router.push(`/messages?c=${result.data.id}`);
+    }
+  };
+
+  const upcomingBookings = userBookings.filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.start_at).getTime() >= Date.now())
+    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
   const pastBookings = userBookings.filter(b => b.status === 'completed')
-    .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+    .sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime());
   const cancelledBookings = userBookings.filter(b => b.status === 'cancelled')
-    .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+    .sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime());
 
-  const BookingCard = ({ booking, showActions = true }: { booking: Booking; showActions?: boolean }) => {
-    // Get the other party (mentor if mentee, mentee if mentor)
+  const BookingCard = ({ booking, showActions = true }: { booking: BookingWithUserInfo; showActions?: boolean }) => {
     const isUserMentor = currentUser.role === 'mentor';
-    const otherPartyId = isUserMentor ? booking.menteeId : booking.mentorId;
-    const otherParty = mockUsers.find(u => u.id === otherPartyId);
-    const mentor = mentors.getById(booking.mentorId);
-    
-    const displayName = otherParty?.name || 'Unknown User';
-    const displayTitle = isUserMentor 
-      ? otherParty?.title || 'Mentee'
-      : mentor?.title || 'Mentor';
-    const displayAvatar = isUserMentor ? otherParty?.avatar : mentor?.avatar;
-    const mentorRating = mentor?.rating;
+    // Mentors see mentee info, mentees see mentor info
+    const displayName = isUserMentor
+      ? (booking.menteeName || 'Mentee')
+      : (booking.mentorName || 'Mentor');
+    const displayTitle = isUserMentor ? 'Mentee' : 'Mentor';
 
-    const canJoin = booking.status === 'confirmed' && new Date(booking.datetime).getTime() - Date.now() < 15 * 60 * 1000; // within 15min
+    const canJoin = booking.status === 'confirmed' && new Date(booking.start_at).getTime() - Date.now() < 15 * 60 * 1000; // within 15min
+    const sessionEnded = new Date(booking.start_at).getTime() + (booking.duration_minutes * 60 * 1000) < Date.now();
 
     return (
       <Card key={booking.id} className="rounded-2xl shadow-sm">
@@ -147,7 +212,7 @@ export default function BookingsPage() {
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start space-x-4">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={displayAvatar} alt={displayName} />
+                <AvatarImage src={isUserMentor ? booking.menteeAvatar : booking.mentorAvatar} alt={displayName} />
                 <AvatarFallback className="bg-brand-light/20 text-brand">
                   {getInitials(displayName)}
                 </AvatarFallback>
@@ -156,14 +221,8 @@ export default function BookingsPage() {
                 <h3 className="font-semibold text-gray-900">{displayName}</h3>
                 <p className="text-sm text-gray-600 mb-1">{displayTitle}</p>
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  {mentorRating && (
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                      <span>{mentorRating}</span>
-                    </div>
-                  )}
                   <Badge variant="outline" className="text-xs">
-                    {booking.sessionType}
+                    {booking.duration_minutes} min session
                   </Badge>
                 </div>
               </div>
@@ -179,14 +238,32 @@ export default function BookingsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuItem>Message {isUserMentor ? 'Mentee' : 'Mentor'}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleMessage(booking)}>
+                      Message {isUserMentor ? 'Mentee' : 'Mentor'}
+                    </DropdownMenuItem>
+                    {/* Mentor: Confirm pending booking */}
+                    {isUserMentor && booking.status === 'pending' && (
+                      <DropdownMenuItem onClick={() => handleConfirmBooking(booking.id)}>
+                        <Check className="w-4 h-4 mr-2" />
+                        Confirm Booking
+                      </DropdownMenuItem>
+                    )}
+                    {/* Mentor: Mark as completed after session ends */}
+                    {isUserMentor && booking.status === 'confirmed' && sessionEnded && (
+                      <DropdownMenuItem onClick={() => handleCompleteBooking(booking.id)}>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Mark as Completed
+                      </DropdownMenuItem>
+                    )}
                     {booking.status === 'confirmed' && (
                       <DropdownMenuItem className="text-red-600" onClick={() => handleCancelBooking(booking.id)}>
                         Cancel Session
                       </DropdownMenuItem>
                     )}
-                    {booking.status === 'completed' && !booking.feedback && (
-                      <DropdownMenuItem onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>Leave Feedback</DropdownMenuItem>
+                    {booking.status === 'completed' && !isUserMentor && (
+                      <DropdownMenuItem onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>
+                        Leave Feedback
+                      </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -195,37 +272,56 @@ export default function BookingsPage() {
           </div>
 
           <div className="space-y-3">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-1">{booking.topic}</h4>
-              {booking.goals && <p className="text-sm text-gray-600">{booking.goals}</p>}
-            </div>
+            {booking.notes && (
+              <div>
+                <h4 className="font-medium text-gray-900 mb-1">Session Notes</h4>
+                <p className="text-sm text-gray-600">{booking.notes}</p>
+              </div>
+            )}
 
             <div className="flex items-center space-x-6 text-sm text-gray-600">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2" />
-                <span>{formatDate(booking.datetime)}</span>
+                <span>{formatDate(booking.start_at)}</span>
               </div>
               <div className="flex items-center">
                 <Clock className="w-4 h-4 mr-2" />
-                <span>{formatTime(booking.datetime)} ({booking.durationMin} min)</span>
+                <span>{formatTime(booking.start_at)} ({booking.duration_minutes} min)</span>
               </div>
             </div>
-
-          {booking.status === 'completed' && !booking.feedback && (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  Don&apos;t forget to leave feedback for this session!
-                </p>
-              </div>
-            )}
           </div>
 
+          {/* Mentor: Pending booking actions */}
+          {isUserMentor && booking.status === 'pending' && (
+            <div className="flex space-x-3 mt-4">
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleConfirmBooking(booking.id)}>
+                <Check className="w-4 h-4 mr-2" />
+                Confirm Booking
+              </Button>
+              <Button variant="outline" onClick={() => handleMessage(booking)}>
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Message
+              </Button>
+              <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancelBooking(booking.id)}>
+                Decline
+              </Button>
+            </div>
+          )}
+
+          {/* Confirmed booking actions */}
           {booking.status === 'confirmed' && (
             <div className="flex space-x-3 mt-4">
               {canJoin && (
                 <Button className="bg-brand hover:bg-brand/90" onClick={() => handleJoinSession(booking)}>
                   <Video className="w-4 h-4 mr-2" />
                   Join Session
+                </Button>
+              )}
+              {/* Mentor: Mark as completed after session */}
+              {isUserMentor && sessionEnded && (
+                <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleCompleteBooking(booking.id)}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark Complete
                 </Button>
               )}
               <Button variant="outline" onClick={() => handleMessage(booking)}>
@@ -238,37 +334,27 @@ export default function BookingsPage() {
             </div>
           )}
 
-          {booking.status === 'completed' && !booking.feedback && (
+          {/* Completed booking actions (mentees only - feedback) */}
+          {booking.status === 'completed' && !isUserMentor && (
             <div className="flex space-x-3 mt-4">
               <Button className="bg-brand hover:bg-brand/90" onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>
                 <Star className="w-4 h-4 mr-2" />
                 Leave Feedback
               </Button>
-            <Button variant="outline" onClick={() => handleMessage(booking)}>
+              <Button variant="outline" onClick={() => handleMessage(booking)}>
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Message
               </Button>
             </div>
           )}
 
-          {booking.status === 'completed' && booking.feedback && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <span className="text-sm font-medium text-green-800 mr-2">Your Rating:</span>
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < booking.feedback!.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              {booking.feedback.comment && (
-                <p className="text-sm text-green-700">&quot;{booking.feedback.comment}&quot;</p>
-              )}
+          {/* Completed booking actions (mentors only - just message) */}
+          {booking.status === 'completed' && isUserMentor && (
+            <div className="flex space-x-3 mt-4">
+              <Button variant="outline" onClick={() => handleMessage(booking)}>
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Message
+              </Button>
             </div>
           )}
         </CardContent>
@@ -384,12 +470,10 @@ export default function BookingsPage() {
           open={feedbackOpen}
           onOpenChange={(o) => { setFeedbackOpen(o); if (!o) setFeedbackTarget(null); }}
           bookingId={feedbackTarget.id}
-          mentorId={feedbackTarget.mentorId}
-          mentorName={mentors.getById(feedbackTarget.mentorId)?.name || 'Mentor'}
+          mentorId={feedbackTarget.mentor_id}
+          mentorName={feedbackTarget.mentorName || 'Mentor'}
           onSubmitted={() => {
-            const currentUser = auth.getCurrentUser();
-            if (!currentUser) return;
-            setUserBookings(bookings.listForUser(currentUser.id, currentUser.role));
+            loadBookings();
           }}
         />
       )}

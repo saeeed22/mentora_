@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Send, Paperclip, MoreVertical, Phone, Video } from 'lucide-react';
+import { Search, Send, Paperclip, MoreVertical, Phone, Video, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,46 +14,71 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { messaging } from '@/lib/api/messages';
+import { messagingApi, ConversationResponse, MessageResponse } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
-import { mentors } from '@/lib/api/mentors';
-import { mockUsers } from '@/lib/mock-auth';
-import type { Conversation, Message } from '@/lib/types';
-
-// data now comes from messaging service
 
 export default function MessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<ConversationResponse[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationResponse | null>(null);
+  const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
+  // Load conversations
   useEffect(() => {
-    const currentUser = auth.getCurrentUser();
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
-    const convs = messaging.listConversationsByUser(currentUser.id);
-    setConversations(convs);
-
-    const c = searchParams.get('c');
-    if (c) {
-      const found = messaging.getConversationById(c);
-      if (found) {
-        setSelectedConversation(found);
-        setMessages(messaging.listMessages(found.id));
+    const loadConversations = async () => {
+      const currentUser = auth.getCurrentUser();
+      if (!currentUser) {
+        router.push('/login');
         return;
       }
+
+      setIsLoading(true);
+      const result = await messagingApi.getConversations();
+
+      if (result.success && result.data) {
+        setConversations(result.data.data);
+
+        // Check if a conversation ID is specified in the URL
+        const c = searchParams.get('c');
+        if (c) {
+          const found = result.data.data.find(conv => conv.id === c);
+          if (found) {
+            setSelectedConversation(found);
+            loadMessages(found.id);
+          }
+        } else if (result.data.data.length > 0) {
+          setSelectedConversation(result.data.data[0]);
+          loadMessages(result.data.data[0].id);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadMessages = async (conversationId: string) => {
+    setIsLoadingMessages(true);
+    const result = await messagingApi.getMessages(conversationId);
+    if (result.success && result.data) {
+      // Messages are returned newest first, reverse for display
+      setMessages(result.data.data.reverse());
+
+      // Mark messages as read
+      const lastMessage = result.data.data[0];
+      if (lastMessage) {
+        await messagingApi.markAsRead(conversationId, lastMessage.id);
+      }
     }
-    if (convs.length > 0) {
-      setSelectedConversation(convs[0]);
-      setMessages(messaging.listMessages(convs[0].id));
-    }
-  }, [router, searchParams]);
+    setIsLoadingMessages(false);
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -63,24 +88,68 @@ export default function MessagesPage() {
       .toUpperCase();
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
+
+    setIsSending(true);
+    const result = await messagingApi.sendMessage(selectedConversation.id, newMessage.trim());
+
+    if (result.success && result.data) {
+      setMessages(prev => [...prev, result.data!]);
+      setNewMessage('');
+
+      // Refresh conversations to update last message
+      const convResult = await messagingApi.getConversations();
+      if (convResult.success && convResult.data) {
+        setConversations(convResult.data.data);
+      }
+    }
+    setIsSending(false);
+  };
+
+  const handleSelectConversation = (conversation: ConversationResponse) => {
+    setSelectedConversation(conversation);
+    loadMessages(conversation.id);
+  };
+
+  const getParticipantName = (conversation: ConversationResponse) => {
+    // Try to get name from participants array if available
     const currentUser = auth.getCurrentUser();
-    if (!currentUser) return;
-    messaging.sendMessage(selectedConversation.id, currentUser.id, newMessage.trim());
-    setMessages(messaging.listMessages(selectedConversation.id));
-    setNewMessage('');
-    setConversations(messaging.listConversationsByUser(currentUser.id));
+    if (conversation.participants && currentUser) {
+      const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
+      if (otherParticipant) {
+        return otherParticipant.full_name;
+      }
+    }
+    return 'Participant';
+  };
+
+  const getParticipantAvatar = (conversation: ConversationResponse) => {
+    const currentUser = auth.getCurrentUser();
+    if (conversation.participants && currentUser) {
+      const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
+      if (otherParticipant) {
+        return otherParticipant.avatar_url;
+      }
+    }
+    return undefined;
   };
 
   const filteredConversations = conversations.filter((conversation) => {
-    const currentUser = auth.getCurrentUser();
-    if (!currentUser) return false;
-    const isMentor = currentUser.id === conversation.mentorId;
-    const other = isMentor ? mockUsers.find(u => u.id === conversation.menteeId) : mentors.getById(conversation.mentorId);
-    const displayName = other?.name || 'Unknown';
-    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    const name = getParticipantName(conversation);
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-4" />
+          <p className="text-gray-600">Loading conversations...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-8rem)] flex bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -103,51 +172,57 @@ export default function MessagesPage() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conversation) => {
-            const currentUser = auth.getCurrentUser();
-            const isMentor = currentUser && currentUser.id === conversation.mentorId;
-            const other = isMentor ? mockUsers.find(u => u.id === conversation.menteeId) : mentors.getById(conversation.mentorId);
-            const displayName = other?.name || 'Unknown';
-            const title = isMentor ? (other?.title || 'Mentee') : (other?.title || 'Mentor');
-            const avatar = other && 'avatar' in other ? other.avatar : undefined;
-            const lastTimestamp = conversation.lastMessageAt || conversation.createdAt;
-            return (
-            <div
-              key={conversation.id}
-              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
-              }`}
-              onClick={() => {
-                setSelectedConversation(conversation);
-                setMessages(messaging.listMessages(conversation.id));
-              }}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={avatar} alt={displayName} />
-                    <AvatarFallback className="bg-brand-light/20 text-brand">
-                      {getInitials(displayName)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">
-                      {displayName}
-                    </h3>
-                    <span className="text-xs text-gray-500">{new Date(lastTimestamp).toLocaleString()}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mb-1 truncate">
-                    {title}
-                  </p>
-                  <p className="text-sm truncate text-gray-600">
-                    Conversation started
-                  </p>
-                </div>
-              </div>
+          {filteredConversations.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <p>No conversations yet</p>
+              <p className="text-sm mt-1">Start a conversation with a mentor</p>
             </div>
-          );})}
+          ) : (
+            filteredConversations.map((conversation) => {
+              const displayName = getParticipantName(conversation);
+              const avatar = getParticipantAvatar(conversation);
+              const lastTimestamp = conversation.updated_at || conversation.created_at;
+              const lastMessagePreview = conversation.last_message?.content || 'No messages yet';
+
+              return (
+                <div
+                  key={conversation.id}
+                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
+                    }`}
+                  onClick={() => handleSelectConversation(conversation)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={avatar} alt={displayName} />
+                        <AvatarFallback className="bg-brand-light/20 text-brand">
+                          {getInitials(displayName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {conversation.unread_count > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-brand text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                          {conversation.unread_count}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                          {displayName}
+                        </h3>
+                        <span className="text-xs text-gray-500">
+                          {new Date(lastTimestamp).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm truncate text-gray-600">
+                        {lastMessagePreview}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -159,29 +234,19 @@ export default function MessagesPage() {
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    <Avatar className="h-10 w-10">
-                      {(() => {
-                        const currentUser = auth.getCurrentUser();
-                        const isMentor = currentUser && currentUser.id === selectedConversation.mentorId;
-                        const other = isMentor ? mockUsers.find(u => u.id === selectedConversation.menteeId) : mentors.getById(selectedConversation.mentorId);
-                        const avatar = other && 'avatar' in other ? other.avatar : undefined;
-                        const name = other?.name || 'Participant';
-                        return <>
-                          <AvatarImage src={avatar} alt={name} />
-                          <AvatarFallback className="bg-brand-light/20 text-brand">{getInitials(name)}</AvatarFallback>
-                        </>;
-                      })()}
-                    </Avatar>
-                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={getParticipantAvatar(selectedConversation)}
+                      alt={getParticipantName(selectedConversation)}
+                    />
+                    <AvatarFallback className="bg-brand-light/20 text-brand">
+                      {getInitials(getParticipantName(selectedConversation))}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
-                    {(() => {
-                      const currentUser = auth.getCurrentUser();
-                      const isMentor = currentUser && currentUser.id === selectedConversation.mentorId;
-                      const other = isMentor ? mockUsers.find(u => u.id === selectedConversation.menteeId) : mentors.getById(selectedConversation.mentorId);
-                      const name = other?.name || 'Participant';
-                      return <h3 className="font-medium text-gray-900">{name}</h3>;
-                    })()}
+                    <h3 className="font-medium text-gray-900">
+                      {getParticipantName(selectedConversation)}
+                    </h3>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -210,33 +275,43 @@ export default function MessagesPage() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => {
-                const currentUser = auth.getCurrentUser();
-                const isYou = currentUser && message.senderUserId === currentUser.id;
-                const time = new Date(message.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                return (
-                <div
-                  key={message.id}
-                  className={`flex ${isYou ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      isYou
-                        ? 'bg-brand text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        isYou ? 'text-white/90' : 'text-gray-500'
-                      }`}
-                    >
-                      {time}
-                    </p>
-                  </div>
+              {isLoadingMessages ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 </div>
-              );})}
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-gray-500">
+                  <p>No messages yet. Start the conversation!</p>
+                </div>
+              ) : (
+                messages.map((message) => {
+                  const currentUser = auth.getCurrentUser();
+                  const isYou = currentUser && message.sender_id === currentUser.id;
+                  const time = new Date(message.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${isYou ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${isYou
+                            ? 'bg-brand text-white'
+                            : 'bg-gray-100 text-gray-900'
+                          }`}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <p
+                          className={`text-xs mt-1 ${isYou ? 'text-white/90' : 'text-gray-500'
+                            }`}
+                        >
+                          {time}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Message Input */}
@@ -260,12 +335,16 @@ export default function MessagesPage() {
                     rows={1}
                   />
                 </div>
-                <Button 
+                <Button
                   onClick={handleSendMessage}
-                  disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || isSending}
                   className="bg-brand hover:bg-brand/90"
                 >
-                  <Send className="h-4 w-4" />
+                  {isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>

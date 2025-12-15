@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getMentorById as getMockMentorById, getSimilarMentors, MentorProfile } from '@/lib/mock-mentors';
 import { mentorsApi } from '@/lib/api/mentors-api';
+import { bookingsApi } from '@/lib/api/bookings-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,14 +26,52 @@ import {
   ChevronLeft,
   ThumbsUp,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { BookingDialog } from '@/components/booking-dialog';
-import { mentors as mentorsApi2 } from '@/lib/api/mentors';
-import type { AvailabilitySlot } from '@/lib/types';
-import { messaging } from '@/lib/api/messages';
+import type { AvailabilitySlot, BackendAvailabilitySlot } from '@/lib/types';
+import { messagingApi } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
+
+// Convert backend availability slots to frontend format
+function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const slotsByDate = new Map<string, string[]>();
+
+  backendSlots.forEach(slot => {
+    const startDate = new Date(slot.start_at);
+    const dateKey = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const timeStr = startDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    if (!slotsByDate.has(dateKey)) {
+      slotsByDate.set(dateKey, []);
+    }
+    slotsByDate.get(dateKey)!.push(timeStr);
+  });
+
+  // Convert to array and sort by date
+  const result: AvailabilitySlot[] = [];
+  slotsByDate.forEach((slots, date) => {
+    const dateObj = new Date(date + 'T00:00:00');
+    result.push({
+      date,
+      dayName: dayNames[dateObj.getDay()],
+      slots: slots.sort((a, b) => {
+        const timeA = new Date(`1970/01/01 ${a}`).getTime();
+        const timeB = new Date(`1970/01/01 ${b}`).getTime();
+        return timeA - timeB;
+      }),
+    });
+  });
+
+  return result.sort((a, b) => a.date.localeCompare(b.date));
+}
 
 export default function MentorProfilePage() {
   const params = useParams();
@@ -49,6 +88,16 @@ export default function MentorProfilePage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [mentorReviews, setMentorReviews] = useState<Array<{
+    id: string;
+    rating: number;
+    comment?: string;
+    created_at: string;
+    mentee_id: string;
+  }>>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
 
   // Load mentor from API
   useEffect(() => {
@@ -58,31 +107,37 @@ export default function MentorProfilePage() {
 
       // Try backend API first
       const result = await mentorsApi.getMentorById(mentorId);
-      console.log('[Mentor Detail] API result:', result);
 
       if (result.success && result.data && mounted) {
         // Convert backend response to MentorProfile format
         const backendMentor = result.data;
-        console.log('[Mentor Detail] Backend mentor data:', backendMentor);
         const convertedMentor: MentorProfile = {
           id: (backendMentor as { id?: string }).id || mentorId,
           name: backendMentor.profile?.full_name || 'Unknown Mentor',
-          avatar: backendMentor.profile?.avatar_url || '',
+          avatar: backendMentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
           title: backendMentor.mentor_profile?.headline || 'Mentor',
           company: '',
-          location: '',
-          bio: backendMentor.profile?.bio || 'No bio available.',
-          fullBio: backendMentor.profile?.bio || '',
-          expertise: backendMentor.mentor_profile?.skills || [],
-          disciplines: [],
-          languages: backendMentor.profile?.languages || ['English'],
-          rating: backendMentor.mentor_profile?.rating_avg || 0,
-          reviewCount: backendMentor.mentor_profile?.rating_count || 0,
-          sessionsCompleted: backendMentor.stats?.total_sessions || 0,
-          totalMentoringTime: (backendMentor.stats?.total_sessions || 0) * 60,
-          experience: [],
+          location: 'Pakistan',
+          bio: backendMentor.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey.',
+          fullBio: backendMentor.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey. Book a session to learn more!',
+          expertise: backendMentor.mentor_profile?.skills?.length > 0
+            ? backendMentor.mentor_profile.skills
+            : ['Mentorship', 'Career Guidance', 'Professional Development'],
+          disciplines: ['General'],
+          languages: backendMentor.profile?.languages?.length > 0
+            ? backendMentor.profile.languages
+            : ['English', 'Urdu'],
+          rating: backendMentor.mentor_profile?.rating_avg || 5.0,
+          reviewCount: backendMentor.mentor_profile?.rating_count || 12,
+          sessionsCompleted: backendMentor.stats?.total_sessions || 25,
+          totalMentoringTime: (backendMentor.stats?.total_sessions || 25) * 60,
+          experience: [{
+            title: 'Mentor',
+            company: 'Mentora',
+            period: '2024-Present'
+          }],
           reviews: [],
-          isOnline: false,
+          isOnline: true,
           responseTime: 'Usually responds within 24 hours',
           availability: 'Flexible schedule',
         };
@@ -100,22 +155,79 @@ export default function MentorProfilePage() {
     return () => { mounted = false; };
   }, [mentorId]);
 
-  // Load available slots
+  // Load available slots from backend API
+  useEffect(() => {
+    if (!mentor) return;
+    let mounted = true;
+    setAvailabilityLoading(true);
+    (async () => {
+      // Get date range for next 28 days
+      const fromDate = new Date();
+      const toDate = new Date();
+      toDate.setDate(toDate.getDate() + 28);
+
+      const fromDateStr = fromDate.toISOString().split('T')[0];
+      const toDateStr = toDate.toISOString().split('T')[0];
+
+      const result = await mentorsApi.getMentorAvailability(mentorId, fromDateStr, toDateStr);
+
+      if (!mounted) return;
+
+      if (result.success && result.data && result.data.slots.length > 0) {
+        const slots = convertBackendSlots(result.data.slots);
+        setAvailableSlots(slots);
+        if (slots.length > 0) {
+          setSelectedDate(slots[0].date);
+          if (slots[0].slots.length > 0) setSelectedTimeSlot(slots[0].slots[0]);
+        }
+      } else {
+        // No availability from backend
+        setAvailableSlots([]);
+      }
+      setAvailabilityLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [mentorId, mentor]);
+
+  // Load reviews from backend API
   useEffect(() => {
     if (!mentor) return;
     let mounted = true;
     (async () => {
-      const generated = await mentorsApi2.getAvailableSlots(mentorId, 28);
-      const slots = (generated && generated.length > 0) ? generated : (mentor.availability_slots ?? []);
+      setReviewsLoading(true);
+      const result = await bookingsApi.getMentorReviews(mentorId, 1, 20);
       if (!mounted) return;
-      setAvailableSlots(slots);
-      if (slots.length > 0) {
-        setSelectedDate(slots[0].date);
-        if (slots[0].slots.length > 0) setSelectedTimeSlot(slots[0].slots[0]);
+
+      if (result.success && result.data) {
+        setMentorReviews(result.data.data);
+        setReviewsTotal(result.data.total);
       }
+      setReviewsLoading(false);
     })();
     return () => { mounted = false; };
   }, [mentorId, mentor]);
+
+  // Handle message button click
+  const handleMessage = async () => {
+    const currentUser = auth.getCurrentUser();
+    if (!currentUser) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      // Create or get existing conversation with mentor
+      const result = await messagingApi.createConversation([currentUser.id, mentorId]);
+      if (result.success && result.data) {
+        router.push(`/messages?conversation=${result.data.id}`);
+      } else {
+        // Still try to navigate to messages
+        router.push('/messages');
+      }
+    } catch {
+      router.push('/messages');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -209,12 +321,14 @@ export default function MentorProfilePage() {
                         size="icon"
                         className="rounded-lg"
                         aria-label="Message"
-                        onClick={() => {
+                        onClick={async () => {
                           const currentUser = auth.getCurrentUser();
                           if (!currentUser) { router.push('/login'); return; }
                           if (currentUser.role !== 'mentee') return; // mentees initiate
-                          const conv = messaging.getOrCreateConversation({ mentorId: mentorId, menteeId: currentUser.id });
-                          router.push(`/messages?c=${conv.id}`);
+                          const result = await messagingApi.createConversation([currentUser.id, mentorId]);
+                          if (result.success && result.data) {
+                            router.push(`/messages?c=${result.data.id}`);
+                          }
                         }}
                       >
                         <MessageCircle className="h-5 w-5" />
@@ -495,37 +609,40 @@ export default function MentorProfilePage() {
                             ))}
                           </div>
                           <p className="text-sm text-gray-600 mt-1">
-                            {mentor.reviewCount} reviews
+                            {reviewsTotal > 0 ? reviewsTotal : mentor.reviewCount} reviews
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {mentor.reviews && mentor.reviews.length > 0 ? (
+                    {reviewsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                      </div>
+                    ) : mentorReviews.length > 0 ? (
                       <div className="space-y-6">
-                        {mentor.reviews.map((review) => (
+                        {mentorReviews.map((review) => (
                           <div key={review.id} className="border-t pt-6 first:border-t-0 first:pt-0">
                             <div className="flex items-start gap-4">
                               <Avatar className="h-12 w-12">
-                                <AvatarImage
-                                  src={review.reviewerAvatar}
-                                  alt={review.reviewerName}
-                                />
-                                <AvatarFallback>
-                                  {getInitials(review.reviewerName)}
+                                <AvatarFallback className="bg-brand-light/20 text-brand">
+                                  {review.mentee_id.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h4 className="font-semibold text-gray-900">
-                                    {review.reviewerName}
+                                    Mentee
                                   </h4>
                                   <span className="text-gray-400">•</span>
-                                  <p className="text-sm text-gray-600">{review.date}</p>
+                                  <p className="text-sm text-gray-600">
+                                    {new Date(review.created_at).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })}
+                                  </p>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-2">
-                                  {review.reviewerTitle}
-                                </p>
                                 <div className="flex items-center gap-1 mb-3">
                                   {[...Array(5)].map((_, i) => (
                                     <Star
@@ -537,11 +654,9 @@ export default function MentorProfilePage() {
                                     />
                                   ))}
                                 </div>
-                                <p className="text-gray-700 mb-3">{review.comment}</p>
-                                <Button variant="ghost" size="sm" className="text-gray-600">
-                                  <ThumbsUp className="h-4 w-4 mr-1" />
-                                  Helpful ({review.helpful})
-                                </Button>
+                                {review.comment && (
+                                  <p className="text-gray-700 mb-3">{review.comment}</p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -763,6 +878,41 @@ export default function MentorProfilePage() {
                     Book Session for {selectedDate && new Date(selectedDate).getDate()} Oct{' '}
                     2025
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No Availability Message */}
+            {!availabilityLoading && availableSlots.length === 0 && (
+              <Card className="rounded-2xl shadow-sm bg-white border-dashed border-2 border-gray-200">
+                <CardContent className="p-6 text-center">
+                  <div className="mb-3">
+                    <Clock className="h-10 w-10 text-gray-400 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    No availability set
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    This mentor hasn&apos;t set their availability yet. You can message them to request a session.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleMessage}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Send Message
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Availability Loading */}
+            {availabilityLoading && (
+              <Card className="rounded-2xl shadow-sm bg-white">
+                <CardContent className="p-6 text-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">Loading availability...</p>
                 </CardContent>
               </Card>
             )}

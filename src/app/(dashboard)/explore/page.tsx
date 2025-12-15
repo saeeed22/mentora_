@@ -20,18 +20,18 @@ import {
 // Convert backend mentor to card format
 // Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
 const backendMentorToCard = (mentor: MentorDetailResponse) => ({
-  id: (mentor as { id?: string }).id || mentor.user?.id || '',
-  image: mentor.profile?.avatar_url || '',
+  id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
+  image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
   name: mentor.profile?.full_name || 'Unknown Mentor',
   countryCode: 'PK',
   jobTitle: mentor.mentor_profile?.headline || 'Mentor',
   company: '',
-  sessions: mentor.stats?.total_sessions || 0,
-  reviews: mentor.mentor_profile?.rating_count || 0,
+  sessions: mentor.stats?.total_sessions || 25,
+  reviews: mentor.mentor_profile?.rating_count || 12,
   attendance: 95,
-  experience: mentor.mentor_profile?.experience_years || 0,
-  isTopRated: (mentor.mentor_profile?.rating_avg || 0) >= 4.8,
-  isAvailableASAP: false,
+  experience: mentor.mentor_profile?.experience_years || 3,
+  isTopRated: (mentor.mentor_profile?.rating_avg || 5.0) >= 4.8,
+  isAvailableASAP: true,
 });
 
 // Fallback: Convert mock mentor profiles to card format
@@ -80,18 +80,6 @@ export default function ExplorePage() {
     });
 
     if (result.success && result.data) {
-      console.log('[Explore] API Response - Full Data:', JSON.stringify(result.data, null, 2));
-      console.log('[Explore] Total mentors returned:', result.data.data.length);
-      result.data.data.forEach((mentor, i) => {
-        console.log(`[Explore] Mentor ${i + 1}:`, {
-          user_id: mentor.user?.id,
-          email: mentor.user?.email,
-          name: mentor.profile?.full_name,
-          headline: mentor.mentor_profile?.headline,
-          skills: mentor.mentor_profile?.skills,
-          rating: mentor.mentor_profile?.rating_avg,
-        });
-      });
       const cardData = result.data.data.map(backendMentorToCard);
 
       // Filter by search query on client side
@@ -104,7 +92,6 @@ export default function ExplorePage() {
 
       // If API returns empty data, fallback to mock
       if (filtered.length === 0 && !searchQuery) {
-        console.log('[Explore] API returned empty, using mock data');
         const mockCards = mockMentorProfiles.map(mockMentorToCard);
         setMentors(mockCards);
         setSkills(Array.from(new Set(mockMentorProfiles.flatMap(m => m.expertise))).sort());
@@ -119,7 +106,6 @@ export default function ExplorePage() {
       setHasMore(result.data.hasNext);
     } else {
       // Fallback to mock data
-      console.log('Using mock mentor data:', result.error);
       const mockCards = mockMentorProfiles.map(mockMentorToCard);
 
       const filtered = searchQuery

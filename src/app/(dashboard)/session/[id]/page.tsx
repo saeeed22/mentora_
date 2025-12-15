@@ -3,12 +3,29 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { auth } from '@/lib/api/auth';
-import { sessions, type SessionInfo } from '@/lib/api/sessions';
+import { bookingsApi, BookingResponse, VideoTokenResponse } from '@/lib/api/bookings-api';
+import { users } from '@/lib/api/users';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, Calendar } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, Loader2 } from 'lucide-react';
 import { AgoraVideoCall } from '@/components/agora-video-call';
+
+// Session info for the video call
+interface SessionInfo {
+  appId: string;
+  channel: string;
+  token: string;
+  uid: number;
+  booking: BookingResponse;
+  userName: string;
+  userAvatar?: string;
+  participantName: string;
+  participantAvatar?: string;
+}
+
+// Agora App ID - in production, this should come from env or backend
+const AGORA_APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID || '';
 
 export default function SessionPage() {
   const params = useParams();
@@ -20,24 +37,97 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const currentUser = auth.getCurrentUser();
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
+    const loadSessionData = async () => {
+      const currentUser = auth.getCurrentUser();
+      if (!currentUser) {
+        router.push('/login');
+        return;
+      }
 
-    const info = sessions.getSessionInfo(bookingId);
-    if (!info) {
-      setError('Session not found or you are not a participant.');
-      setLoading(false);
-      return;
-    }
+      try {
+        // 1. Fetch booking details
+        const bookingResult = await bookingsApi.getBookingById(bookingId);
+        if (!bookingResult.success || !bookingResult.data) {
+          setError('Booking not found.');
+          setLoading(false);
+          return;
+        }
 
-    setSessionInfo(info);
-    setLoading(false);
+        const booking = bookingResult.data;
+
+        // Check if user is a participant
+        const isParticipant = currentUser.id === booking.mentor_id || currentUser.id === booking.mentee_id;
+        if (!isParticipant) {
+          setError('You are not a participant in this session.');
+          setLoading(false);
+          return;
+        }
+
+        // Check if booking is confirmed
+        if (booking.status !== 'confirmed') {
+          setError(`This session is ${booking.status}. Only confirmed sessions can be joined.`);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fetch video token from backend
+        const tokenResult = await bookingsApi.getVideoToken(bookingId);
+        if (!tokenResult.success || !tokenResult.data) {
+          setError('Failed to get video token. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        const videoToken = tokenResult.data;
+
+        // 3. Get participant info
+        const isMentor = currentUser.id === booking.mentor_id;
+        const participantId = isMentor ? booking.mentee_id : booking.mentor_id;
+
+        let participantName = 'Participant';
+        let participantAvatar: string | undefined;
+
+        try {
+          const participantResult = await users.getUserById(participantId);
+          if (participantResult.success && participantResult.data) {
+            participantName = participantResult.data.email.split('@')[0];
+          }
+        } catch {
+          // Use default name
+        }
+
+        // 4. Start video session on backend
+        await bookingsApi.startVideoSession(bookingId);
+
+        // 5. Set session info
+        setSessionInfo({
+          appId: AGORA_APP_ID,
+          channel: videoToken.room_id,
+          token: videoToken.rtc_token,
+          uid: Math.floor(Math.random() * 100000), // Generate random UID
+          booking,
+          userName: currentUser.name,
+          userAvatar: currentUser.avatar,
+          participantName,
+          participantAvatar,
+        });
+
+        setLoading(false);
+      } catch (err) {
+        console.error('Error loading session:', err);
+        setError('Failed to load session. Please try again.');
+        setLoading(false);
+      }
+    };
+
+    loadSessionData();
   }, [bookingId, router]);
 
-  const handleLeaveCall = () => {
+  const handleLeaveCall = async () => {
+    // End video session on backend
+    if (sessionInfo) {
+      await bookingsApi.endVideoSession(bookingId);
+    }
     router.push('/bookings');
   };
 
@@ -45,7 +135,7 @@ export default function SessionPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-brand mx-auto" />
           <p className="mt-4 text-gray-600">Preparing your session...</p>
         </div>
       </div>
@@ -58,7 +148,7 @@ export default function SessionPage() {
         <Card className="rounded-2xl shadow-sm max-w-lg w-full">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold text-brand-dark mb-2">
-              {error ? 'Access Denied' : 'Session Not Found'}
+              {error ? 'Cannot Join Session' : 'Session Not Found'}
             </h2>
             <p className="text-gray-600 mb-6">
               {error || 'This session does not exist or was removed.'}
@@ -75,7 +165,7 @@ export default function SessionPage() {
     );
   }
 
-  const sessionDate = new Date(sessionInfo.booking.datetime);
+  const sessionDate = new Date(sessionInfo.booking.start_at);
 
   return (
     <div className="space-y-4">
@@ -107,26 +197,31 @@ export default function SessionPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{sessionInfo.booking.topic}</Badge>
-          <Badge
-            variant={sessionInfo.booking.status === 'confirmed' ? 'default' : 'secondary'}
-          >
+          <Badge variant="outline">{sessionInfo.booking.duration_minutes} min</Badge>
+          <Badge variant="default">
             {sessionInfo.booking.status}
           </Badge>
         </div>
       </div>
 
+      {/* Agora App ID Warning */}
+      {!AGORA_APP_ID && (
+        <div className="bg-yellow-100 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+          <strong>Warning:</strong> Agora App ID is not configured. Set <code>NEXT_PUBLIC_AGORA_APP_ID</code> in your environment variables.
+        </div>
+      )}
+
       {/* Agora Video Call */}
-      <div className="rounded-2xl overflow-hidden" style={{ minHeight: '70vh' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ minHeight: '70dvh' }}>
         <AgoraVideoCall
           appId={sessionInfo.appId}
           channel={sessionInfo.channel}
           token={sessionInfo.token}
           uid={sessionInfo.uid}
-          userName={sessionInfo.user.name}
-          userAvatar={sessionInfo.user.avatar}
-          participantName={sessionInfo.participant.name}
-          participantAvatar={sessionInfo.participant.avatar}
+          userName={sessionInfo.userName}
+          userAvatar={sessionInfo.userAvatar}
+          participantName={sessionInfo.participantName}
+          participantAvatar={sessionInfo.participantAvatar}
           onLeave={handleLeaveCall}
         />
       </div>

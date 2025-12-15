@@ -89,18 +89,14 @@ export const auth = {
   async login(data: LoginRequest): Promise<AuthResult<CurrentUser>> {
     try {
       // Get token
-      console.log('[Auth] Calling /v1/auth/login...');
       const tokenResponse = await apiClient.post<TokenResponse>('/v1/auth/login', data);
-      console.log('[Auth] Login response:', tokenResponse.data);
       tokenManager.setAccessToken(tokenResponse.data.access_token);
 
       // Fetch user profile
-      console.log('[Auth] Calling /v1/users/me...');
       const userResponse = await apiClient.get<{
         user: BackendUser;
         profile: BackendProfile;
       }>('/v1/users/me');
-      console.log('[Auth] User response:', userResponse.data);
 
       const { user, profile } = userResponse.data;
 
@@ -211,6 +207,76 @@ export const auth = {
    */
   isAuthenticated(): boolean {
     return tokenManager.isAuthenticated() && !!getStoredUser();
+  },
+
+  /**
+   * Get OAuth login URL for a provider
+   * Redirects user to the OAuth provider
+   */
+  getOAuthUrl(provider: 'google' | 'linkedin'): string {
+    const baseUrl = 'https://mentora-backend-production-d4c3.up.railway.app';
+    const redirectUri = typeof window !== 'undefined'
+      ? `${window.location.origin}/oauth/callback`
+      : '';
+    return `${baseUrl}/v1/auth/oauth/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  },
+
+  /**
+   * Handle OAuth callback with authorization code
+   * POST /v1/auth/oauth/{provider}
+   */
+  async handleOAuthCallback(
+    provider: 'google' | 'linkedin',
+    code: string
+  ): Promise<AuthResult<CurrentUser>> {
+    try {
+      const redirectUri = typeof window !== 'undefined'
+        ? `${window.location.origin}/oauth/callback`
+        : '';
+
+      // Send code to backend to exchange for token
+      const tokenResponse = await apiClient.post<TokenResponse>(
+        `/v1/auth/oauth/${provider}`,
+        { code, redirect_uri: redirectUri }
+      );
+
+      tokenManager.setAccessToken(tokenResponse.data.access_token);
+
+      // Fetch user profile
+      const userResponse = await apiClient.get<{
+        user: BackendUser;
+        profile: BackendProfile;
+      }>('/v1/users/me');
+
+      const { user, profile } = userResponse.data;
+
+      const currentUser: CurrentUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: profile.full_name,
+        avatar: profile.avatar_url,
+        bio: profile.bio,
+        is_verified: user.is_verified,
+      };
+
+      storeCurrentUser(currentUser);
+
+      return { success: true, data: currentUser };
+    } catch (error) {
+      console.error('[Auth] OAuth callback error:', error);
+      const apiError = parseApiError(error);
+      return { success: false, error: apiError.message };
+    }
+  },
+
+  /**
+   * Initiate OAuth login by redirecting to provider
+   */
+  startOAuthLogin(provider: 'google' | 'linkedin'): void {
+    if (typeof window !== 'undefined') {
+      window.location.href = auth.getOAuthUrl(provider);
+    }
   },
 };
 
