@@ -18,18 +18,19 @@ import {
 } from '@/components/ui/select';
 
 // Convert backend mentor to card format
+// Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
 const backendMentorToCard = (mentor: MentorDetailResponse) => ({
-  id: mentor.user.id,
-  image: mentor.profile.avatar_url || '',
-  name: mentor.profile.full_name,
+  id: (mentor as { id?: string }).id || mentor.user?.id || '',
+  image: mentor.profile?.avatar_url || '',
+  name: mentor.profile?.full_name || 'Unknown Mentor',
   countryCode: 'PK',
-  jobTitle: mentor.mentor_profile.headline || 'Mentor',
+  jobTitle: mentor.mentor_profile?.headline || 'Mentor',
   company: '',
-  sessions: mentor.stats.total_sessions,
-  reviews: mentor.mentor_profile.rating_count,
+  sessions: mentor.stats?.total_sessions || 0,
+  reviews: mentor.mentor_profile?.rating_count || 0,
   attendance: 95,
-  experience: mentor.mentor_profile.experience_years,
-  isTopRated: mentor.mentor_profile.rating_avg >= 4.8,
+  experience: mentor.mentor_profile?.experience_years || 0,
+  isTopRated: (mentor.mentor_profile?.rating_avg || 0) >= 4.8,
   isAvailableASAP: false,
 });
 

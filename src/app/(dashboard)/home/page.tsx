@@ -73,17 +73,18 @@ export default function DashboardHomePage() {
   const loadSuggestedMentors = async () => {
     const result = await mentorsApi.searchMentors({ limit: 3, sort: 'rating' });
     if (result.success && result.data) {
+      // Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
       const mentorCards = result.data.data.map(m => ({
-        id: m.user.id,
-        image: m.profile.avatar_url || '',
-        name: m.profile.full_name,
+        id: (m as { id?: string }).id || m.user?.id || '',
+        image: m.profile?.avatar_url || '',
+        name: m.profile?.full_name || 'Unknown Mentor',
         countryCode: 'PK',
-        jobTitle: m.mentor_profile.headline || 'Mentor',
+        jobTitle: m.mentor_profile?.headline || 'Mentor',
         company: '',
-        sessions: m.stats.total_sessions,
-        reviews: m.mentor_profile.rating_count,
+        sessions: m.stats?.total_sessions || 0,
+        reviews: m.mentor_profile?.rating_count || 0,
         attendance: 95,
-        experience: m.mentor_profile.experience_years,
+        experience: m.mentor_profile?.experience_years || 0,
       }));
       setSuggestedMentors(mentorCards);
     } else {
