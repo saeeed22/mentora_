@@ -32,6 +32,8 @@ export const tokenManager = {
         if (typeof window === 'undefined') return;
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
+        // Also clear stored user data to prevent stale auth state
+        localStorage.removeItem('mentora_current_user');
     },
 
     isAuthenticated: (): boolean => {
