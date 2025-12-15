@@ -244,22 +244,6 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* Transforming your potential */}
-        <div className="px-4 md:px-12 lg:px-20 py-12">
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-4xl font-bold max-w-4xl">Transforming your potential</h1>
-            <p className="mt-4 max-w-2xl text-gray-700">
-              Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
-            </p>
-          </div>
-          <div className="mt-12 flex justify-center">
-            <div className="w-full max-w-6xl overflow-hidden rounded-xl transition-all duration-300 hover:shadow-2xl">
-              <video className="w-full h-auto" src="https://lazarev.kiev.ua/la24/la-reel--min.mp4" controls preload="none">
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </div>
-        </div>
 
         {/* Steps Section */}
         <div className="px-4 md:px-12 lg:px-20 py-12">
