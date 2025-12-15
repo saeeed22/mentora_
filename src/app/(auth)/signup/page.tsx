@@ -250,8 +250,8 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Social Signup */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Social Signup - Temporarily disabled */}
+            {/* <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 className="w-full"
@@ -286,7 +286,7 @@ export default function SignupPage() {
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-white px-2 text-gray-500">Or continue with email</span>
               </div>
-            </div>
+            </div> */}
 
             {/* Signup Form */}
             <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
