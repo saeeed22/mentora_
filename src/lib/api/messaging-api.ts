@@ -22,8 +22,9 @@ export interface ConversationResponse {
     updated_at?: string | null;
     unread_count: number;
     last_message?: MessageResponse | null;
-    participants?: Array<{
+    participants: Array<{
         id: string;
+        email: string;
         full_name: string;
         avatar_url?: string;
     }>;

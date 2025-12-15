@@ -40,9 +40,12 @@ export default function MessagesPage() {
       }
 
       setIsLoading(true);
+      console.log('[Messages] Loading conversations...');
       const result = await messagingApi.getConversations();
+      console.log('[Messages] Conversations result:', result);
 
       if (result.success && result.data) {
+        console.log('[Messages] Loaded conversations:', result.data.data.length);
         setConversations(result.data.data);
 
         // Check if a conversation ID is specified in the URL
@@ -57,6 +60,8 @@ export default function MessagesPage() {
           setSelectedConversation(result.data.data[0]);
           loadMessages(result.data.data[0].id);
         }
+      } else {
+        console.error('[Messages] Failed to load conversations:', result.error);
       }
       setIsLoading(false);
     };
@@ -146,12 +151,12 @@ export default function MessagesPage() {
   };
 
   const getParticipantName = (conversation: ConversationResponse) => {
-    // Try to get name from participants array if available
+    // Get name from participants array
     const currentUser = auth.getCurrentUser();
     if (conversation.participants && currentUser) {
       const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
       if (otherParticipant) {
-        return otherParticipant.full_name;
+        return otherParticipant.full_name || otherParticipant.email.split('@')[0];
       }
     }
     return 'Participant';
@@ -161,9 +166,7 @@ export default function MessagesPage() {
     const currentUser = auth.getCurrentUser();
     if (conversation.participants && currentUser) {
       const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
-      if (otherParticipant) {
-        return otherParticipant.avatar_url;
-      }
+      return otherParticipant?.avatar_url;
     }
     return undefined;
   };
