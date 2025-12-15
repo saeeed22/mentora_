@@ -40,6 +40,11 @@ export interface BookingWithDetails extends BookingResponse {
         full_name: string;
         avatar_url?: string;
     };
+    // Additional fields populated by frontend
+    mentorName?: string;
+    menteeName?: string;
+    mentorAvatar?: string;
+    menteeAvatar?: string;
 }
 
 export interface VideoTokenResponse {
