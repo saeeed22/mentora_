@@ -2,17 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Send, Paperclip, MoreVertical, Phone, Video, Loader2 } from 'lucide-react';
+import { Search, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
 
 import { messagingApi, ConversationResponse, MessageResponse } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
@@ -283,27 +278,6 @@ export default function MessagesPage() {
                     </h3>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" aria-label="Call">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" aria-label="Video call">
-                    <Video className="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Profile</DropdownMenuItem>
-                      <DropdownMenuItem>View Session Details</DropdownMenuItem>
-                      <DropdownMenuItem>Archive Conversation</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Block User</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
               </div>
             </div>
 
@@ -355,9 +329,6 @@ export default function MessagesPage() {
             {/* Message Input */}
             <div className="p-4 border-t border-gray-200 bg-white">
               <div className="flex items-end space-x-2">
-                <Button variant="ghost" size="sm" aria-label="Attach file">
-                  <Paperclip className="h-4 w-4" />
-                </Button>
                 <div className="flex-1">
                   <Textarea
                     placeholder="Type your message..."

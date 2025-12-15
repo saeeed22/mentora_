@@ -3,7 +3,7 @@
  * Handles booking creation, listing, status updates, and video sessions
  */
 
-import { apiClient, parseApiError, ApiResult } from '../api-client';
+import { apiClient, parseApiError, ApiResult, tokenManager } from '../api-client';
 
 // Booking status enum
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired' | 'rescheduled';
@@ -70,10 +70,26 @@ export const bookingsApi = {
      */
     async createBooking(data: BookingCreate): Promise<ApiResult<BookingResponse>> {
         try {
+            // Debug: Log full request details for CORS debugging
+            const token = tokenManager.getAccessToken();
+            const baseURL = apiClient.defaults.baseURL;
+            console.log('[Booking] === FULL REQUEST DEBUG ===');
+            console.log('[Booking] URL:', `${baseURL}/v1/bookings`);
+            console.log('[Booking] Method: POST');
+            console.log('[Booking] Token present:', !!token);
+            console.log('[Booking] Token (first 20 chars):', token ? token.substring(0, 20) + '...' : 'MISSING');
+            console.log('[Booking] Headers:', {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token.substring(0, 20)}...` : 'MISSING',
+            });
+            console.log('[Booking] Body:', JSON.stringify(data, null, 2));
+            console.log('[Booking] ========================');
+
             const response = await apiClient.post<BookingResponse>('/v1/bookings', data);
             return { success: true, data: response.data };
         } catch (error) {
             const apiError = parseApiError(error);
+            console.error('[Booking] Error details:', error);
             return { success: false, error: apiError.message };
         }
     },

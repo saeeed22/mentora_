@@ -91,7 +91,7 @@ const LandingPage = () => {
       if (result.success && result.data && result.data.data.length > 0) {
         // Convert backend data to landing page mentor format
         const apiMentors: LandingMentor[] = result.data.data.map((mentor, index) => ({
-          id: mentor.profile?.user_id || mentor.user?.id || '',
+          id: mentor.mentor_profile?.user_id || mentor.user?.id || '',
           image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
           name: mentor.profile?.full_name || 'Mentor',
           countryCode: 'PK',
