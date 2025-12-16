@@ -232,7 +232,8 @@ export default function BookingsPage() {
       : (booking.mentorName || 'Mentor');
     const displayTitle = isUserMentor ? 'Mentee' : 'Mentor';
 
-    const canJoin = booking.status === 'confirmed' && new Date(booking.start_at).getTime() - Date.now() < 15 * 60 * 1000; // within 15min
+    // Always allow joining for confirmed sessions (removed 15-minute restriction)
+    const canJoin = booking.status === 'confirmed';
     const sessionEnded = new Date(booking.start_at).getTime() + (booking.duration_minutes * 60 * 1000) < Date.now();
 
     return (

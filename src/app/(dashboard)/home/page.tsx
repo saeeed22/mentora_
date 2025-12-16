@@ -215,11 +215,8 @@ export default function DashboardHomePage() {
     
     // Can join if:
     // - Status is confirmed
-    // - Within 15 minutes before start OR session has started but not ended
-    const canJoin = isConfirmed && (
-      (startTime - now <= 15 * 60 * 1000) && // Within 15 min before
-      (now < endTime) // And hasn't ended
-    );
+    // - Session hasn't ended yet
+    const canJoin = isConfirmed && (now < endTime);
     
     return {
       id: booking.id,
