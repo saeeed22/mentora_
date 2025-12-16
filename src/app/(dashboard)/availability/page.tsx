@@ -90,9 +90,11 @@ export default function AvailabilityPage() {
           const dayKey = weekdayToKey[template.weekday];
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
+            // Normalize time format (backend may return "09:00:00", we need "09:00")
+            const normalizeTime = (time: string) => time.substring(0, 5);
             schedule[dayKey as keyof typeof schedule].slots.push({
-              start: template.start_time,
-              end: template.end_time,
+              start: normalizeTime(template.start_time),
+              end: normalizeTime(template.end_time),
               templateId: template.id,
             });
           }
@@ -224,9 +226,11 @@ export default function AvailabilityPage() {
           const dayKey = weekdayToKey[template.weekday];
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
+            // Normalize time format (backend may return "09:00:00", we need "09:00")
+            const normalizeTime = (time: string) => time.substring(0, 5);
             schedule[dayKey as keyof typeof schedule].slots.push({
-              start: template.start_time,
-              end: template.end_time,
+              start: normalizeTime(template.start_time),
+              end: normalizeTime(template.end_time),
               templateId: template.id,
             });
           }

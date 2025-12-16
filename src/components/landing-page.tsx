@@ -90,8 +90,8 @@ const LandingPage = () => {
 
       if (result.success && result.data && result.data.data.length > 0) {
         // Convert backend data to landing page mentor format
-        const apiMentors: LandingMentor[] = result.data.data.map((mentor, index) => ({
-          id: mentor.mentor_profile?.user_id || mentor.user?.id || '',
+        const apiMentors: LandingMentor[] = result.data.data.map((mentor) => ({
+          id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
           image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
           name: mentor.profile?.full_name || 'Mentor',
           countryCode: 'PK',
@@ -185,6 +185,7 @@ const LandingPage = () => {
                     Accelerate your professional growth with 1:1 expert guidance from{' '}
                     <strong className="text-gray-900">50+</strong> mentors in our KU community.
                   </p>
+                  {/* Search input - commented out for now
                   <div className="max-w-md mx-auto">
                     <Link href="/explore">
                       <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
@@ -198,6 +199,7 @@ const LandingPage = () => {
                       </div>
                     </Link>
                   </div>
+                  */}
                 </div>
               )}
               {activeTab === 'mentor' && (

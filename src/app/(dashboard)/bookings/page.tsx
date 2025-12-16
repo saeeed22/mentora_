@@ -34,7 +34,7 @@ export default function BookingsPage() {
   const router = useRouter();
   const currentUser = auth.getCurrentUser();
   const isUserMentor = currentUser?.role === 'mentor';
-  
+
   // Mentors see "pending" tab first, mentees see "upcoming"
   const [activeTab, setActiveTab] = useState(isUserMentor ? 'pending' : 'upcoming');
   const [userBookings, setUserBookings] = useState<BookingWithUserInfo[]>([]);
@@ -89,13 +89,13 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
-    
+
     // Auto-refresh bookings every 30 seconds to catch status changes
     const refreshInterval = setInterval(() => {
       console.log('[Bookings] Auto-refreshing bookings...');
       loadBookings();
     }, 30000); // 30 seconds
-    
+
     return () => clearInterval(refreshInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -212,11 +212,11 @@ export default function BookingsPage() {
   };
 
   // Separate pending bookings for mentors
-  const pendingBookings = isUserMentor 
+  const pendingBookings = isUserMentor
     ? userBookings.filter(b => b.status === 'pending')
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     : [];
-  
+
   const upcomingBookings = userBookings.filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.start_at).getTime() >= Date.now())
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
   const pastBookings = userBookings.filter(b => b.status === 'completed')
@@ -415,19 +415,11 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-brand-dark">My Bookings</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your mentoring sessions and appointments
-          </p>
-        </div>
-        <Button className="bg-brand hover:bg-brand/90" asChild>
-          <Link href="/explore">
-            <Calendar className="w-4 h-4 mr-2" />
-            Book New Session
-          </Link>
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold text-brand-dark">My Bookings</h1>
+        <p className="text-gray-600 mt-1">
+          Manage your mentoring sessions and appointments
+        </p>
       </div>
 
       {/* Tabs */}
