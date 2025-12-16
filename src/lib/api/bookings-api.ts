@@ -72,8 +72,10 @@ export interface PaginatedPendingBookings {
 
 export interface VideoTokenResponse {
     provider: string;
+    app_id: string;
     room_id: string;
     rtc_token: string;
+    uid: number;
     expires_at: string;
 }
 
