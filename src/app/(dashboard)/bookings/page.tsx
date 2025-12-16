@@ -259,6 +259,12 @@ export default function BookingsPage() {
             </div>
             <div className="flex items-center space-x-2">
               {getStatusBadge(booking.status)}
+              {/* Show "Ready to Join" indicator for confirmed sessions that haven't ended */}
+              {booking.status === 'confirmed' && !sessionEnded && (
+                <Badge variant="default" className="bg-green-600">
+                  Ready to Join
+                </Badge>
+              )}
               {showActions && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -341,7 +347,8 @@ export default function BookingsPage() {
           {/* Confirmed booking actions */}
           {booking.status === 'confirmed' && (
             <div className="flex space-x-3 mt-4">
-              {canJoin && (
+              {/* Always show Join button for confirmed sessions */}
+              {!sessionEnded && (
                 <Button className="bg-brand hover:bg-brand/90" onClick={() => handleJoinSession(booking)}>
                   <Video className="w-4 h-4 mr-2" />
                   Join Session
@@ -358,9 +365,11 @@ export default function BookingsPage() {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Message
               </Button>
-              <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancelBooking(booking.id)}>
-                Cancel
-              </Button>
+              {!sessionEnded && (
+                <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancelBooking(booking.id)}>
+                  Cancel
+                </Button>
+              )}
             </div>
           )}
 
