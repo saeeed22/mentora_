@@ -57,10 +57,18 @@ export default function DashboardHomePage() {
     if (currentUser) {
       loadUpcomingSessions(currentUser);
 
+      // Auto-refresh bookings every 30 seconds to catch status changes
+      const refreshInterval = setInterval(() => {
+        console.log('[Home] Auto-refreshing bookings...');
+        loadUpcomingSessions(currentUser);
+      }, 30000); // 30 seconds
+
       // Load suggested mentors from API
       if (currentUser.role === 'mentee') {
         loadSuggestedMentors();
       }
+
+      return () => clearInterval(refreshInterval);
     }
   }, []);
 
@@ -197,18 +205,34 @@ export default function DashboardHomePage() {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
-  // Transform upcoming sessions to display format
+  // Transform upcoming sessions to display format with join status
   const displaySessions = upcomingSessions.map(booking => {
     const isUserMentor = user?.role === 'mentor';
+    const now = Date.now();
+    const startTime = new Date(booking.start_at).getTime();
+    const endTime = startTime + (booking.duration_minutes * 60 * 1000);
+    const isConfirmed = booking.status === 'confirmed';
+    
+    // Can join if:
+    // - Status is confirmed
+    // - Within 15 minutes before start OR session has started but not ended
+    const canJoin = isConfirmed && (
+      (startTime - now <= 15 * 60 * 1000) && // Within 15 min before
+      (now < endTime) // And hasn't ended
+    );
     
     return {
       id: booking.id,
+      status: booking.status,
       mentorName: isUserMentor ? (booking.menteeName || 'Mentee') : (booking.mentorName || 'Mentor'),
       mentorAvatar: undefined,
       date: formatDate(booking.start_at),
       time: formatTime(booking.start_at),
       topic: booking.notes || 'Session',
       type: 'Video Call',
+      canJoin,
+      isConfirmed,
+      startTime,
     };
   });
 
@@ -323,17 +347,39 @@ export default function DashboardHomePage() {
                         <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
                       </Avatar>
                       <div className="ml-4 flex-1">
-                        <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
+                          {session.status === 'pending' && (
+                            <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                              Pending
+                            </span>
+                          )}
+                          {session.isConfirmed && (
+                            <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                              Confirmed
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600">{session.topic}</p>
                         <div className="flex items-center mt-1 text-xs text-gray-500">
                           <Clock className="w-3 h-3 mr-1" />
                           {session.date} at {session.time}
                         </div>
                       </div>
-                      <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
-                        <Video className="w-4 h-4 mr-1" />
-                        Join
-                      </Button>
+                      {session.canJoin ? (
+                        <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
+                          <Video className="w-4 h-4 mr-1" />
+                          Join
+                        </Button>
+                      ) : session.status === 'pending' ? (
+                        <Button size="sm" variant="outline" disabled>
+                          Awaiting Approval
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled>
+                          Join opens 15 min before
+                        </Button>
+                      )}
                     </div>
                   ))
                 )}

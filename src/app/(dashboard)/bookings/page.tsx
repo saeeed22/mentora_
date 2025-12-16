@@ -89,6 +89,14 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
+    
+    // Auto-refresh bookings every 30 seconds to catch status changes
+    const refreshInterval = setInterval(() => {
+      console.log('[Bookings] Auto-refreshing bookings...');
+      loadBookings();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(refreshInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -88,14 +88,21 @@ export default function SessionPage() {
         }
 
         // 2. Fetch video token from backend
+        console.log('[Video Session] Fetching video token for booking:', bookingId);
         const tokenResult = await bookingsApi.getVideoToken(bookingId);
         if (!tokenResult.success || !tokenResult.data) {
+          console.error('[Video Session] Failed to get video token:', !tokenResult.success ? tokenResult.error : 'No data returned');
           setError('Failed to get video token. Please try again.');
           setLoading(false);
           return;
         }
 
         const videoToken = tokenResult.data;
+        console.log('[Video Session] Video token received:', {
+          room_id: videoToken.room_id,
+          provider: videoToken.provider,
+          expires_at: videoToken.expires_at
+        });
 
         // 3. Get participant info
         const isMentor = currentUser.id === booking.mentor_id;
@@ -113,15 +120,32 @@ export default function SessionPage() {
           // Use default name
         }
 
-        // 4. Start video session on backend
+        // 4. Generate consistent UID from user ID
+        // Convert user ID string to a number (hash it to get a consistent integer)
+        const generateUidFromUserId = (userId: string): number => {
+          let hash = 0;
+          for (let i = 0; i < userId.length; i++) {
+            const char = userId.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+          }
+          // Return positive number between 1 and 2^31
+          return Math.abs(hash) % 2147483647 + 1;
+        };
+
+        const userUid = generateUidFromUserId(currentUser.id);
+        console.log('[Video Session] User UID:', userUid, 'for user:', currentUser.id);
+
+        // 5. Start video session on backend
         await bookingsApi.startVideoSession(bookingId);
 
-        // 5. Set session info
+        // 6. Set session info
+        console.log('[Video Session] Joining channel:', videoToken.room_id, 'with UID:', userUid);
         setSessionInfo({
           appId: AGORA_APP_ID,
           channel: videoToken.room_id,
           token: videoToken.rtc_token,
-          uid: Math.floor(Math.random() * 100000), // Generate random UID
+          uid: userUid,
           booking,
           userName: currentUser.name,
           userAvatar: currentUser.avatar,

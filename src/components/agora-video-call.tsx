@@ -69,12 +69,22 @@ export function AgoraVideoCall({
     useEffect(() => {
         const initAgora = async () => {
             try {
+                console.log('[Agora] Initializing with:', { 
+                    appId: appId ? 'SET' : 'MISSING', 
+                    channel, 
+                    uid,
+                    tokenLength: token?.length 
+                });
+                
                 // Create client
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
                 clientRef.current = client;
+                
+                console.log('[Agora] Client created');
 
                 // Set up event handlers
                 client.on('user-published', async (user, mediaType) => {
+                    console.log('[Agora] User published:', { uid: user.uid, mediaType });
                     await client.subscribe(user, mediaType);
                     if (mediaType === 'video' && remoteVideoRef.current) {
                         user.videoTrack?.play(remoteVideoRef.current);
@@ -85,6 +95,7 @@ export function AgoraVideoCall({
                     setRemoteUsers((prev) => {
                         const exists = prev.find((u) => u.uid === user.uid);
                         if (exists) return prev;
+                        console.log('[Agora] Adding remote user:', user.uid);
                         return [...prev, user];
                     });
                 });
@@ -99,18 +110,23 @@ export function AgoraVideoCall({
                 });
 
                 client.on('user-left', (user) => {
+                    console.log('[Agora] User left:', user.uid);
                     setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
                 });
 
                 client.on('connection-state-change', (curState) => {
+                    console.log('[Agora] Connection state changed:', curState);
                     setConnectionState(curState);
                 });
 
                 // Join channel
+                console.log('[Agora] Joining channel:', channel, 'with UID:', uid);
                 await client.join(appId, channel, token, uid);
+                console.log('[Agora] Successfully joined channel');
                 setIsJoined(true);
 
                 // Create and publish local tracks
+                console.log('[Agora] Creating local tracks...');
                 const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
                 localAudioTrackRef.current = audioTrack;
                 localVideoTrackRef.current = videoTrack;
@@ -121,9 +137,11 @@ export function AgoraVideoCall({
                 }
 
                 // Publish tracks
+                console.log('[Agora] Publishing local tracks...');
                 await client.publish([audioTrack, videoTrack]);
+                console.log('[Agora] Local tracks published successfully');
             } catch (error) {
-                console.error('Failed to initialize Agora:', error);
+                console.error('[Agora] Failed to initialize:', error);
             }
         };
 
