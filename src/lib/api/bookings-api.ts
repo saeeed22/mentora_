@@ -47,6 +47,29 @@ export interface BookingWithDetails extends BookingResponse {
     menteeAvatar?: string;
 }
 
+// Pending booking with mentee details (from backend)
+export interface PendingBookingResponse {
+    id: string;
+    mentor_id: string;
+    mentee_id: string;
+    mentee_name: string;
+    mentee_avatar?: string;
+    start_at: string;
+    end_at: string;
+    duration_minutes: number;
+    status: 'pending';
+    notes?: string | null;
+    created_at: string;
+}
+
+export interface PaginatedPendingBookings {
+    data: PendingBookingResponse[];
+    page: number;
+    limit: number;
+    total: number;
+    hasNext: boolean;
+}
+
 export interface VideoTokenResponse {
     provider: string;
     room_id: string;
@@ -256,6 +279,63 @@ export const bookingsApi = {
         try {
             const response = await apiClient.get(
                 `/v1/bookings/${mentorId}/reviews?page=${page}&limit=${limit}`
+            );
+            return { success: true, data: response.data };
+        } catch (error) {
+            const apiError = parseApiError(error);
+            return { success: false, error: apiError.message };
+        }
+    },
+
+    // =====================
+    // Mentor Booking Management
+    // =====================
+
+    /**
+     * Get pending booking requests for mentor
+     * GET /v1/bookings/mentor/pending
+     */
+    async getPendingBookings(
+        page = 1,
+        limit = 20
+    ): Promise<ApiResult<PaginatedPendingBookings>> {
+        try {
+            const response = await apiClient.get<PaginatedPendingBookings>(
+                `/v1/bookings/mentor/pending?page=${page}&limit=${limit}`
+            );
+            return { success: true, data: response.data };
+        } catch (error) {
+            const apiError = parseApiError(error);
+            return { success: false, error: apiError.message };
+        }
+    },
+
+    /**
+     * Confirm a pending booking (Mentor only)
+     * PATCH /v1/bookings/{booking_id}/confirm
+     */
+    async confirmBooking(bookingId: string): Promise<ApiResult<BookingResponse>> {
+        try {
+            const response = await apiClient.patch<BookingResponse>(
+                `/v1/bookings/${bookingId}/confirm`,
+                {}
+            );
+            return { success: true, data: response.data };
+        } catch (error) {
+            const apiError = parseApiError(error);
+            return { success: false, error: apiError.message };
+        }
+    },
+
+    /**
+     * Reject a pending booking (Mentor only)
+     * PATCH /v1/bookings/{booking_id}/reject
+     */
+    async rejectBooking(bookingId: string): Promise<ApiResult<BookingResponse>> {
+        try {
+            const response = await apiClient.patch<BookingResponse>(
+                `/v1/bookings/${bookingId}/reject`,
+                {}
             );
             return { success: true, data: response.data };
         } catch (error) {

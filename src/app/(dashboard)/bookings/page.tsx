@@ -32,7 +32,11 @@ interface BookingWithUserInfo extends BookingResponse {
 
 export default function BookingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const currentUser = auth.getCurrentUser();
+  const isUserMentor = currentUser?.role === 'mentor';
+  
+  // Mentors see "pending" tab first, mentees see "upcoming"
+  const [activeTab, setActiveTab] = useState(isUserMentor ? 'pending' : 'upcoming');
   const [userBookings, setUserBookings] = useState<BookingWithUserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -88,7 +92,6 @@ export default function BookingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const currentUser = auth.getCurrentUser();
   if (!currentUser) return null;
 
   const getInitials = (name: string) => {
@@ -154,12 +157,24 @@ export default function BookingsPage() {
   };
 
   const handleConfirmBooking = async (bookingId: string) => {
-    const result = await bookingsApi.updateBookingStatus(bookingId, 'confirmed');
+    // Use new confirm endpoint
+    const result = await bookingsApi.confirmBooking(bookingId);
     if (result.success) {
       toast.success('Booking confirmed!');
       loadBookings(); // Refresh list
     } else {
       toast.error(result.error || 'Failed to confirm booking');
+    }
+  };
+
+  const handleRejectBooking = async (bookingId: string) => {
+    // Use new reject endpoint
+    const result = await bookingsApi.rejectBooking(bookingId);
+    if (result.success) {
+      toast.success('Booking rejected');
+      loadBookings(); // Refresh list
+    } else {
+      toast.error(result.error || 'Failed to reject booking');
     }
   };
 
@@ -188,6 +203,12 @@ export default function BookingsPage() {
     }
   };
 
+  // Separate pending bookings for mentors
+  const pendingBookings = isUserMentor 
+    ? userBookings.filter(b => b.status === 'pending')
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    : [];
+  
   const upcomingBookings = userBookings.filter(b => (b.status === 'confirmed' || b.status === 'pending') && new Date(b.start_at).getTime() >= Date.now())
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
   const pastBookings = userBookings.filter(b => b.status === 'completed')
@@ -302,8 +323,8 @@ export default function BookingsPage() {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Message
               </Button>
-              <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancelBooking(booking.id)}>
-                Decline
+              <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleRejectBooking(booking.id)}>
+                Reject
               </Button>
             </div>
           )}
@@ -393,7 +414,13 @@ export default function BookingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${isUserMentor ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          {isUserMentor && (
+            <TabsTrigger value="pending" className="flex items-center space-x-2">
+              <Clock className="w-4 h-4" />
+              <span>Pending ({pendingBookings.length})</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="upcoming" className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
             <span>Upcoming ({upcomingBookings.length})</span>
@@ -406,6 +433,27 @@ export default function BookingsPage() {
             <span>Cancelled ({cancelledBookings.length})</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Pending Requests Tab (Mentor Only) */}
+        {isUserMentor && (
+          <TabsContent value="pending" className="space-y-4 mt-6">
+            {pendingBookings.length === 0 ? (
+              <Card className="rounded-2xl shadow-sm">
+                <CardContent className="p-12 text-center">
+                  <Clock className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
+                  <p className="text-gray-600">
+                    Booking requests from mentees will appear here for your review.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              pendingBookings.map((booking) => (
+                <BookingCard key={booking.id} booking={booking} />
+              ))
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="upcoming" className="space-y-4 mt-6">
           {upcomingBookings.length === 0 ? (

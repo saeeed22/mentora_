@@ -63,9 +63,26 @@ export default function SessionPage() {
           return;
         }
 
-        // Check if booking is confirmed
+        // Check if booking is confirmed - Only confirmed sessions can be joined
         if (booking.status !== 'confirmed') {
-          setError(`This session is ${booking.status}. Only confirmed sessions can be joined.`);
+          let errorMessage = '';
+          
+          if (booking.status === 'pending') {
+            const isMentor = currentUser.id === booking.mentor_id;
+            errorMessage = isMentor 
+              ? 'This booking is pending your confirmation. Please confirm the booking from the Bookings page before joining.'
+              : 'This session is pending mentor confirmation. You will be able to join once the mentor confirms the booking.';
+          } else if (booking.status === 'cancelled') {
+            errorMessage = 'This session has been cancelled and cannot be joined.';
+          } else if (booking.status === 'completed') {
+            errorMessage = 'This session has already been completed.';
+          } else if (booking.status === 'expired') {
+            errorMessage = 'This session has expired and can no longer be joined.';
+          } else {
+            errorMessage = `This session is ${booking.status}. Only confirmed sessions can be joined.`;
+          }
+          
+          setError(errorMessage);
           setLoading(false);
           return;
         }
