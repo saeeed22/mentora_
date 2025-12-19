@@ -2,7 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getMentorById as getMockMentorById, getSimilarMentors, MentorProfile } from '@/lib/mock-mentors';
 import { mentorsApi } from '@/lib/api/mentors-api';
 import { bookingsApi } from '@/lib/api/bookings-api';
 import { Button } from '@/components/ui/button';
@@ -35,6 +34,78 @@ import { messagingApi } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
 import { parseDateAsUTC } from '@/lib/datetime-utils';
+
+// MentorProfile interface (previously from mock-mentors)
+interface MentorProfile {
+  id: string;
+  name: string;
+  title: string;
+  company: string;
+  location: string;
+  avatar: string;
+  coverImage?: string;
+  bio: string;
+  fullBio?: string;
+  expertise: string[];
+  disciplines: string[];
+  languages: string[];
+  rating: number;
+  reviewCount: number;
+  sessionsCompleted: number;
+  totalMentoringTime: number;
+  responseTime: string;
+  availability: string;
+  isOnline: boolean;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    website?: string;
+  };
+  achievements?: {
+    sessionMilestones: {
+      count: number;
+      title: string;
+      date: string;
+    }[];
+    communityRecognition: {
+      title: string;
+      rank: string;
+      date: string;
+      color: string;
+    }[];
+  };
+  experience: {
+    title: string;
+    company: string;
+    period: string;
+    current?: boolean;
+  }[];
+  education?: {
+    degree: string;
+    institution: string;
+    year: string;
+  }[];
+  profileInsights?: {
+    title: string;
+    description: string;
+    period: string;
+  }[];
+  reviews?: {
+    id: string;
+    reviewerName: string;
+    reviewerAvatar: string;
+    reviewerTitle: string;
+    rating: number;
+    comment: string;
+    date: string;
+    helpful: number;
+  }[];
+  availability_slots?: {
+    date: string;
+    dayName: string;
+    slots: string[];
+  }[];
+}
 
 // Convert backend availability slots to frontend format
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
@@ -146,10 +217,9 @@ export default function MentorProfilePage() {
         setMentor(convertedMentor);
         setSimilarMentors([]); // No similar mentors from backend yet
       } else if (mounted) {
-        // Fallback to mock data
-        const mockMentor = getMockMentorById(mentorId);
-        setMentor(mockMentor || null);
-        setSimilarMentors(getSimilarMentors(mentorId, 3));
+        // No mentor found - show not found state
+        setMentor(null);
+        setSimilarMentors([]);
       }
 
       if (mounted) setIsLoading(false);

@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import MentorCard from '@/components/mentorcard';
 import { mentorsApi } from '@/lib/api/mentors-api';
-import { mockMentorProfiles } from '@/lib/mock-mentors';
 import type { MentorDetailResponse } from '@/lib/types';
 import {
   Select,
@@ -23,31 +22,16 @@ const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
   image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
   name: mentor.profile?.full_name || 'Unknown Mentor',
-  countryCode: 'PK',
+  // TODO: Get country from backend profile.timezone or location field
+  countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
   jobTitle: mentor.mentor_profile?.headline || 'Mentor',
-  company: '',
-  sessions: mentor.stats?.total_sessions || 25,
-  reviews: mentor.mentor_profile?.rating_count || 12,
-  attendance: 95,
-  experience: mentor.mentor_profile?.experience_years || 3,
-  isTopRated: (mentor.mentor_profile?.rating_avg || 5.0) >= 4.8,
+  company: '', // Not available from backend currently
+  sessions: mentor.stats?.total_sessions ?? 0,
+  reviews: mentor.mentor_profile?.rating_count ?? 0,
+  attendance: mentor.stats?.total_sessions ? 95 : 0, // Default if has sessions, 0 if none
+  experience: mentor.mentor_profile?.experience_years ?? 0,
+  isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
-});
-
-// Fallback: Convert mock mentor profiles to card format
-const mockMentorToCard = (mentor: typeof mockMentorProfiles[0]) => ({
-  id: mentor.id,
-  image: mentor.avatar,
-  name: mentor.name,
-  countryCode: mentor.location.includes('US') ? 'US' : 'NP',
-  jobTitle: mentor.title,
-  company: mentor.company,
-  sessions: mentor.sessionsCompleted,
-  reviews: mentor.reviewCount,
-  attendance: 95,
-  experience: 10,
-  isTopRated: mentor.rating >= 4.8,
-  isAvailableASAP: mentor.isOnline,
 });
 
 type MentorCardData = ReturnType<typeof backendMentorToCard>;
@@ -58,7 +42,6 @@ export default function ExplorePage() {
   const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'price'>('rating');
   const [mentors, setMentors] = useState<MentorCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
@@ -96,35 +79,22 @@ export default function ExplorePage() {
         )
         : cardData;
 
-      // If API returns empty data, fallback to mock
+      // If API returns empty data, show empty state
       if (filtered.length === 0 && !searchQuery) {
-        const mockCards = mockMentorProfiles.map(mockMentorToCard);
-        setMentors(mockCards);
-        setSkills(Array.from(new Set(mockMentorProfiles.flatMap(m => m.expertise))).sort());
-        setUsingMockData(true);
+        setMentors([]);
+        setSkills([]);
       } else {
         setMentors(prev => reset ? filtered : [...prev, ...filtered]);
         // Extract unique skills from mentors
         const allSkills = result.data.data.flatMap(m => m.mentor_profile.skills);
         setSkills(Array.from(new Set(allSkills)).sort());
-        setUsingMockData(false);
       }
       setHasMore(result.data.hasNext);
     } else {
-      // Fallback to mock data
-      const mockCards = mockMentorProfiles.map(mockMentorToCard);
-
-      const filtered = searchQuery
-        ? mockCards.filter(m =>
-          m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : mockCards;
-
-      setMentors(filtered);
+      // API error - show empty state
+      setMentors([]);
       setHasMore(false);
-      setSkills(Array.from(new Set(mockMentorProfiles.flatMap(m => m.expertise))).sort());
-      setUsingMockData(true);
+      setSkills([]);
     }
 
     setIsLoading(false);
@@ -157,7 +127,7 @@ export default function ExplorePage() {
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          {mentors.length} mentors {usingMockData && '(demo data)'}
+          {mentors.length} mentors
         </div>
       </div>
 

@@ -94,14 +94,14 @@ const LandingPage = () => {
           id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
           image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
           name: mentor.profile?.full_name || 'Mentor',
-          countryCode: 'PK',
+          countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
           jobTitle: mentor.mentor_profile?.headline || 'Mentor',
-          company: '',
-          sessions: mentor.stats?.total_sessions || 25,
-          reviews: mentor.mentor_profile?.rating_count || 12,
-          attendance: 95,
-          experience: mentor.mentor_profile?.experience_years || 3,
-          isTopRated: (mentor.mentor_profile?.rating_avg || 5.0) >= 4.5,
+          company: '', // Not available from backend currently
+          sessions: mentor.stats?.total_sessions ?? 0,
+          reviews: mentor.mentor_profile?.rating_count ?? 0,
+          attendance: mentor.stats?.total_sessions ? 95 : 0,
+          experience: mentor.mentor_profile?.experience_years ?? 0,
+          isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.5,
           isAvailableASAP: true,
         }));
         setMentors(apiMentors);

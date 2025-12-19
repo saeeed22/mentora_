@@ -1,6 +1,18 @@
-// Shared types for Mentor Connect KU (frontend mock services)
+// Shared types for Mentor Connect KU
 
-import type { User } from './mock-auth';
+// User type (previously from mock-auth, now defined here)
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'mentor' | 'mentee';
+  avatar?: string;
+  bio?: string;
+  expertise?: string[];
+  company?: string;
+  title?: string;
+  location?: string;
+}
 
 export type Role = 'mentor' | 'mentee' | 'admin';
 
@@ -227,6 +239,3 @@ export interface PaginatedResponse<T> {
   total: number;
   hasNext: boolean;
 }
-
-// Re-export User for convenience
-export type { User };

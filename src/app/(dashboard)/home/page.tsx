@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { mentorsApi } from '@/lib/api/mentors-api';
-import { mockMentorProfiles } from '@/lib/mock-mentors';
+// Mock data imports removed - using real API only
 import { bookingsApi, BookingWithDetails } from '@/lib/api/bookings-api';
 import { users } from '@/lib/api/users';
 import type { Booking } from '@/lib/types';
@@ -76,7 +76,7 @@ export default function DashboardHomePage() {
     setIsLoadingBookings(true);
     try {
       // Get confirmed and pending bookings
-      const result = await bookingsApi.getMyBookings({ 
+      const result = await bookingsApi.getMyBookings({
         limit: 100
       });
 
@@ -113,8 +113,8 @@ export default function DashboardHomePage() {
         // Filter and sort upcoming sessions (confirmed or pending, and in the future)
         const now = Date.now();
         const upcoming = bookingsWithInfo
-          .filter(b => 
-            (b.status === 'confirmed' || b.status === 'pending') && 
+          .filter(b =>
+            (b.status === 'confirmed' || b.status === 'pending') &&
             new Date(b.start_at).getTime() >= now
           )
           .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
@@ -138,30 +138,18 @@ export default function DashboardHomePage() {
         id: m.profile?.user_id || (m as { id?: string }).id || m.user?.id || '',
         image: m.profile?.avatar_url || '/mentor_fallback_1.jpg',
         name: m.profile?.full_name || 'Unknown Mentor',
-        countryCode: 'PK',
+        countryCode: m.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
         jobTitle: m.mentor_profile?.headline || 'Mentor',
-        company: '',
-        sessions: m.stats?.total_sessions || 25,
-        reviews: m.mentor_profile?.rating_count || 12,
-        attendance: 95,
-        experience: m.mentor_profile?.experience_years || 3,
+        company: '', // Not available from backend currently
+        sessions: m.stats?.total_sessions ?? 0,
+        reviews: m.mentor_profile?.rating_count ?? 0,
+        attendance: m.stats?.total_sessions ? 95 : 0,
+        experience: m.mentor_profile?.experience_years ?? 0,
       }));
       setSuggestedMentors(mentorCards);
     } else {
-      // Fallback to mock data
-      const mockCards = mockMentorProfiles.slice(0, 3).map(mentor => ({
-        id: mentor.id,
-        image: mentor.avatar,
-        name: mentor.name,
-        countryCode: 'US',
-        jobTitle: mentor.title,
-        company: mentor.company,
-        sessions: mentor.sessionsCompleted,
-        reviews: mentor.reviewCount,
-        attendance: 95,
-        experience: 5,
-      }));
-      setSuggestedMentors(mockCards);
+      // No mentors available - show empty state
+      setSuggestedMentors([]);
     }
   };
 
@@ -212,12 +200,12 @@ export default function DashboardHomePage() {
     const startTime = new Date(booking.start_at).getTime();
     const endTime = startTime + (booking.duration_minutes * 60 * 1000);
     const isConfirmed = booking.status === 'confirmed';
-    
+
     // Can join if:
     // - Status is confirmed
     // - Session hasn't ended yet
     const canJoin = isConfirmed && (now < endTime);
-    
+
     return {
       id: booking.id,
       status: booking.status,
@@ -280,13 +268,25 @@ export default function DashboardHomePage() {
                 <CardDescription>Get more by setting up a profile you love.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Progress Bar */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">50% completed</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-brand h-2 rounded-full" style={{ width: '50%' }} />
-                </div>
+                {/* Progress Bar - Calculate based on profile completeness */}
+                {(() => {
+                  // Calculate profile completeness
+                  let completed = 1; // Email verified by default (user is logged in)
+                  let total = 3; // Tasks: verify email, book session, complete profile
+                  if (upcomingSessions.length > 0 || displaySessions.length > 0) completed++;
+                  if (user.bio && user.bio.length > 0) completed++;
+                  const percent = Math.round((completed / total) * 100);
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">{percent}% completed</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-brand h-2 rounded-full" style={{ width: `${percent}%` }} />
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Task List */}
                 <div className="space-y-3 mt-6">
@@ -397,17 +397,44 @@ export default function DashboardHomePage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-sm text-gray-300 mb-2">Your profile strength</p>
-                    <h2 className="text-3xl font-bold text-orange-400 flex items-center gap-2">
-                      Youngling <span className="text-2xl">🔰</span>
-                    </h2>
+                    {(() => {
+                      // Calculate profile strength based on completeness
+                      const hasBio = user.bio && user.bio.length > 0;
+                      const hasAvatar = !!user.avatar;
+                      const hasBookings = upcomingSessions.length > 0;
+                      const strength = [hasBio, hasAvatar, hasBookings].filter(Boolean).length;
+                      const levels = [
+                        { name: 'Youngling', emoji: '🔰', percent: 30 },
+                        { name: 'Apprentice', emoji: '⭐', percent: 50 },
+                        { name: 'Journeyman', emoji: '🌟', percent: 75 },
+                        { name: 'Master', emoji: '👑', percent: 100 },
+                      ];
+                      const level = levels[Math.min(strength, levels.length - 1)];
+                      return (
+                        <>
+                          <h2 className="text-3xl font-bold text-orange-400 flex items-center gap-2">
+                            {level.name} <span className="text-2xl">{level.emoji}</span>
+                          </h2>
+                        </>
+                      );
+                    })()}
                   </div>
                   <ChevronRight className="h-6 w-6 text-white" />
                 </div>
                 <div className="mt-4 w-full bg-purple-900/50 rounded-full h-2">
-                  <div
-                    className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full"
-                    style={{ width: '30%' }}
-                  />
+                  {(() => {
+                    const hasBio = user.bio && user.bio.length > 0;
+                    const hasAvatar = !!user.avatar;
+                    const hasBookings = upcomingSessions.length > 0;
+                    const strength = [hasBio, hasAvatar, hasBookings].filter(Boolean).length;
+                    const percent = strength === 0 ? 30 : strength === 1 ? 50 : strength === 2 ? 75 : 100;
+                    return (
+                      <div
+                        className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full"
+                        style={{ width: `${percent}%` }}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </Link>
@@ -515,20 +542,30 @@ export default function DashboardHomePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3" />
-                <span>Completed session with Sarah Johnson</span>
+            {upcomingSessions.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingSessions.slice(0, 3).map((session, idx) => {
+                  const isCompleted = session.status === 'completed';
+                  const isPending = session.status === 'pending';
+                  const statusColor = isCompleted ? 'bg-green-500' : isPending ? 'bg-yellow-500' : 'bg-blue-500';
+                  const statusText = isCompleted
+                    ? `Completed session with ${session.menteeName || 'mentee'}`
+                    : isPending
+                      ? `New booking request from ${session.menteeName || 'mentee'}`
+                      : `Upcoming session with ${session.menteeName || 'mentee'}`;
+                  return (
+                    <div key={session.id || idx} className="flex items-center text-sm">
+                      <div className={`w-2 h-2 ${statusColor} rounded-full mr-3`} />
+                      <span>{statusText}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3" />
-                <span>New booking request from Alex Chen</span>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p className="text-sm">No recent activity</p>
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mr-3" />
-                <span>Profile viewed 15 times this week</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}

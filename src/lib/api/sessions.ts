@@ -1,7 +1,7 @@
 import { bookings } from './bookings';
 import { auth } from './auth';
 import { mentors } from './mentors';
-import { mockUsers } from '../mock-auth';
+import { users } from './users';
 
 interface SessionInfo {
     appId: string;
@@ -46,7 +46,7 @@ export const sessions = {
      * Get session info for a booking
      * In production: GET /sessions/:bookingId
      */
-    getSessionInfo(bookingId: string): SessionInfo | null {
+    async getSessionInfo(bookingId: string): Promise<SessionInfo | null> {
         const currentUser = auth.getCurrentUser();
         if (!currentUser) return null;
 
@@ -61,20 +61,21 @@ export const sessions = {
         const isMentor = currentUser.id === booking.mentorId;
         const participantId = isMentor ? booking.menteeId : booking.mentorId;
 
-        // Get participant info
+        // Get participant info from backend
         let participantInfo: { name: string; avatar?: string; role: 'mentor' | 'mentee' };
         if (isMentor) {
-            const mentee = mockUsers.find((u) => u.id === participantId);
+            // Get mentee info from users API
+            const menteeResult = await users.getUserById(participantId);
             participantInfo = {
-                name: mentee?.name || 'Mentee',
-                avatar: mentee?.avatar,
+                name: menteeResult.success && menteeResult.data ? menteeResult.data.email.split('@')[0] : 'Mentee',
+                avatar: undefined,
                 role: 'mentee',
             };
         } else {
-            const mentor = mentors.getById(participantId);
+            // Get mentor info
             participantInfo = {
-                name: mentor?.name || 'Mentor',
-                avatar: mentor?.avatar,
+                name: 'Mentor',
+                avatar: undefined,
                 role: 'mentor',
             };
         }

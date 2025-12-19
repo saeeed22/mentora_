@@ -31,6 +31,17 @@ const defaultAvailability = {
   autoAcceptBookings: true,
 };
 
+// Helper to create fresh schedule (avoids array reference mutation bugs)
+const createFreshSchedule = () => ({
+  monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+});
+
 // Helper to map weekday number to day key
 const weekdayToKey: Record<number, string> = {
   0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
@@ -83,8 +94,8 @@ export default function AvailabilityPage() {
 
       if (result.success && result.data) {
         console.log('[Availability] Loaded templates:', result.data);
-        // Convert backend templates to frontend format
-        const schedule = { ...defaultAvailability.weeklySchedule };
+        // Create a FRESH schedule object to avoid mutation bugs
+        const schedule = createFreshSchedule();
 
         result.data.forEach((template: AvailabilityTemplate) => {
           const dayKey = weekdayToKey[template.weekday];
@@ -221,7 +232,8 @@ export default function AvailabilityPage() {
       // Reload to get the new template IDs
       const reloadResult = await mentorManagementApi.getAvailabilityTemplates();
       if (reloadResult.success && reloadResult.data) {
-        const schedule = { ...defaultAvailability.weeklySchedule };
+        // Create a FRESH schedule object to avoid mutation bugs
+        const schedule = createFreshSchedule();
         reloadResult.data.forEach((template) => {
           const dayKey = weekdayToKey[template.weekday];
           if (dayKey) {
