@@ -526,7 +526,7 @@ export default function BookingsPage() {
       {feedbackTarget && (
         <FeedbackDialogNew
           open={feedbackOpen}
-          onOpenChange={(o) => { setFeedbackOpen(o); if (!o) setFeedbackTarget(null); }}
+          onOpenChangeAction={(o) => { setFeedbackOpen(o); if (!o) setFeedbackTarget(null); }}
           bookingId={feedbackTarget.id}
           mentorName={feedbackTarget.mentorName || 'Mentor'}
           onSuccess={() => {

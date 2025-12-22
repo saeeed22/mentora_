@@ -141,7 +141,7 @@ export function BookingDialog({
       const result = await bookingsApi.createBooking(requestData);
       console.log('[Booking] API result:', result);
 
-      if (result.success) {
+      if (result.success && result.data) {
         // Create booking notification
         const formattedDate = selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', {
           weekday: 'long',
@@ -176,11 +176,15 @@ export function BookingDialog({
             metadata: { participants },
           });
 
-          if (payRes.success && payRes.data) {
-            toast.success('Redirecting to payment...', { description: `Amount: PKR ${amountPKR}` });
-            onOpenChange(false);
-            window.location.href = payRes.data.payment_url;
-            return;
+          if (payRes.success) {
+            if (payRes.data) {
+              toast.success('Redirecting to payment...', { description: `Amount: PKR ${amountPKR}` });
+              onOpenChange(false);
+              window.location.href = payRes.data.payment_url;
+              return;
+            } else {
+              toast.error('Failed to initiate payment', { description: 'Please try again later.' });
+            }
           } else {
             toast.error('Failed to initiate payment', { description: payRes.error || 'Please try again later.' });
           }
@@ -197,8 +201,9 @@ export function BookingDialog({
         onOpenChange(false);
         setTimeout(() => { router.push('/bookings'); }, 1000);
       } else {
+        const errMsg = !result.success ? (result as any).error || 'Please try again later.' : 'Please try again later.';
         toast.error('Failed to create booking', {
-          description: result.error || 'Please try again later.',
+          description: errMsg,
         });
       }
     } catch (error) {

@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 
 interface FeedbackDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChangeAction?: (open: boolean) => void;
   bookingId: string;
   mentorName: string;
   onSuccess?: () => void;
@@ -25,7 +25,7 @@ interface FeedbackDialogProps {
 
 export function FeedbackDialogNew({
   open,
-  onOpenChange,
+  onOpenChangeAction,
   bookingId,
   mentorName,
   onSuccess,
@@ -58,7 +58,7 @@ export function FeedbackDialogNew({
         // Reset form
         setRating(0);
         setComment('');
-        onOpenChange(false);
+        onOpenChangeAction?.(false);
         
         // Trigger refresh if callback provided
         if (onSuccess) {
@@ -82,7 +82,7 @@ export function FeedbackDialogNew({
   const displayRating = hoveredRating || rating;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Rate your session with {mentorName}</DialogTitle>
@@ -145,7 +145,7 @@ export function FeedbackDialogNew({
         <div className="flex justify-end space-x-3">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => onOpenChangeAction?.(false)}
             disabled={isSubmitting}
           >
             Cancel

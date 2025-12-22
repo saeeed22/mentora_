@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import LandingHeader from '@/components/landing/header';
 import LandingFooter from '@/components/landing/footer';
@@ -10,7 +10,7 @@ import { paymentsApi } from '@/lib/api/payments-api';
 import { bookingsApi } from '@/lib/api/bookings-api';
 import { toast } from 'sonner';
 
-export default function PaymentCallbackPage() {
+function PaymentCallbackContent() {
   const params = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
@@ -79,5 +79,13 @@ export default function PaymentCallbackPage() {
       </div>
       <LandingFooter />
     </div>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentCallbackContent />
+    </Suspense>
   );
 }
