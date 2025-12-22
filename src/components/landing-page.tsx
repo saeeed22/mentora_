@@ -10,6 +10,7 @@ import LandingFooter from '@/components/landing/footer';
 import Link from 'next/link';
 import Image from 'next/image';
 import { mentorsApi } from '@/lib/api/mentors-api';
+import { useRouter } from 'next/navigation';
 
 const categories = ["Product", "Engineering", "Design", "Marketing", "Data Science", "Product Research"];
 
@@ -81,6 +82,10 @@ const LandingPage = () => {
   const [activeCategory, setActiveCategory] = useState("Product");
   const [mentors, setMentors] = useState<LandingMentor[]>([]);
   const [mentorsLoading, setMentorsLoading] = useState(true);
+  const [testimonials, setTestimonials] = useState<typeof dummyTestimonials>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
+  const [getStartedEmail, setGetStartedEmail] = useState('');
+  const router = useRouter();
 
   // Fetch real mentors from API
   useEffect(() => {
@@ -112,6 +117,35 @@ const LandingPage = () => {
       setMentorsLoading(false);
     })();
   }, []);
+
+  // Fetch testimonials based on category
+  useEffect(() => {
+    (async () => {
+      setTestimonialsLoading(true);
+      // Filter mentors by category (using skills as categories)
+      const result = await mentorsApi.searchMentors({ 
+        page: 1, 
+        limit: 3,
+        skills: activeCategory !== "Product Research" ? [activeCategory] : undefined
+      });
+
+      if (result.success && result.data && result.data.data.length > 0) {
+        // Convert to testimonial format - for now use dummy reviews
+        setTestimonials(dummyTestimonials.slice(0, 3));
+      } else {
+        setTestimonials(dummyTestimonials.slice(0, 3));
+      }
+      setTestimonialsLoading(false);
+    })();
+  }, [activeCategory]);
+
+  const handleGetStarted = () => {
+    if (getStartedEmail) {
+      // Store email in sessionStorage to pre-fill signup form
+      sessionStorage.setItem('signup_email', getStartedEmail);
+    }
+    router.push('/signup');
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -179,42 +213,23 @@ const LandingPage = () => {
               {activeTab === 'mentee' && (
                 <div className="fade-in">
                   <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
-                    Reach your goals faster with <span className="text-brand">expert mentors</span>
+                    Reach your goals faster with <span className="text-brand">Expert Mentors</span>
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-lg md:text-lg lg:max-w-xl">
-                    Accelerate your professional growth with 1:1 expert guidance from{' '}
-                    <strong className="text-gray-900">50+</strong> mentors in our KU community.
+                    Accelerate your professional growth with 1:1 expert guidance from
+                     mentors in our community.
                   </p>
-                  {/* Search input - commented out for now
-                  <div className="max-w-md mx-auto">
-                    <Link href="/explore">
-                      <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <Search className="h-6 w-6 text-brand mr-3" />
-                        <span className="text-sm text-gray-500 flex-1 text-left truncate">
-                          What do you want to get better at?
-                        </span>
-                        <Button variant="ghost" size="sm" className="ml-auto p-2 h-auto hover:bg-gray-50">
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        </Button>
-                      </div>
-                    </Link>
-                  </div>
-                  */}
                 </div>
               )}
               {activeTab === 'mentor' && (
                 <div className="fade-in">
                   <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
-                    Your next chapter, made possible by mentoring
+                    Your next chapter, made possible by <span className="text-brand">Mentoring</span>
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-xl md:text-lg">
-                    Build confidence as a leader, grow your network, and define your legacy in the KU community.
+                    Build confidence as a leader, grow your network, and define your legacy in the community.
                   </p>
-                  <div className="max-w-sm mx-auto">
-                    <Button variant='rainbow' className="w-[80%] py-8 px-4 text-lg font-medium" size="lg" asChild>
-                      <Link href="/signup">Become a Mentor</Link>
-                    </Button>
-                  </div>
+     
                 </div>
               )}
             </div>
@@ -257,7 +272,7 @@ const LandingPage = () => {
                 </div>
                 <div>
                   <h3 className="mb-2 text-gray-700 font-bold">Access to the world&apos;s best from KU.</h3>
-                  <small className="text-gray-400 font-bold">From Design to AI, connect with top KU alumni and industry experts for free guidance.</small>
+                  <small className="text-gray-400 font-bold">From Design to AI, connect with top KU alumni and industry experts for guidance.</small>
                 </div>
               </div>
             </div>
@@ -289,16 +304,12 @@ const LandingPage = () => {
         </div>
 
         {/* Mentors */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-16 pt-12 pb-8">
-          <h2 className="text-3xl font-bold mb-4 md:mb-0">Discover top mentors from KU</h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-4 md:px-16 pt-12 pb-8">
+          <h2 className="text-3xl font-bold mb-4 md:mb-0">Discover top mentors</h2>
           <div className="flex flex-col-reverse md:flex-row items-center gap-4 w-full md:w-auto">
             <Button variant="outline" className="px-4 border-[#05051B] hover:text-white hover:bg-[#05051B] w-full md:w-auto" asChild>
-              <Link href="/explore">Explore all</Link>
+              <Link href="/browse">Explore all</Link>
             </Button>
-            <div className="space-x-2 hidden md:flex">
-              <Button variant="outline" size="icon" aria-label="Previous"><ArrowLeft size={20} /></Button>
-              <Button variant="outline" size="icon" aria-label="Next"><ArrowRight size={20} /></Button>
-            </div>
           </div>
         </div>
 
@@ -356,7 +367,7 @@ const LandingPage = () => {
         {/* Testimonials */}
         <div className="px-4 md:px-12 lg:px-20 py-12">
           <div className="text-center mb-12">
-            <h1 className="text-gray-900 text-4xl font-bold">Loved by our KU community</h1>
+            <h1 className="text-gray-900 text-4xl font-bold">Loved by our community</h1>
           </div>
           <div className="flex flex-wrap justify-center gap-5 mb-12">
             {categories.map((category) => (
@@ -370,38 +381,50 @@ const LandingPage = () => {
               </Button>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-            {dummyTestimonials.map((testimonial, index) => (
-              <TestimonialCard key={index} testimonial={testimonial} />
-            ))}
-          </div>
+          {testimonialsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+              {testimonials.map((testimonial, index) => (
+                <TestimonialCard key={index} testimonial={testimonial} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CTA */}
         <div className="px-4 md:px-12 lg:px-20 py-20 text-center">
           <div className="flex flex-col items-center">
-            <h1 className="max-w-3xl mb-8 text-4xl font-bold">Get started for free in 1 minute or less</h1>
-            <p className="max-w-2xl mb-8 text-gray-400 leading-8 text-lg">
-              Become the best version of yourself by accessing to the perspectives and life experiences of others who&apos;ve been there, done that.
+            <h1 className="max-w-3xl mb-8 text-3xl md:text-4xl font-bold">Ready to accelerate your growth?</h1>
+            <p className="max-w-2xl mb-8 text-gray-600 leading-8 text-base md:text-lg">
+              Join hundreds of students and professionals who are already growing their careers with expert mentorship. 
+              Start your journey today - it's free to sign up and explore.
             </p>
           </div>
-          <div className="relative flex flex-col items-center pb-10">
-            <div className="relative max-w-lg w-full">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="w-full h-14 pl-12 pr-32 rounded-lg border border-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                aria-label="Email address for getting started"
-              />
+          <div className="relative flex flex-col items-center gap-4 pb-10">
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
               <Button
-                variant="rainbow"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg h-10 px-6"
+                variant="default"
+                size="lg"
+                className="bg-brand hover:bg-brand/90 w-full sm:flex-1"
                 asChild
               >
-                <Link href="/signup">Get Started</Link>
+                <Link href="/signup">Get Started Free</Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-brand text-brand hover:bg-brand hover:text-white w-full sm:flex-1"
+                asChild
+              >
+                <Link href="/browse">Browse Mentors</Link>
               </Button>
             </div>
+            <p className="text-sm text-gray-500 mt-2">
+              No credit card required • Free to join • Cancel anytime
+            </p>
           </div>
         </div>
 

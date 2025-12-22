@@ -17,13 +17,13 @@ import { toast } from 'sonner';
 const defaultAvailability = {
   timezone: 'Asia/Karachi',
   weeklySchedule: {
-    monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-    sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+    monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
   },
   sessionDuration: 60,
   bufferTime: 15,
@@ -33,13 +33,13 @@ const defaultAvailability = {
 
 // Helper to create fresh schedule (avoids array reference mutation bugs)
 const createFreshSchedule = () => ({
-  monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
-  sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string }[] },
+  monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
 });
 
 // Helper to map weekday number to day key
@@ -74,6 +74,10 @@ export default function AvailabilityPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  // Group session settings (frontend-managed; saved via mentor profile)
+  const [groupEnabled, setGroupEnabled] = useState(false);
+  const [groupMaxParticipants, setGroupMaxParticipants] = useState(5);
+  const [groupPricePKR, setGroupPricePKR] = useState(500);
 
   useEffect(() => {
     const currentUser = auth.getCurrentUser();
@@ -107,6 +111,7 @@ export default function AvailabilityPage() {
               start: normalizeTime(template.start_time),
               end: normalizeTime(template.end_time),
               templateId: template.id,
+              isGroup: template.is_group ?? false,
             });
           }
         });
@@ -142,7 +147,7 @@ export default function AvailabilityPage() {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: [
             ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots,
-            { start: '09:00', end: '10:00' },
+            { start: '09:00', end: '10:00', isGroup: false },
           ],
         },
       },
@@ -159,6 +164,22 @@ export default function AvailabilityPage() {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) =>
             i === index ? { ...slot, [field]: value } : slot
+          ),
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const updateSlotMode = (day: string, index: number, isGroup: boolean) => {
+    setAvailability(prev => ({
+      ...prev,
+      weeklySchedule: {
+        ...prev.weeklySchedule,
+        [day]: {
+          ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
+          slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) =>
+            i === index ? { ...slot, isGroup } : slot
           ),
         },
       },
@@ -196,14 +217,27 @@ export default function AvailabilityPage() {
     setIsSaving(true);
 
     try {
-      // Collect all new slots (without templateId) to create
+      // Save group session settings first
+      const groupSave = await mentorManagementApi.updateMentorProfile({
+        group_enabled: groupEnabled,
+        group_max_participants: groupMaxParticipants,
+        group_price_per_session: groupPricePKR,
+      });
+      if (!groupSave.success) {
+        toast.error('Failed to save group session settings');
+      }
+
+      // Save or create all slots with current start/end and group flag
       const newSlots: { day: string; start: string; end: string }[] = [];
+      const existingSlots: { day: string; start: string; end: string; templateId: string; isGroup?: boolean }[] = [];
 
       for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
         if (dayData.enabled) {
           for (const slot of dayData.slots) {
             if (!slot.templateId) {
               newSlots.push({ day: dayKey, start: slot.start, end: slot.end });
+            } else {
+              existingSlots.push({ day: dayKey, start: slot.start, end: slot.end, templateId: slot.templateId, isGroup: slot.isGroup });
             }
           }
         }
@@ -217,12 +251,30 @@ export default function AvailabilityPage() {
           start_time: slot.start,
           end_time: slot.end,
           slot_duration_minutes: availability.sessionDuration,
+          is_group: availability ? (availability.weeklySchedule as any)[slot.day].slots.find((s:any)=>s.start===slot.start && s.end===slot.end)?.isGroup ?? false : false,
         });
 
         if (result.success) {
           createdCount++;
         } else {
           console.error('[Availability] Failed to create slot:', result.error);
+        }
+      }
+
+      // Update existing templates (also to persist is_group changes)
+      let updatedCount = 0;
+      for (const slot of existingSlots) {
+        const result = await mentorManagementApi.updateAvailabilityTemplate(slot.templateId, {
+          weekday: keyToWeekday[slot.day],
+          start_time: slot.start,
+          end_time: slot.end,
+          slot_duration_minutes: availability.sessionDuration,
+          is_group: slot.isGroup ?? false,
+        });
+        if (result.success) {
+          updatedCount++;
+        } else {
+          console.error('[Availability] Failed to update slot:', result.error);
         }
       }
 
@@ -244,6 +296,7 @@ export default function AvailabilityPage() {
               start: normalizeTime(template.start_time),
               end: normalizeTime(template.end_time),
               templateId: template.id,
+              isGroup: template.is_group ?? false,
             });
           }
         });
@@ -406,6 +459,66 @@ export default function AvailabilityPage() {
         </CardContent>
       </Card>
 
+      {/* Group Sessions */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle>Group Sessions</CardTitle>
+          <CardDescription>
+            Offer combined sessions with multiple mentees for economical mentoring
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Allow group sessions</Label>
+              <p className="text-xs text-gray-500 mt-1">
+                Enable to allow multiple mentees to join a single scheduled session
+              </p>
+            </div>
+            <Switch
+              checked={groupEnabled}
+              onCheckedChange={(checked) => setGroupEnabled(checked)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Max participants</Label>
+              <Select value={groupMaxParticipants.toString()} onValueChange={(value) => setGroupMaxParticipants(parseInt(value))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[2,3,4,5,6,8,10].map((n) => (
+                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Price per mentee (PKR)</Label>
+              <Select value={groupPricePKR.toString()} onValueChange={(value) => setGroupPricePKR(parseInt(value))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[250,500,750,1000,1500,2000].map((p) => (
+                    <SelectItem key={p} value={p.toString()}>PKR {p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-2">Applied per mentee per session</p>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Payment gateways</Label>
+              <p className="text-xs text-gray-500 mt-2">JazzCash, Easypaisa, and PayFast PK supported</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Weekly Schedule */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader>
@@ -485,6 +598,18 @@ export default function AvailabilityPage() {
                                   {time}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={(slot.isGroup ? 'group' : 'solo') as 'solo'|'group'}
+                            onValueChange={(value) => updateSlotMode(day.key, index, value === 'group')}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="solo">Solo</SelectItem>
+                              <SelectItem value="group">Group</SelectItem>
                             </SelectContent>
                           </Select>
                           <Button

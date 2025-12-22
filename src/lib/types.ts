@@ -86,6 +86,7 @@ export interface EventItem {
 export interface TimeSlotRange {
   start: string; // HH:mm
   end: string;   // HH:mm
+  isGroup?: boolean; // optional flag when stored in UI state
 }
 
 export interface WeeklyScheduleDay {
@@ -116,6 +117,8 @@ export interface AvailabilitySlot {
   dayName: string;    // MON/TUE/...
   slots: string[];    // "9:00 AM" display text
   slotTimes: string[]; // Original ISO timestamps for booking
+  // Optional flags aligned with slots/slotTimes
+  slotGroupFlags?: boolean[];
 }
 
 // ============================================
@@ -200,6 +203,10 @@ export interface MentorProfile {
   visible: boolean;
   rating_avg: number;
   rating_count: number;
+  // Group session settings (optional, backend may ignore if unsupported)
+  group_enabled?: boolean;
+  group_max_participants?: number; // max mentees in a combined session
+  group_price_per_session?: number; // PKR per mentee per session
 }
 
 export interface MentorStats {
@@ -219,6 +226,8 @@ export interface MentorDetailResponse {
 export interface BackendAvailabilitySlot {
   start_at: string;  // ISO datetime
   end_at: string;
+  // Whether this slot supports group sessions (optional)
+  is_group?: boolean;
 }
 
 export interface MentorAvailabilityResponse {
@@ -238,4 +247,35 @@ export interface PaginatedResponse<T> {
   limit: number;
   total: number;
   hasNext: boolean;
+}
+
+// ============================================
+// Payments (Pakistan gateways)
+// ============================================
+
+export type PaymentGateway = 'jazzcash' | 'easypaisa' | 'payfast_pk';
+
+export interface PaymentLinkRequest {
+  booking_id: string;
+  amount_pkr: number;
+  description: string;
+  gateway: PaymentGateway;
+  return_url: string; // where gateway redirects after payment
+  cancel_url: string; // optional cancel/failed redirection
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface PaymentLinkResponse {
+  payment_id: string;
+  payment_url: string; // hosted checkout URL
+  expires_at?: string; // ISO datetime
+}
+
+export interface PaymentStatusResponse {
+  payment_id: string;
+  status: 'initiated' | 'paid' | 'failed' | 'expired';
+  booking_id: string;
+  amount_pkr: number;
+  gateway: PaymentGateway;
+  paid_at?: string;
 }

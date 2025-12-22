@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { bookingsApi } from '@/lib/api/bookings-api';
+import { mentorsApi } from '@/lib/api/mentors-api';
+import { paymentsApi } from '@/lib/api/payments-api';
 import { auth } from '@/lib/api/auth';
 import { toast } from 'sonner';
-import { Calendar, Clock, Video } from 'lucide-react';
+import { Calendar, Clock, Video, Wallet } from 'lucide-react';
 import { addBookingNotification } from '@/lib/notifications';
 import { convertToUTCISO } from '@/lib/datetime-utils';
 
@@ -28,6 +30,7 @@ interface BookingDialogProps {
   selectedDate: string | null;
   selectedTimeSlot: string | null;
   selectedSlotStartTime: string | null; // Original ISO timestamp from backend
+  selectedSlotIsGroup?: boolean | null;
 }
 
 const SESSION_TYPES = [
@@ -48,12 +51,43 @@ export function BookingDialog({
   selectedDate,
   selectedTimeSlot,
   selectedSlotStartTime,
+  selectedSlotIsGroup,
 }: BookingDialogProps) {
   const router = useRouter();
   const [sessionType, setSessionType] = useState(SESSION_TYPES[0]);
   const [topic, setTopic] = useState('');
   const [goals, setGoals] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mentorGroupEnabled, setMentorGroupEnabled] = useState(false);
+  const [mentorGroupMax, setMentorGroupMax] = useState(1);
+  const [groupParticipants, setGroupParticipants] = useState(1);
+  const [paymentGateway, setPaymentGateway] = useState<'jazzcash' | 'easypaisa' | 'payfast_pk'>('jazzcash');
+  const [groupPricePKR, setGroupPricePKR] = useState<number | null>(null);
+
+  // Load mentor group session settings
+  useEffect(() => {
+    const loadMentor = async () => {
+      const res = await mentorsApi.getMentorById(mentorId);
+      if (res.success && res.data) {
+        const mp = res.data.mentor_profile;
+        const enabled = !!mp.group_enabled;
+        setMentorGroupEnabled(enabled);
+        setMentorGroupMax(mp.group_max_participants ?? 1);
+        setGroupPricePKR(mp.group_price_per_session ?? null);
+        // ensure participants within range
+        setGroupParticipants(Math.min(groupParticipants, mp.group_max_participants ?? 1));
+      }
+    };
+    loadMentor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentorId]);
+
+  const slotAllowsGroup = !!selectedSlotIsGroup && mentorGroupEnabled;
+  useEffect(() => {
+    if (!slotAllowsGroup) {
+      setGroupParticipants(1);
+    }
+  }, [slotAllowsGroup]);
 
   const handleSubmit = async () => {
     const currentUser = auth.getCurrentUser();
@@ -119,6 +153,40 @@ export function BookingDialog({
           `${formattedDate} at ${selectedTimeSlot} - ${sessionType}`
         );
 
+        // If group is enabled and participants > 1, initiate payment
+        const bookingId = result.data.id;
+        const participants = slotAllowsGroup ? Math.max(1, groupParticipants) : 1;
+
+        // Compute amount (PKR)
+        let amountPKR = 0;
+        if (slotAllowsGroup && groupPricePKR) {
+          amountPKR = groupPricePKR * participants;
+        }
+
+        if (amountPKR > 0) {
+          const returnUrl = `${window.location.origin}/payments/callback`;
+          const cancelUrl = `${window.location.origin}/bookings`;
+          const payRes = await paymentsApi.createPaymentLink({
+            booking_id: bookingId,
+            amount_pkr: amountPKR,
+            description: `Mentoring session with ${mentorName} (${participants} attendee${participants>1?'s':''})`,
+            gateway: paymentGateway,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+            metadata: { participants },
+          });
+
+          if (payRes.success && payRes.data) {
+            toast.success('Redirecting to payment...', { description: `Amount: PKR ${amountPKR}` });
+            onOpenChange(false);
+            window.location.href = payRes.data.payment_url;
+            return;
+          } else {
+            toast.error('Failed to initiate payment', { description: payRes.error || 'Please try again later.' });
+          }
+        }
+
+        // Fallback: no payment required, just close and navigate
         toast.success('Session booked successfully!', {
           description: `Your session with ${mentorName} is confirmed.`,
           action: {
@@ -126,13 +194,8 @@ export function BookingDialog({
             onClick: () => router.push('/bookings'),
           },
         });
-
         onOpenChange(false);
-
-        // Small delay before redirecting
-        setTimeout(() => {
-          router.push('/bookings');
-        }, 1000);
+        setTimeout(() => { router.push('/bookings'); }, 1000);
       } else {
         toast.error('Failed to create booking', {
           description: result.error || 'Please try again later.',
@@ -197,6 +260,29 @@ export function BookingDialog({
             </Select>
           </div>
 
+          {/* Group session options */}
+          {slotAllowsGroup && (
+            <div className="space-y-2">
+              <Label htmlFor="group-count">Attendees (including you)</Label>
+              <Select value={groupParticipants.toString()} onValueChange={(v) => setGroupParticipants(parseInt(v))}>
+                <SelectTrigger id="group-count">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: mentorGroupMax }, (_, i) => i + 1).map((n) => (
+                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {groupPricePKR && (
+                <div className="flex items-center text-sm text-gray-700 mt-2">
+                  <Wallet className="h-4 w-4 mr-2 text-brand" />
+                  <span className="font-medium">Estimated total: PKR {groupPricePKR * Math.max(1, groupParticipants)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Topic */}
           <div className="space-y-2">
             <Label htmlFor="topic">
@@ -229,7 +315,25 @@ export function BookingDialog({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-between items-center space-x-3">
+          {/* Payment gateway */}
+          {slotAllowsGroup && groupPricePKR && (
+            <div className="w-1/2">
+              <Label htmlFor="gateway">Payment Method</Label>
+              <Select value={paymentGateway} onValueChange={(v) => setPaymentGateway(v as any)}>
+                <SelectTrigger id="gateway">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="jazzcash">JazzCash</SelectItem>
+                  <SelectItem value="easypaisa">Easypaisa</SelectItem>
+                  <SelectItem value="payfast_pk">PayFast PK</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex-1 flex justify-end space-x-3">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
@@ -240,6 +344,7 @@ export function BookingDialog({
           >
             {isSubmitting ? 'Booking...' : 'Confirm Booking'}
           </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

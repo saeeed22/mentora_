@@ -311,3 +311,35 @@ Performance
 - Endpoints that list resources SHOULD support pagination & filters as above.
 - Caching headers for public mentor data are recommended.
 
+## Payments (Pakistan Gateways)
+
+Hosted checkout via local gateways (JazzCash, Easypaisa, PayFast PK). Backend integrates with gateway SDKs/APIs.
+
+- POST /v1/payments/create-link
+  - body:
+    ```
+    {
+      "booking_id": "bk_9fd12ab3",
+      "amount_pkr": 1500,
+      "description": "Mentoring session with Ayesha Khan (3 attendees)",
+      "gateway": "jazzcash" | "easypaisa" | "payfast_pk",
+      "return_url": "https://app.example.com/payments/callback",
+      "cancel_url": "https://app.example.com/bookings",
+      "metadata": { "participants": 3 }
+    }
+    ```
+  - 201: `{ payment_id: string, payment_url: string, expires_at?: ISO }`
+
+- GET /v1/payments/{payment_id}/status
+  - 200: `{ payment_id, status: 'initiated'|'paid'|'failed'|'expired', booking_id, amount_pkr, gateway, paid_at?: ISO }`
+
+- POST /v1/payments/callback
+  - body: Gateway query params echoed by provider on return URL
+  - 200: `{ ok: boolean, payment_id?: string, booking_id?: string, status?: 'paid'|'failed' }`
+  - Side-effect: When `status == 'paid'`, backend should mark booking as `confirmed`
+
+Notes
+- Currency: PKR only
+- Security: Validate gateway signature/HMAC in backend
+- Idempotency: Callback handler must be idempotent for repeated notifications
+

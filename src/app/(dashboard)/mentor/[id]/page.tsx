@@ -110,7 +110,7 @@ interface MentorProfile {
 // Convert backend availability slots to frontend format
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  const slotsByDate = new Map<string, { display: string; iso: string }[]>();
+  const slotsByDate = new Map<string, { display: string; iso: string; isGroup?: boolean }[]>();
 
   backendSlots.forEach(slot => {
     const startDate = new Date(slot.start_at);
@@ -124,7 +124,7 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
     if (!slotsByDate.has(dateKey)) {
       slotsByDate.set(dateKey, []);
     }
-    slotsByDate.get(dateKey)!.push({ display: timeStr, iso: slot.start_at });
+    slotsByDate.get(dateKey)!.push({ display: timeStr, iso: slot.start_at, isGroup: (slot as any).is_group });
   });
 
   // Convert to array and sort by date
@@ -139,6 +139,7 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
       dayName: dayNames[dateObj.getUTCDay()],
       slots: sorted.map(s => s.display),
       slotTimes: sorted.map(s => s.iso),
+      slotGroupFlags: sorted.map(s => !!s.isGroup),
     });
   });
 
@@ -157,6 +158,7 @@ export default function MentorProfilePage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null); // ISO timestamp for booking
+  const [selectedSlotIsGroup, setSelectedSlotIsGroup] = useState<boolean | null>(null);
   const [showFullBio, setShowFullBio] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -257,6 +259,7 @@ export default function MentorProfilePage() {
           if (slots[0].slots.length > 0) {
             setSelectedTimeSlot(slots[0].slots[0]);
             setSelectedSlotStartTime(slots[0].slotTimes[0]);
+            setSelectedSlotIsGroup(slots[0].slotGroupFlags ? !!slots[0].slotGroupFlags[0] : null);
           }
         }
       } else {
@@ -932,6 +935,12 @@ export default function MentorProfilePage() {
                         Available time slots
                         <ChevronRight className="h-4 w-4" />
                       </h4>
+                      {selectedSlotIsGroup && (
+                        <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          This slot supports group sessions
+                        </div>
+                      )}
                       <div className="grid grid-cols-3 gap-2">
                         {selectedDateSlots.slots.map((time, idx) => (
                           <button
@@ -939,6 +948,7 @@ export default function MentorProfilePage() {
                             onClick={() => {
                               setSelectedTimeSlot(time);
                               setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
+                              setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
                             }}
                             className={`p-2 rounded-lg border-2 text-sm font-medium transition-colors ${selectedTimeSlot === time
                               ? 'border-brand bg-brand-light/10 text-brand'
@@ -1062,6 +1072,7 @@ export default function MentorProfilePage() {
         selectedDate={selectedDate}
         selectedTimeSlot={selectedTimeSlot}
         selectedSlotStartTime={selectedSlotStartTime}
+        selectedSlotIsGroup={selectedSlotIsGroup}
       />
     </div>
   );

@@ -73,7 +73,7 @@ export function Header({ user }: HeaderProps) {
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Branding */}
-        <div className="flex items-center gap-2 shrink-0">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
             src="/logos/logo.png"
             alt="Mentora Logo"
@@ -81,7 +81,7 @@ export function Header({ user }: HeaderProps) {
             height={60}
             className="object-contain"
           />
-        </div>
+        </Link>
 
         {/* Centered Search */}
         <div className="flex-1 flex justify-center px-4">

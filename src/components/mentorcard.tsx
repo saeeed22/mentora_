@@ -18,6 +18,7 @@ interface MentorCardProps {
     isTopRated?: boolean;
     hasAdvanceOption?: boolean;
     isAvailableASAP?: boolean;
+    groupEnabled?: boolean;
   };
 }
 
@@ -39,13 +40,20 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-grow flex flex-col">
+        <div className="p-4 flex-grow flex flex-col">
         <div className="flex items-baseline mb-3">
           <h3 className="text-lg text-gray-900 mr-2 font-semibold">
             {mentor.name}
           </h3>
           <span className="text-sm text-gray-900 font-semibold">{mentor.countryCode}</span>
         </div>
+
+          {mentor.groupEnabled && (
+            <div className="mb-2 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Group sessions available
+            </div>
+          )}
 
         {/* Job Title and Company */}
         <div className="flex items-center text-sm text-gray-700 mb-1">
@@ -74,12 +82,21 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
             {mentor.experience} years
           </p>
         </div>
-        <div>
-          <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
-          <p className="font-bold text-gray-700 text-left text-sm">
-            {mentor.attendance}%
-          </p>
-        </div>
+        {mentor.sessions > 0 ? (
+          <div>
+            <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
+            <p className="font-bold text-gray-700 text-left text-sm">
+              {mentor.attendance}%
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h6 className="text-gray-500 text-sm font-medium">Status</h6>
+            <p className="font-bold text-brand text-left text-sm">
+              New Mentor
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

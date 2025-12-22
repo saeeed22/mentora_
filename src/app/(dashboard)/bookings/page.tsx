@@ -18,7 +18,7 @@ import { bookingsApi, BookingResponse } from '@/lib/api/bookings-api';
 import { auth } from '@/lib/api/auth';
 import { users } from '@/lib/api/users';
 import { toast } from 'sonner';
-import { FeedbackDialog } from '@/components/feedback-dialog';
+import { FeedbackDialogNew } from '@/components/feedback-dialog-new';
 import Link from 'next/link';
 import { messagingApi } from '@/lib/api/messaging-api';
 
@@ -524,13 +524,12 @@ export default function BookingsPage() {
       </Tabs>
 
       {feedbackTarget && (
-        <FeedbackDialog
+        <FeedbackDialogNew
           open={feedbackOpen}
           onOpenChange={(o) => { setFeedbackOpen(o); if (!o) setFeedbackTarget(null); }}
           bookingId={feedbackTarget.id}
-          mentorId={feedbackTarget.mentor_id}
           mentorName={feedbackTarget.mentorName || 'Mentor'}
-          onSubmitted={() => {
+          onSuccess={() => {
             loadBookings();
           }}
         />

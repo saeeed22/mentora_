@@ -13,6 +13,8 @@ export interface AvailabilityTemplate {
     start_time: string; // "09:00"
     end_time: string; // "17:00"
     slot_duration_minutes: number;
+    // Optional: this slot allows group sessions
+    is_group?: boolean;
 }
 
 export interface AvailabilityTemplateCreate {
@@ -20,6 +22,7 @@ export interface AvailabilityTemplateCreate {
     start_time: string;
     end_time: string;
     slot_duration_minutes?: number;
+    is_group?: boolean;
 }
 
 // Types for availability exceptions (vacation/busy days)
@@ -46,6 +49,10 @@ export interface MentorProfileUpdate {
     skills?: string[];
     price_per_minute?: number | null;
     visible?: boolean;
+    // Group session settings (optional)
+    group_enabled?: boolean;
+    group_max_participants?: number;
+    group_price_per_session?: number;
 }
 
 export interface MentorProfileResponse {
@@ -57,6 +64,10 @@ export interface MentorProfileResponse {
     user_id: string;
     rating_avg: number;
     rating_count: number;
+    // Group settings echoed back when supported
+    group_enabled?: boolean;
+    group_max_participants?: number;
+    group_price_per_session?: number;
 }
 
 export const mentorManagementApi = {

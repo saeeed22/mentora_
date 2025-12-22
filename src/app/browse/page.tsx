@@ -8,6 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import MentorCard from '@/components/mentorcard';
 import { mentorsApi } from '@/lib/api/mentors-api';
 import type { MentorDetailResponse } from '@/lib/types';
+import LandingHeader from '@/components/landing/header';
+import LandingFooter from '@/components/landing/footer';
+import Link from 'next/link';
 import {
   Select,
   SelectContent,
@@ -17,26 +20,25 @@ import {
 } from '@/components/ui/select';
 
 // Convert backend mentor to card format
-// Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
 const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
   image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
   name: mentor.profile?.full_name || 'Unknown Mentor',
-  // TODO: Get country from backend profile.timezone or location field
   countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
   jobTitle: mentor.mentor_profile?.headline || 'Mentor',
   company: '', // Not available from backend currently
   sessions: mentor.stats?.total_sessions ?? 0,
   reviews: mentor.mentor_profile?.rating_count ?? 0,
-  attendance: mentor.stats?.total_sessions ? 95 : 0, // Default if has sessions, 0 if none
+  attendance: mentor.stats?.total_sessions ? 95 : 0,
   experience: mentor.mentor_profile?.experience_years ?? 0,
   isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
+  groupEnabled: !!mentor.mentor_profile?.group_enabled,
 });
 
 type MentorCardData = ReturnType<typeof backendMentorToCard>;
 
-export default function ExplorePage() {
+export default function BrowseMentorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('all');
   const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'price'>('rating');
@@ -63,12 +65,6 @@ export default function ExplorePage() {
     });
 
     if (result.success && result.data) {
-      console.log('[Explore] API Response:', {
-        total: result.data.total,
-        dataLength: result.data.data.length,
-        rawData: result.data.data,
-      });
-
       // Filter mentors who meet listing criteria:
       // - Must have experience > 0 years
       // - Must have complete profile
@@ -81,7 +77,6 @@ export default function ExplorePage() {
       });
 
       const cardData = qualifiedMentors.map(backendMentorToCard);
-      console.log('[Explore] Converted cards:', cardData);
 
       // Filter by search query on client side
       const filtered = searchQuery
@@ -91,19 +86,17 @@ export default function ExplorePage() {
         )
         : cardData;
 
-      // If API returns empty data, show empty state
       if (filtered.length === 0 && !searchQuery) {
         setMentors([]);
         setSkills([]);
       } else {
         setMentors(prev => reset ? filtered : [...prev, ...filtered]);
-        // Extract unique skills from qualified mentors
+        // Extract ALL unique skills from qualified mentors (not just current page)
         const allSkills = qualifiedMentors.flatMap(m => m.mentor_profile.skills);
         setSkills(Array.from(new Set(allSkills)).sort());
       }
       setHasMore(result.data.hasNext);
     } else {
-      // API error - show empty state
       setMentors([]);
       setHasMore(false);
       setSkills([]);
@@ -115,6 +108,7 @@ export default function ExplorePage() {
   // Load all available skills on mount
   useEffect(() => {
     const loadAllSkills = async () => {
+      // Fetch a larger set to get all skills
       const result = await mentorsApi.searchMentors({ page: 1, limit: 100 });
       if (result.success && result.data) {
         const qualifiedMentors = result.data.data.filter(mentor => {
@@ -138,54 +132,76 @@ export default function ExplorePage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       loadMentors(true);
-    }, 300); // Debounce
+    }, 300);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedSkill, sortBy]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-brand-dark">Explore Mentors</h1>
-          <p className="text-gray-600 mt-1">
-            Discover experienced professionals ready to guide your journey
-          </p>
+    <div className="min-h-screen bg-white flex flex-col">
+      <LandingHeader />
+      
+      <div className="flex-1 px-4 md:px-8 lg:px-16 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-brand-dark">Browse Mentors</h1>
+            <p className="text-gray-600 mt-2">
+              Discover experienced professionals ready to guide your journey
+            </p>
+          </div>
+          <div className="text-sm text-gray-500">
+            {mentors.length} mentors available
+          </div>
         </div>
-        <div className="text-sm text-gray-500">
-          {mentors.length} mentors
-        </div>
-      </div>
 
-      {/* Search and Filters */}
-      <Card className="rounded-2xl shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="search"
-                  placeholder="Search by name or expertise..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* CTA Banner */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Ready to connect with a mentor?
+              </h2>
+              <p className="text-gray-600">
+                Sign up now to book sessions and start your mentorship journey
+              </p>
             </div>
+            <Button 
+              className="bg-brand hover:bg-brand/90 whitespace-nowrap"
+              asChild
+            >
+              <Link href="/signup">Get Started</Link>
+            </Button>
+          </div>
+        </div>
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search and Filters */}
+        <Card className="rounded-2xl shadow-sm mb-8">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="search"
+                    placeholder="Search by name or expertise..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Skill Filter */}
               <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Skills" />
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="All Skills" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Skills</SelectItem>
-                  {skills.map((skill) => (
+                  {skills.map(skill => (
                     <SelectItem key={skill} value={skill}>
                       {skill}
                     </SelectItem>
@@ -193,82 +209,69 @@ export default function ExplorePage() {
                 </SelectContent>
               </Select>
 
+              {/* Sort */}
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Sort by" />
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="experience">Most Experience</SelectItem>
-                  <SelectItem value="price">Price</SelectItem>
+                  <SelectItem value="experience">Most Experienced</SelectItem>
+                  <SelectItem value="price">Price: Low to High</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Loading State */}
-      {isLoading && mentors.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-brand" />
-        </div>
-      )}
-
-      {/* Mentors Grid */}
-      {!isLoading && mentors.length > 0 && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
-            {mentors.map((mentor) => (
-              <div key={mentor.id} className="flex justify-center items-stretch">
-                <MentorCard mentor={mentor} />
-              </div>
-            ))}
-          </div>
-
-          {/* Load More */}
-          {hasMore && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setPage(p => p + 1);
-                  loadMentors();
-                }}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Loading...' : 'Load More'}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && mentors.length === 0 && (
-        <Card className="rounded-2xl shadow-sm">
-          <CardContent className="p-12 text-center">
-            <Search className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No mentors found</h3>
-            <p className="text-gray-600 mb-4">
-              Try adjusting your search criteria or browse all mentors.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedSkill('all');
-              }}
-            >
-              Clear Filters
-            </Button>
           </CardContent>
         </Card>
-      )}
+
+        {/* Mentors Grid */}
+        {isLoading && page === 1 ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
+          </div>
+        ) : mentors.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-500 text-lg">No mentors found matching your criteria.</p>
+            <p className="text-gray-400 mt-2">Try adjusting your filters or search query.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {mentors.map((mentor) => (
+                <div key={mentor.id}>
+                  <MentorCard mentor={mentor} />
+                </div>
+              ))}
+            </div>
+
+            {/* Load More */}
+            {hasMore && (
+              <div className="mt-8 text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPage(p => p + 1);
+                    loadMentors(false);
+                  }}
+                  disabled={isLoading}
+                  className="border-brand text-brand hover:bg-brand hover:text-white"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Load More Mentors'
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <LandingFooter />
     </div>
   );
 }

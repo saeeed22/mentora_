@@ -14,7 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { auth } from '@/lib/api/auth';
-import { CheckCircle, Mail } from 'lucide-react';
+import { CheckCircle, Mail, Eye, EyeOff } from 'lucide-react';
+import LandingHeader from '@/components/landing/header';
 
 // Validation schema for signup
 const signupSchema = z.object({
@@ -46,17 +47,17 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-
-  // Redirect authenticated users to home
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (auth.isAuthenticated()) {
-      router.replace('/home');
-    }
-  }, [router]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    feedback: string;
+    color: string;
+  }>({ score: 0, feedback: '', color: '' });
 
   const signupForm = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
+    mode: 'onChange', // Enable real-time validation
     defaultValues: {
       full_name: '',
       email: '',
@@ -71,6 +72,58 @@ export default function SignupPage() {
       otp: '',
     },
   });
+
+  // Redirect authenticated users to home
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (auth.isAuthenticated()) {
+      router.replace('/home');
+    }
+    
+    // Check for pre-filled email from landing page
+    const savedEmail = sessionStorage.getItem('signup_email');
+    if (savedEmail) {
+      signupForm.setValue('email', savedEmail);
+      sessionStorage.removeItem('signup_email');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  // Password strength checker
+  const checkPasswordStrength = (password: string) => {
+    if (!password) {
+      setPasswordStrength({ score: 0, feedback: '', color: '' });
+      return;
+    }
+
+    let score = 0;
+    let feedback = '';
+    let color = '';
+
+    // Length check
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+
+    // Character variety checks
+    if (/[a-z]/.test(password)) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    // Determine strength
+    if (score < 3) {
+      feedback = 'Weak password';
+      color = 'text-red-600';
+    } else if (score < 5) {
+      feedback = 'Medium password';
+      color = 'text-yellow-600';
+    } else {
+      feedback = 'Strong password';
+      color = 'text-green-600';
+    }
+
+    setPasswordStrength({ score, feedback, color });
+  };
 
   const onSignupSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
@@ -127,7 +180,9 @@ export default function SignupPage() {
   // Success screen
   if (step === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <div className="min-h-screen bg-gray-50">
+        <LandingHeader />
+        <div className="flex items-center justify-center py-12 px-4">
         <Card className="rounded-2xl shadow-md max-w-md w-full">
           <CardContent className="pt-8 pb-8 text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -142,6 +197,7 @@ export default function SignupPage() {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
@@ -149,12 +205,14 @@ export default function SignupPage() {
   // OTP Verification screen
   if (step === 'verify') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-brand-dark">Verify Your Email</h1>
-            <p className="mt-2 text-gray-600">Almost there!</p>
-          </div>
+      <div className="min-h-screen bg-gray-50">
+        <LandingHeader />
+        <div className="flex items-center justify-center py-12 px-4">
+          <div className="max-w-md w-full space-y-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-brand-dark">Verify Your Email</h1>
+              <p className="mt-2 text-gray-600">Almost there!</p>
+            </div>
 
           <Card className="rounded-2xl shadow-md">
             <CardHeader className="space-y-1 text-center">
@@ -226,6 +284,7 @@ export default function SignupPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     );
@@ -233,13 +292,14 @@ export default function SignupPage() {
 
   // Signup form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-brand-dark">Mentor Connect KU</h1>
-          <p className="mt-2 text-gray-600">Create your account</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <LandingHeader />
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">{/*  Header */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-brand-dark">Mentora</h1>
+            <p className="mt-2 text-gray-600">Create your account</p>
+          </div>
 
         {/* Signup Card */}
         <Card className="rounded-2xl shadow-md">
@@ -350,12 +410,28 @@ export default function SignupPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a password (min 8 characters)"
-                  {...signupForm.register('password')}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a password (min 8 characters)"
+                    {...signupForm.register('password')}
+                    onChange={(e) => {
+                      signupForm.register('password').onChange(e);
+                      checkPasswordStrength(e.target.value);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {passwordStrength.feedback && (
+                  <p className={`text-sm ${passwordStrength.color}`}>{passwordStrength.feedback}</p>
+                )}
                 {signupForm.formState.errors.password && (
                   <p className="text-sm text-red-600">{signupForm.formState.errors.password.message}</p>
                 )}
@@ -363,12 +439,21 @@ export default function SignupPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirm Password</Label>
-                <Input
-                  id="confirm_password"
-                  type="password"
-                  placeholder="Confirm your password"
-                  {...signupForm.register('confirm_password')}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirm_password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    {...signupForm.register('confirm_password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
                 {signupForm.formState.errors.confirm_password && (
                   <p className="text-sm text-red-600">{signupForm.formState.errors.confirm_password.message}</p>
                 )}
@@ -384,11 +469,11 @@ export default function SignupPage() {
                 />
                 <label htmlFor="terms" className="text-sm text-gray-700">
                   I agree to the{' '}
-                  <Link href="#" className="text-brand hover:text-brand/90">
+                  <Link href="/terms" className="text-brand hover:text-brand/90">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link href="#" className="text-brand hover:text-brand/90">
+                  <Link href="/privacy" className="text-brand hover:text-brand/90">
                     Privacy Policy
                   </Link>
                 </label>
@@ -415,22 +500,8 @@ export default function SignupPage() {
           </CardContent>
         </Card>
 
-        {/* Role Information */}
-        <Card className="rounded-2xl shadow-md bg-green-50 border-green-200">
-          <CardHeader>
-            <CardTitle className="text-lg text-green-800">Choose Your Path</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <p className="font-semibold text-green-800">🎓 As a Mentee:</p>
-              <p className="text-green-700">Connect with industry professionals and get career guidance.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-green-800">👨‍💼 As a Mentor:</p>
-              <p className="text-green-700">Share your expertise and guide the next generation.</p>
-            </div>
-          </CardContent>
-        </Card>
+
+      </div>
       </div>
     </div>
   );

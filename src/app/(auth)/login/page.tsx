@@ -14,6 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { auth } from '@/lib/api/auth';
+import LandingHeader from '@/components/landing/header';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Validation schema
 const loginSchema = z.object({
@@ -28,6 +30,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect authenticated users to home
   useEffect(() => {
@@ -71,13 +74,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-brand-dark">Mentor Connect KU</h1>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <LandingHeader />
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-brand-dark">Mentora</h1>
+            <p className="mt-2 text-gray-600">Sign in to your account</p>
+          </div>
 
         {/* Login Card */}
         <Card className="rounded-2xl shadow-md">
@@ -149,12 +154,21 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  {...form.register('password')}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    {...form.register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
                 {form.formState.errors.password && (
                   <p className="text-sm text-red-600">{form.formState.errors.password.message}</p>
                 )}
@@ -199,6 +213,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

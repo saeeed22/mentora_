@@ -14,6 +14,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth, CurrentUser } from '@/lib/api/auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface SidebarProps {
   user: CurrentUser;
@@ -31,6 +39,7 @@ interface NavItem {
 export function Sidebar({ user, currentPath }: SidebarProps) {
   const router = useRouter();
   const [unreadCount] = useState(0);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // NOTE: Conversations API polling disabled due to backend CORS issues
   // Re-enable when backend CORS is fixed
@@ -73,7 +82,12 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
 
   const handleLogout = async () => {
     await auth.logout();
-    router.push('/login');
+    router.push('/');
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
+    handleLogout();
   };
 
   return (
@@ -113,7 +127,7 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
         {/* Logout Button - Below Profile */}
         <div className="pt-2">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutDialog(true)}
             className="group flex flex-col items-center justify-center px-2 py-3 text-[11px] font-medium rounded-lg transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full"
           >
             <LogOut className="text-gray-400 group-hover:text-red-500 h-5 w-5 mb-1" />
@@ -124,6 +138,32 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
 
       {/* Spacer to push content */}
       <div className="flex-1"></div>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Logout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to logout? You'll need to sign in again to access your dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmLogout}
+            >
+              Logout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

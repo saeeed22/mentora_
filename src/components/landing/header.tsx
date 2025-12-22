@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Menu, X } from 'lucide-react'
 import { auth } from '@/lib/api/auth'
@@ -10,10 +11,17 @@ import { auth } from '@/lib/api/auth'
 export default function LandingHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     setIsAuthenticated(auth.isAuthenticated())
   }, [])
+
+  // Determine which buttons to show based on current page
+  const isLoginPage = pathname === '/login'
+  const isSignupPage = pathname === '/signup'
+  const showLoginButton = !isLoginPage && !isAuthenticated
+  const showSignupButton = !isSignupPage && !isAuthenticated
 
   return (
     <header className="w-full bg-white shadow py-1 px-6 sticky top-0 z-50">
@@ -31,15 +39,6 @@ export default function LandingHeader() {
 
         <div className="hidden lg:flex items-center gap-4">
           {isAuthenticated ? (
-            <Button
-              variant="default"
-              size="lg"
-              className="bg-brand hover:bg-brand/90"
-              asChild
-            >
-              <Link href="/home">Go to Dashboard</Link>
-            </Button>
-          ) : (
             <>
               <Button
                 variant="outline"
@@ -47,7 +46,7 @@ export default function LandingHeader() {
                 className="border-brand-dark hover:text-white hover:bg-brand-dark"
                 asChild
               >
-                <Link href="/login">Log in</Link>
+                <Link href="/">Home</Link>
               </Button>
               <Button
                 variant="default"
@@ -55,8 +54,31 @@ export default function LandingHeader() {
                 className="bg-brand hover:bg-brand/90"
                 asChild
               >
-                <Link href="/signup">Get started today</Link>
+                <Link href="/home">Dashboard</Link>
               </Button>
+            </>
+          ) : (
+            <>
+              {showLoginButton && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-brand-dark hover:text-white hover:bg-brand-dark"
+                  asChild
+                >
+                  <Link href="/login">Log in</Link>
+                </Button>
+              )}
+              {showSignupButton && (
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="bg-brand hover:bg-brand/90"
+                  asChild
+                >
+                  <Link href="/signup">Get started today</Link>
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -83,7 +105,7 @@ export default function LandingHeader() {
 
       {/* Off-canvas Mobile Menu */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 h-full w-[40vw] bg-white shadow-xl transition-transform duration-300 ease-in-out transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 h-full w-[280px] sm:w-[320px] bg-white shadow-xl transition-transform duration-300 ease-in-out transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'
           } lg:hidden`}
       >
         <div className="flex justify-end p-4">
@@ -98,29 +120,42 @@ export default function LandingHeader() {
         </div>
         <div className="flex flex-col items-center gap-4 p-4">
           {isAuthenticated ? (
-            <Button
-              variant="default"
-              className="w-full bg-brand hover:bg-brand/90 py-6"
-              asChild
-            >
-              <Link href="/home">Go to Dashboard</Link>
-            </Button>
-          ) : (
             <>
               <Button
                 variant="outline"
                 className="w-full border-brand-dark hover:text-white hover:bg-brand-dark py-6"
                 asChild
               >
-                <Link href="/login">Log in</Link>
+                <Link href="/">Home</Link>
               </Button>
               <Button
                 variant="default"
                 className="w-full bg-brand hover:bg-brand/90 py-6"
                 asChild
               >
-                <Link href="/signup">Sign up</Link>
+                <Link href="/home">Dashboard</Link>
               </Button>
+            </>
+          ) : (
+            <>
+              {showLoginButton && (
+                <Button
+                  variant="outline"
+                  className="w-full border-brand-dark hover:text-white hover:bg-brand-dark py-6"
+                  asChild
+                >
+                  <Link href="/login">Log in</Link>
+                </Button>
+              )}
+              {showSignupButton && (
+                <Button
+                  variant="default"
+                  className="w-full bg-brand hover:bg-brand/90 py-6"
+                  asChild
+                >
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              )}
             </>
           )}
         </div>
