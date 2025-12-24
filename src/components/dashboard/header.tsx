@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Bell, Calendar, Search, X, Check } from 'lucide-react';
+import { Bell, Calendar, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -83,20 +83,8 @@ export function Header({ user }: HeaderProps) {
           />
         </Link>
 
-        {/* Centered Search */}
-        <div className="flex-1 flex justify-center px-4">
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search mentors, sessions, or topics..."
-              className="pl-10 pr-4 py-2 w-full bg-gray-50 border-gray-200 focus:bg-white"
-            />
-          </div>
-        </div>
-
         {/* Right Section */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 ml-auto">
           {/* Book Session Button - Only for mentees */}
           {user.role === 'mentee' && (
             <Button className="bg-brand hover:bg-brand/90" asChild aria-label="Book a session">

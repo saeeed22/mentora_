@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { auth } from '@/lib/api/auth';
-import { CheckCircle, Mail, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 import LandingHeader from '@/components/landing/header';
 
 // Validation schema for signup
@@ -31,15 +31,9 @@ const signupSchema = z.object({
   path: ["confirm_password"],
 });
 
-// Validation schema for OTP verification
-const verifySchema = z.object({
-  otp: z.string().length(6, 'OTP must be 6 digits'),
-});
-
 type SignupFormData = z.infer<typeof signupSchema>;
-type VerifyFormData = z.infer<typeof verifySchema>;
 
-type Step = 'signup' | 'verify' | 'success';
+type Step = 'signup' | 'success';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -63,13 +57,6 @@ export default function SignupPage() {
       email: '',
       password: '',
       confirm_password: '',
-    },
-  });
-
-  const verifyForm = useForm<VerifyFormData>({
-    resolver: zodResolver(verifySchema),
-    defaultValues: {
-      otp: '',
     },
   });
 
@@ -130,7 +117,8 @@ export default function SignupPage() {
     setError('');
 
     try {
-      const result = await auth.signup({
+      // Step 1: Register the user
+      const signupResult = await auth.signup({
         email: data.email,
         full_name: data.full_name,
         password: data.password,
@@ -138,46 +126,37 @@ export default function SignupPage() {
         role: data.role,
       });
 
-      if (result.success) {
-        setEmail(data.email);
-        setStep('verify');
-      } else {
-        setError(result.error || 'Signup failed. Please try again.');
+      if (!signupResult.success) {
+        setError(signupResult.error || 'Signup failed. Please try again.');
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const onVerifySubmit = async (data: VerifyFormData) => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const result = await auth.verifyEmail({
-        email,
-        otp: data.otp,
+      // Step 2: Auto-login the user (no OTP verification required)
+      const loginResult = await auth.login({
+        email: data.email,
+        password: data.password,
       });
 
-      if (result.success) {
+      if (loginResult.success) {
+        // Redirect to dashboard
+        router.push('/home');
+      } else {
+        // Signup succeeded but login failed, redirect to login page
         setStep('success');
-        // Auto-redirect to login after 3 seconds
         setTimeout(() => {
           router.push('/login');
-        }, 3000);
-      } else {
-        setError(result.error || 'Invalid OTP. Please try again.');
+        }, 2000);
       }
     } catch {
       setError('An unexpected error occurred. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Success screen
+
+
+  // Success screen (only shown if auto-login fails)
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -188,7 +167,7 @@ export default function SignupPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Email Verified!</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Account Created!</h2>
             <p className="text-gray-600">
               Your account has been created successfully. Redirecting to login...
             </p>
@@ -197,94 +176,6 @@ export default function SignupPage() {
             </Button>
           </CardContent>
         </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // OTP Verification screen
-  if (step === 'verify') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <LandingHeader />
-        <div className="flex items-center justify-center py-12 px-4">
-          <div className="max-w-md w-full space-y-8">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-brand-dark">Verify Your Email</h1>
-              <p className="mt-2 text-gray-600">Almost there!</p>
-            </div>
-
-          <Card className="rounded-2xl shadow-md">
-            <CardHeader className="space-y-1 text-center">
-              <div className="mx-auto w-12 h-12 bg-brand/10 rounded-full flex items-center justify-center mb-2">
-                <Mail className="w-6 h-6 text-brand" />
-              </div>
-              <CardTitle className="text-xl">Check your email</CardTitle>
-              <CardDescription>
-                We sent a 6-digit code to <strong>{email}</strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={verifyForm.handleSubmit(onVerifySubmit)} className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                    {error}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="otp">Verification Code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    className="text-center text-2xl tracking-widest"
-                    {...verifyForm.register('otp')}
-                  />
-                  {verifyForm.formState.errors.otp && (
-                    <p className="text-sm text-red-600">{verifyForm.formState.errors.otp.message}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-brand hover:bg-brand/90"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Verifying...' : 'Verify Email'}
-                </Button>
-              </form>
-
-              <div className="text-center text-sm text-gray-600">
-                Didn&apos;t receive the code?{' '}
-                <button
-                  type="button"
-                  className="text-brand hover:text-brand/90 font-medium"
-                  onClick={() => {
-                    // Could add resend functionality here
-                    setError('');
-                  }}
-                >
-                  Resend
-                </button>
-              </div>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                  onClick={() => {
-                    setStep('signup');
-                    setError('');
-                  }}
-                >
-                  ← Back to signup
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-          </div>
         </div>
       </div>
     );

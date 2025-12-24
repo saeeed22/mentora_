@@ -11,10 +11,13 @@ import { auth } from '@/lib/api/auth'
 export default function LandingHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const pathname = usePathname()
 
   useEffect(() => {
+    setIsCheckingAuth(true)
     setIsAuthenticated(auth.isAuthenticated())
+    setIsCheckingAuth(false)
   }, [])
 
   // Determine which buttons to show based on current page
@@ -38,7 +41,9 @@ export default function LandingHeader() {
         </Link>
 
         <div className="hidden lg:flex items-center gap-4">
-          {isAuthenticated ? (
+          {isCheckingAuth ? (
+            <div className="h-10 w-32 bg-gray-100 animate-pulse rounded-md"></div>
+          ) : isAuthenticated ? (
             <>
               <Button
                 variant="outline"
@@ -119,7 +124,9 @@ export default function LandingHeader() {
           </Button>
         </div>
         <div className="flex flex-col items-center gap-4 p-4">
-          {isAuthenticated ? (
+          {isCheckingAuth ? (
+            <div className="h-12 w-full bg-gray-100 animate-pulse rounded-md"></div>
+          ) : isAuthenticated ? (
             <>
               <Button
                 variant="outline"
