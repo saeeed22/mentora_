@@ -68,16 +68,49 @@ export const users = {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await apiClient.post<{ avatar_url: string }>(
-                '/v1/users/me/avatar',
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
+            // Use XMLHttpRequest for better multipart handling
+            return new Promise((resolve) => {
+                const xhr = new XMLHttpRequest();
+                const token = typeof window !== 'undefined' 
+                    ? localStorage.getItem('access_token') 
+                    : null;
+
+                xhr.upload.onprogress = (e) => {
+                    console.log(`Upload progress: ${e.loaded}/${e.total}`);
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200 || xhr.status === 201) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve({ 
+                                success: true, 
+                                data: response.data || { avatar_url: response.avatar_url } 
+                            });
+                        } catch {
+                            resolve({ success: false, error: 'Invalid response from server' });
+                        }
+                    } else {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve({ success: false, error: response.detail || 'Upload failed' });
+                        } catch {
+                            resolve({ success: false, error: `Upload failed with status ${xhr.status}` });
+                        }
+                    }
+                };
+
+                xhr.onerror = () => {
+                    resolve({ success: false, error: 'Network error during upload' });
+                };
+
+                const baseUrl = 'https://mentora-backend-production-d4c3.up.railway.app';
+                xhr.open('POST', `${baseUrl}/v1/users/me/avatar`);
+                if (token) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
                 }
-            );
-            return { success: true, data: response.data };
+                xhr.send(formData);
+            });
         } catch (error) {
             const apiError = parseApiError(error);
             return { success: false, error: apiError.message };

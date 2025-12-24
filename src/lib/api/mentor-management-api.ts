@@ -47,7 +47,8 @@ export interface MentorProfileUpdate {
     headline?: string | null;
     experience_years?: number;
     skills?: string[];
-    price_per_minute?: number | null;
+    price_per_session_solo?: number | null;
+    price_per_session_group?: number | null;
     visible?: boolean;
     // Group session settings (optional)
     group_enabled?: boolean;
@@ -59,7 +60,8 @@ export interface MentorProfileResponse {
     headline: string | null;
     experience_years: number;
     skills: string[];
-    price_per_minute: number | null;
+    price_per_session_solo: number | null;
+    price_per_session_group: number | null;
     visible: boolean;
     user_id: string;
     rating_avg: number;

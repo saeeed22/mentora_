@@ -39,7 +39,8 @@ export default function ProfilePage() {
     headline: '',
     experience_years: 0,
     skills: [] as string[],
-    price_per_minute: 0,
+    price_per_session_solo: 0,
+    price_per_session_group: 0,
     visible: true,
   });
   const [newSkill, setNewSkill] = useState('');
@@ -84,7 +85,8 @@ export default function ProfilePage() {
             headline: mp?.headline || '',
             experience_years: mp?.experience_years || 0,
             skills: mp?.skills || [],
-            price_per_minute: mp?.price_per_minute || 0,
+            price_per_session_solo: mp?.price_per_session_solo || 0,
+            price_per_session_group: mp?.price_per_session_group || 0,
             visible: mp?.visible ?? true,
           });
         } else {
@@ -93,7 +95,8 @@ export default function ProfilePage() {
             headline: '',
             experience_years: 0,
             skills: [],
-            price_per_minute: 0,
+            price_per_session_solo: 0,
+            price_per_session_group: 0,
             visible: true,
           });
         }
@@ -116,65 +119,94 @@ export default function ProfilePage() {
     if (!user) return;
     setIsSaving(true);
 
-    // Update general profile
-    const result = await users.updateProfile({
-      full_name: formData.full_name,
-      bio: formData.bio,
-      timezone: formData.timezone,
-      languages: formData.languages,
-    });
-
-    if (!result.success) {
-      toast.error(result.error || 'Failed to update profile');
-      setIsSaving(false);
-      return;
-    }
-
-    // If mentor, update mentor profile too
-    if (user.role === 'mentor') {
-      const mentorResult = await mentorManagementApi.updateMentorProfile({
-        headline: mentorFormData.headline || null,
-        experience_years: mentorFormData.experience_years,
-        skills: mentorFormData.skills,
-        price_per_minute: mentorFormData.price_per_minute || null,
-        visible: mentorFormData.visible,
+    try {
+      // Update general profile
+      const result = await users.updateProfile({
+        full_name: formData.full_name,
+        bio: formData.bio,
+        timezone: formData.timezone,
+        languages: formData.languages,
       });
 
-      if (!mentorResult.success) {
-        toast.error(mentorResult.error || 'Failed to update mentor profile');
+      if (!result.success) {
+        toast.error(result.error || 'Failed to update profile');
         setIsSaving(false);
         return;
       }
 
-      if (mentorResult.data) {
-        setMentorProfile(mentorResult.data);
-      }
-    }
+      // If mentor, update mentor profile too
+      if (user.role === 'mentor') {
+        const mentorResult = await mentorManagementApi.updateMentorProfile({
+          headline: mentorFormData.headline || null,
+          experience_years: mentorFormData.experience_years,
+          skills: mentorFormData.skills,
+          price_per_session_solo: mentorFormData.price_per_session_solo || null,
+          price_per_session_group: mentorFormData.price_per_session_group || null,
+          visible: mentorFormData.visible,
+        });
 
-    await auth.refreshCurrentUser();
-    const updatedUser = auth.getCurrentUser();
-    if (updatedUser) setUser(updatedUser);
-    toast.success('Profile updated!');
-    setIsSaving(false);
-    setIsEditing(false);
+        if (!mentorResult.success) {
+          toast.error(mentorResult.error || 'Failed to update mentor profile');
+          setIsSaving(false);
+          return;
+        }
+
+        if (mentorResult.data) {
+          setMentorProfile(mentorResult.data);
+        }
+      }
+
+      await auth.refreshCurrentUser();
+      const updatedUser = auth.getCurrentUser();
+      if (updatedUser) setUser(updatedUser);
+      toast.success('Profile updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('An unexpected error occurred while saving profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploadingAvatar(true);
-    const result = await users.uploadAvatar(file);
-
-    if (result.success) {
-      await auth.refreshCurrentUser();
-      const updatedUser = auth.getCurrentUser();
-      if (updatedUser) setUser(updatedUser);
-      toast.success('Avatar uploaded!');
-    } else {
-      toast.error(result.error || 'Failed to upload avatar');
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
     }
-    setIsUploadingAvatar(false);
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const result = await users.uploadAvatar(file);
+
+      if (result.success) {
+        await auth.refreshCurrentUser();
+        const updatedUser = auth.getCurrentUser();
+        if (updatedUser) setUser(updatedUser);
+        toast.success('Avatar uploaded successfully!');
+      } else {
+        toast.error(result.error || 'Failed to upload avatar');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error('An error occurred while uploading avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -510,24 +542,46 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Price per Minute */}
+            {/* Price per Session - Solo */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">Price per Minute (PKR)</Label>
+              <Label className="text-sm font-medium text-gray-700">Price per Session - Solo (PKR)</Label>
               {isEditing ? (
                 <div className="flex items-center gap-2 mt-1">
                   <Input
                     type="number"
                     min={0}
-                    step={10}
-                    value={mentorFormData.price_per_minute}
-                    onChange={(e) => setMentorFormData({ ...mentorFormData, price_per_minute: parseFloat(e.target.value) || 0 })}
-                    className="w-32"
+                    step={100}
+                    value={mentorFormData.price_per_session_solo}
+                    onChange={(e) => setMentorFormData({ ...mentorFormData, price_per_session_solo: parseFloat(e.target.value) || 0 })}
+                    className="w-40"
                   />
-                  <span className="text-sm text-gray-500">PKR/min</span>
+                  <span className="text-sm text-gray-500">PKR/session</span>
                 </div>
               ) : (
                 <p className="text-sm text-gray-900 mt-1">
-                  {mentorFormData.price_per_minute || mentorProfile?.price_per_minute || 0} PKR/min
+                  {mentorFormData.price_per_session_solo || mentorProfile?.price_per_session_solo || 0} PKR/session
+                </p>
+              )}
+            </div>
+
+            {/* Price per Session - Group */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Price per Session - Group (PKR)</Label>
+              {isEditing ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={100}
+                    value={mentorFormData.price_per_session_group}
+                    onChange={(e) => setMentorFormData({ ...mentorFormData, price_per_session_group: parseFloat(e.target.value) || 0 })}
+                    className="w-40"
+                  />
+                  <span className="text-sm text-gray-500">PKR/session</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.price_per_session_group || mentorProfile?.price_per_session_group || 0} PKR/session
                 </p>
               )}
             </div>

@@ -199,7 +199,8 @@ export interface MentorProfile {
   headline?: string;
   experience_years: number;
   skills: string[];
-  price_per_minute?: number;
+  price_per_session_solo?: number;
+  price_per_session_group?: number;
   visible: boolean;
   rating_avg: number;
   rating_count: number;
