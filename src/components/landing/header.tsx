@@ -26,16 +26,19 @@ export default function LandingHeader() {
   const showLoginButton = !isLoginPage && !isAuthenticated
   const showSignupButton = !isSignupPage && !isAuthenticated
 
+  const [logoSrc, setLogoSrc] = useState('/logos/logo.svg')
+
   return (
     <header className="w-full bg-white shadow py-1 px-6 sticky top-0 z-50">
       <div className="mx-auto flex h-16 max-w-8xl items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/logos/logo.svg"
+            src={logoSrc}
             alt="Mentora Logo"
             width={60}
             height={60}
             className="object-contain"
+            onError={() => setLogoSrc('/logos/logo.png')}
           />
 
         </Link>

@@ -69,17 +69,20 @@ export function Header({ user }: HeaderProps) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const [logoSrc, setLogoSrc] = useState('/logos/logo.svg')
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
-            src="/logos/logo.svg"
+            src={logoSrc}
             alt="Mentora Logo"
             width={60}
             height={60}
             className="object-contain"
+            onError={() => setLogoSrc('/logos/logo.png')}
           />
         </Link>
 
