@@ -75,7 +75,7 @@ export function Header({ user }: HeaderProps) {
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
-            src="/logos/logo.png"
+            src="/logos/logo.svg"
             alt="Mentora Logo"
             width={60}
             height={60}

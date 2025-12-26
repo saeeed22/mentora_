@@ -31,7 +31,7 @@ export default function LandingHeader() {
       <div className="mx-auto flex h-16 max-w-8xl items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/logos/logo.png"
+            src="/logos/logo.svg"
             alt="Mentora Logo"
             width={60}
             height={60}
