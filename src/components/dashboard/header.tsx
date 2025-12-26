@@ -69,7 +69,7 @@ export function Header({ user }: HeaderProps) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const [logoSrc, setLogoSrc] = useState('/logos/logo.svg')
+  const [logoSrc, setLogoSrc] = useState('/logos/logo.png')
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -82,7 +82,7 @@ export function Header({ user }: HeaderProps) {
             width={60}
             height={60}
             className="object-contain"
-            onError={() => setLogoSrc('/logos/logo.png')}
+            onError={() => setLogoSrc('/logos/logo.svg')}
           />
         </Link>
 

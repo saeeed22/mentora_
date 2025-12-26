@@ -11,7 +11,7 @@ export default function LandingFooter() {
           <div className="space-y-4 max-w-sm">
             <div className="flex items-center gap-2">
               <Image 
-                src="/logos/logo.svg" 
+                src="/logos/logo.png" 
                 alt="Mentora Logo" 
                 width={48} 
                 height={48}

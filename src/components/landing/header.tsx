@@ -26,7 +26,7 @@ export default function LandingHeader() {
   const showLoginButton = !isLoginPage && !isAuthenticated
   const showSignupButton = !isSignupPage && !isAuthenticated
 
-  const [logoSrc, setLogoSrc] = useState('/logos/logo.svg')
+  const [logoSrc, setLogoSrc] = useState('/logos/logo.png')
 
   return (
     <header className="w-full bg-white shadow py-1 px-6 sticky top-0 z-50">
@@ -38,7 +38,7 @@ export default function LandingHeader() {
             width={60}
             height={60}
             className="object-contain"
-            onError={() => setLogoSrc('/logos/logo.png')}
+            onError={() => setLogoSrc('/logos/logo.svg')}
           />
 
         </Link>
