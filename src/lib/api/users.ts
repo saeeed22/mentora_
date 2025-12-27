@@ -1,4 +1,4 @@
-import { apiClient, parseApiError } from '../api-client';
+import { apiClient, parseApiError, tokenManager } from '../api-client';
 import type {
     BackendUser,
     BackendProfile,
@@ -71,8 +71,8 @@ export const users = {
             // Use XMLHttpRequest for better multipart handling
             return new Promise((resolve) => {
                 const xhr = new XMLHttpRequest();
-                const token = typeof window !== 'undefined' 
-                    ? localStorage.getItem('access_token') 
+                const token = typeof window !== 'undefined'
+                    ? tokenManager.getAccessToken()
                     : null;
 
                 xhr.upload.onprogress = (e) => {
@@ -93,9 +93,22 @@ export const users = {
                     } else {
                         try {
                             const response = JSON.parse(xhr.responseText);
-                            resolve({ success: false, error: response.detail || 'Upload failed' });
+                            const detail = response.detail || response.message;
+                            if (xhr.status === 401) {
+                                resolve({ success: false, error: 'Not authenticated. Please log in again.' });
+                            } else if (xhr.status === 403) {
+                                resolve({ success: false, error: detail || 'Access denied. Check email verification or permissions.' });
+                            } else {
+                                resolve({ success: false, error: detail || 'Upload failed' });
+                            }
                         } catch {
-                            resolve({ success: false, error: `Upload failed with status ${xhr.status}` });
+                            if (xhr.status === 401) {
+                                resolve({ success: false, error: 'Not authenticated. Please log in again.' });
+                            } else if (xhr.status === 403) {
+                                resolve({ success: false, error: 'Access denied. Check email verification or permissions.' });
+                            } else {
+                                resolve({ success: false, error: `Upload failed with status ${xhr.status}` });
+                            }
                         }
                     }
                 };
