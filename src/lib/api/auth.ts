@@ -1,4 +1,5 @@
 import { apiClient, tokenManager, parseApiError, type ApiError } from '../api-client';
+import axios from 'axios';
 import type {
   SignupRequest,
   LoginRequest,
@@ -89,14 +90,18 @@ export const auth = {
   async login(data: LoginRequest): Promise<AuthResult<CurrentUser>> {
     try {
       // Get token
+      console.log('[Auth] Attempting login...');
       const tokenResponse = await apiClient.post<TokenResponse>('/v1/auth/login', data);
+      console.log('[Auth] Login successful, token received');
       tokenManager.setAccessToken(tokenResponse.data.access_token);
 
       // Fetch user profile
+      console.log('[Auth] Fetching user profile from /v1/users/me...');
       const userResponse = await apiClient.get<{
         user: BackendUser;
         profile: BackendProfile;
       }>('/v1/users/me');
+      console.log('[Auth] User profile fetched successfully:', userResponse.data);
 
       const { user, profile } = userResponse.data;
 
@@ -115,6 +120,14 @@ export const auth = {
       return { success: true, data: currentUser };
     } catch (error) {
       console.error('[Auth] Login error:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('[Auth] Error details:', {
+          message: error.message,
+          code: error.code,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+      }
       const apiError = parseApiError(error);
       return { success: false, error: apiError.message };
     }

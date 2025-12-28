@@ -729,7 +729,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-900 mt-1">
-                  {mentorFormData.price_per_session_solo || mentorProfile?.price_per_session_solo || 0} PKR/session
+                  PKR {mentorFormData.price_per_session_solo || mentorProfile?.price_per_session_solo || 0}/session
                 </p>
               )}
             </div>

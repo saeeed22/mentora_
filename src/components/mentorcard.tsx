@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Briefcase, MessageSquare, Building2, DollarSign } from 'lucide-react';
+import { Briefcase, MessageSquare, Building2 } from 'lucide-react';
 
 interface MentorCardProps {
   mentor: {
@@ -43,7 +43,7 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
       </div>
 
       {/* Content */}
-        <div className="p-4 flex-grow flex flex-col">
+      <div className="p-4 flex-grow flex flex-col">
         <div className="flex items-baseline mb-3">
           <h3 className="text-lg text-gray-900 mr-2 font-semibold">
             {mentor.name}
@@ -51,12 +51,12 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
           <span className="text-sm text-gray-900 font-semibold">{mentor.countryCode}</span>
         </div>
 
-          {mentor.groupEnabled && (
-            <div className="mb-3 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Group sessions available
-            </div>
-          )}
+        {mentor.groupEnabled && (
+          <div className="mb-3 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Group sessions available
+          </div>
+        )}
 
         {/* Job Title and Company - Enhanced Styling */}
         <div className="mb-3 p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
@@ -93,33 +93,42 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
       </div>
 
       {/* Footer Stats */}
-      <div className="bg-gray-100 p-3 rounded-b-xl flex justify-around items-center text-center mt-auto m-2">
-        <div>
-          <h6 className="text-gray-500 text-sm font-medium">Experience</h6>
-          <p className="text-gray-700 text-left font-bold text-sm">
-            {mentor.experience} years
-          </p>
+      <div className="bg-gray-100 p-3 rounded-b-xl mt-auto m-2">
+        {/* Experience and Attendance/Status Row */}
+        <div className="flex justify-around items-center text-center mb-4">
+          <div>
+            <h6 className="text-gray-500 text-sm font-medium">Experience</h6>
+            <p className="text-gray-700 font-bold text-sm">
+              {mentor.experience} years
+            </p>
+          </div>
+          
+          {/* Vertical Divider */}
+          <div className="w-px h-10 bg-gray-300"></div>
+          
+          {mentor.sessions > 0 ? (
+            <div>
+              <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
+              <p className="font-bold text-gray-700 text-sm">
+                {mentor.attendance}%
+              </p>
+            </div>
+          ) : (
+            <div>
+              <h6 className="text-gray-500 text-sm font-medium">Status</h6>
+              <p className="font-bold text-brand text-sm">
+                New Mentor
+              </p>
+            </div>
+          )}
         </div>
-        {mentor.sessions > 0 ? (
-          <div>
-            <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
-            <p className="font-bold text-gray-700 text-left text-sm">
-              {mentor.attendance}%
-            </p>
-          </div>
-        ) : (
-          <div>
-            <h6 className="text-gray-500 text-sm font-medium">Status</h6>
-            <p className="font-bold text-brand text-left text-sm">
-              New Mentor
-            </p>
-          </div>
-        )}
+
+        {/* Price Row */}
         {mentor.price_per_session_solo && (
-          <div>
-            <h6 className="text-gray-500 text-sm font-medium">Price</h6>
-            <div className="flex items-center justify-center gap-0.5 font-bold text-gray-700 text-sm">
-              <DollarSign size={14} className="text-green-600" />
+          <div className="pt-3 border-t border-gray-200 text-center">
+            <h6 className="text-gray-500 text-sm font-medium mb-1">Price</h6>
+            <div className="flex items-center justify-center gap-1 font-bold text-gray-700 text-sm">
+              <p className="text-xs text-gray-600 font-semibold">PKR</p>
               <p>{mentor.price_per_session_solo}</p>
               <p className="text-xs text-gray-500 font-normal">/session</p>
             </div>

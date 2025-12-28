@@ -80,10 +80,13 @@ export default function ExplorePage() {
 
     setIsLoading(true);
 
+    // Only send 'experience' or 'rating' to backend (price sorting done client-side)
+    const backendSort = sortBy === 'price' ? 'experience' : sortBy;
+
     const result = await mentorsApi.searchMentors({
       page: reset ? 1 : page,
       limit: 20,
-      sort: sortBy,
+      sort: backendSort as 'rating' | 'experience',
     });
 
     if (result.success && result.data) {
@@ -107,7 +110,22 @@ export default function ExplorePage() {
       });
 
       const cardData = qualifiedMentors.map(backendMentorToCard);
-      console.log('[Explore] Converted cards:', cardData);
+      console.log('[Explore] Converted cards before sorting:', cardData);
+      console.log('[Explore] Current sortBy:', sortBy);
+
+      // Apply client-side sorting (in case backend doesn't support it)
+      if (sortBy === 'price') {
+        cardData.sort((a, b) => {
+          const priceA = a.price_per_session_solo ?? Infinity; // No price = expensive (goes to end)
+          const priceB = b.price_per_session_solo ?? Infinity;
+          console.log(`[Explore] Comparing prices: ${a.name} (${priceA}) vs ${b.name} (${priceB})`);
+          return priceA - priceB; // Low to high
+        });
+        console.log('[Explore] Cards after price sorting:', cardData.map(c => ({ name: c.name, price: c.price_per_session_solo })));
+      } else if (sortBy === 'experience') {
+        cardData.sort((a, b) => b.experience - a.experience); // High to low
+        console.log('[Explore] Cards after experience sorting:', cardData.map(c => ({ name: c.name, experience: c.experience })));
+      }
 
       // Filter by search query on client side
       const filtered = searchQuery
