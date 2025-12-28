@@ -94,8 +94,20 @@ const LandingPage = () => {
       const result = await mentorsApi.searchMentors({ page: 1, limit: 4 });
 
       if (result.success && result.data && result.data.data.length > 0) {
+        // Filter mentors who meet listing criteria (same as browse page):
+        // - Must have experience > 0 years
+        // - Must have complete headline
+        // - Must have skills
+        const qualifiedMentors = result.data.data.filter(mentor => {
+          const experience = mentor.mentor_profile?.experience_years ?? 0;
+          const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
+          const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
+          
+          return experience > 0 && hasHeadline && hasSkills;
+        });
+
         // Convert backend data to landing page mentor format
-        const apiMentors: LandingMentor[] = result.data.data.map((mentor) => ({
+        const apiMentors: LandingMentor[] = qualifiedMentors.map((mentor) => ({
           id: mentor.profile?.user_id || (mentor as { id?: string }).id || mentor.user?.id || '',
           image: mentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
           name: mentor.profile?.full_name || 'Mentor',
@@ -304,17 +316,12 @@ const LandingPage = () => {
         </div>
 
         {/* Mentors */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-4 md:px-16 pt-12 pb-8">
-          <h2 className="text-3xl font-bold mb-4 md:mb-0">Discover top mentors</h2>
-          <div className="flex flex-col-reverse md:flex-row items-center gap-4 w-full md:w-auto">
-            <Button variant="outline" className="px-4 border-[#05051B] hover:text-white hover:bg-[#05051B] w-full md:w-auto" asChild>
-              <Link href="/browse">Explore all</Link>
-            </Button>
-          </div>
+        <div className="flex flex-col items-center justify-center mb-8 px-4 pt-12 pb-8">
+          <h1 className="mb-10 text-gray-900 text-4xl font-bold text-center">Discover top mentors</h1>
         </div>
 
         <div className="px-4 md:px-12 lg:px-20">
-          <div className="overflow-x-auto mb-30 scrollbar-hide">
+          <div className={mentors.length <= 2 ? "flex justify-center mb-8" : "overflow-x-auto mb-8 scrollbar-hide"}>
             {mentorsLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
@@ -333,33 +340,46 @@ const LandingPage = () => {
               </div>
             )}
           </div>
+          <div className="flex justify-center mb-12">
+            <Button variant="outline" className="px-4 border-[#05051B] hover:text-white hover:bg-[#05051B]" asChild>
+              <Link href="/browse">Explore all</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Stats Section */}
-        <div className="px-4 md:px-12 lg:px-20 py-20 bg-gradient-to-r from-red-50 via-pink-200 to-blue-300 my-18">
+        <div className="px-4 md:px-12 lg:px-20 py-10 bg-gradient-to-r from-red-50 via-pink-200 to-blue-300 my-18">
           <div className="flex flex-col items-center text-center">
-            <h2 className="mb-12 font-bold text-brand-dark text-3xl">A platform that delivers results</h2>
+            <h1 className="mb-10 text-gray-900 text-4xl font-bold">Why Choose Mentora</h1>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-4 lg:gap-6">
-            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg">
-              <p className="text-gray-800 mb-3 text-center text-sm">Career enhanced for</p>
-              <h1 className="text-violet-900 font-extrabold text-center mb-3 text-4xl">89%</h1>
-              <p className="mt-2 text-gray-700 text-center">Happy Members</p>
+            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
+              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
+                <img src="/Expert_Mentor.png" alt="Expert Industry Mentors" className="h-16 w-16 object-contain" />
+              </div>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Expert Industry Mentors</h3>
+              <p className="mt-2 text-gray-700 text-center">Connect with experienced industry professionals and KU alumni who provide practical guidance based on real-world experience.</p>
             </div>
-            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg">
-              <p className="text-gray-800 mb-3 text-center text-sm">Empowered by</p>
-              <h1 className="text-violet-900 font-extrabold text-center mb-3 text-4xl">50+</h1>
-              <p className="mt-2 text-gray-700 text-center">Expert Mentors</p>
+            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
+              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
+                <img src="/realtimecommunication.png" alt="Real-Time Communication" className="h-16 w-16 object-contain" />
+              </div>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Real-Time Communication</h3>
+              <p className="mt-2 text-gray-700 text-center">Engage in seamless mentorship through in-app messaging and live video sessions.</p>
             </div>
-            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg">
-              <p className="text-gray-800 mb-3 text-center text-sm">Global community from</p>
-              <h1 className="text-violet-900 font-extrabold text-center mb-3 text-4xl">3</h1>
-              <p className="mt-2 text-gray-700 text-center">Countries</p>
+            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
+              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
+                <img src="/1on1Session.png" alt="Structured Sessions" className="h-16 w-16 object-contain" />
+              </div>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Structured 1-on-1 Sessions</h3>
+              <p className="mt-2 text-gray-700 text-center">Book focused mentorship sessions with clear objectives, scheduled timelines, and meaningful outcomes.</p>
             </div>
-            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg">
-              <p className="text-gray-800 mb-3 text-center text-sm">We have built over</p>
-              <h1 className="text-violet-900 font-extrabold text-center mb-3 text-4xl">200+</h1>
-              <p className="mt-2 text-gray-700 text-center">Connections</p>
+            <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
+              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
+                <img src="/Smart_Mentor_Discovery.png" alt="Smart Mentor Discovery" className="h-16 w-16 object-contain" />
+              </div>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Smart Mentor Discovery</h3>
+              <p className="mt-2 text-gray-700 text-center">Find the right mentor using skill-based search, domain filters, availability, and verified profiles.</p>
             </div>
           </div>
         </div>
@@ -466,6 +486,6 @@ const LandingPage = () => {
       <LandingFooter />
     </div>
   );
-};
+}
 
 export default LandingPage;
