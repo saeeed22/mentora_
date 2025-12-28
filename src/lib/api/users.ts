@@ -143,6 +143,20 @@ export const users = {
             return { success: false, error: apiError.message };
         }
     },
+
+    /**
+     * Delete user account
+     * DELETE /v1/users/me
+     */
+    async deleteAccount(): Promise<ApiResult> {
+        try {
+            await apiClient.delete('/v1/users/me');
+            return { success: true };
+        } catch (error) {
+            const apiError = parseApiError(error);
+            return { success: false, error: apiError.message };
+        }
+    },
 };
 
 export type { UserProfileResponse };

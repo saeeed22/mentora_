@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, X, Briefcase } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Camera, Plus, X, Briefcase, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,17 +12,30 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { users } from '@/lib/api/users';
 import { mentorManagementApi, MentorProfileResponse } from '@/lib/api/mentor-management-api';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile form data
@@ -284,6 +298,26 @@ export default function ProfilePage() {
       ...mentorFormData,
       skills: mentorFormData.skills.filter(s => s !== skill),
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await users.deleteAccount();
+      
+      if (result.success) {
+        toast.success('Account deleted successfully');
+        auth.logout();
+        router.push('/');
+      } else {
+        toast.error(result.error || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Delete account error:', error);
+      toast.error('An error occurred while deleting account');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -857,6 +891,68 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Danger Zone - Delete Account */}
+      <Card className="rounded-2xl shadow-sm border-red-200">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Permanently delete your account and all associated data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-red-800 mb-2">
+              <strong>Warning:</strong> This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+            </p>
+            <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+              <li>All your profile information will be deleted</li>
+              <li>All your bookings and sessions will be cancelled</li>
+              <li>All your messages will be removed</li>
+              {isMentor && <li>Your mentor profile will be permanently removed</li>}
+            </ul>
+          </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete My Account'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <div>
+                    <p className="mb-2">
+                      This action cannot be undone. This will permanently delete your account
+                      and remove all your data from our servers including:
+                    </p>
+                    <ul className="mt-2 list-disc list-inside space-y-1">
+                      <li>Profile information</li>
+                      <li>All bookings and sessions</li>
+                      <li>All messages and conversations</li>
+                      {isMentor && <li>Your mentor profile and ratings</li>}
+                    </ul>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Yes, Delete My Account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }

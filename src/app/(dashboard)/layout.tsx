@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
+import { DashboardFooter } from '@/components/dashboard/footer';
 
 export default function DashboardLayout({
   children,
@@ -42,12 +43,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Global Header above sidebar */}
       <Header user={user} />
 
       {/* Content row: compact sidebar + page content */}
-      <div className="flex">
+      <div className="flex flex-1">
         <Sidebar user={user} currentPath={pathname} />
 
         {/* Main Content */}
@@ -55,6 +56,9 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Footer */}
+      <DashboardFooter />
     </div>
   );
 }
