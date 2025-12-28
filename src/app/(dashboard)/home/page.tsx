@@ -37,10 +37,13 @@ export default function DashboardHomePage() {
     countryCode: string;
     jobTitle: string;
     company: string;
+    current_role?: string;
+    current_company?: string;
     sessions: number;
     reviews: number;
     attendance: number;
     experience: number;
+    price_per_session_solo?: number;
   }>>([]);
 
   useEffect(() => {
@@ -131,20 +134,35 @@ export default function DashboardHomePage() {
   };
 
   const loadSuggestedMentors = async () => {
-    const result = await mentorsApi.searchMentors({ limit: 3, sort: 'rating' });
+    const result = await mentorsApi.searchMentors({ limit: 20, sort: 'rating' });
     if (result.success && result.data) {
+      // Filter mentors by qualification criteria:
+      // - Must have experience > 0 years
+      // - Must have headline
+      // - Must have skills
+      const qualifiedMentors = result.data.data.filter(mentor => {
+        const experience = mentor.mentor_profile?.experience_years ?? 0;
+        const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
+        const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
+        
+        return experience > 0 && hasHeadline && hasSkills;
+      });
+
       // Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
-      const mentorCards = result.data.data.map(m => ({
+      const mentorCards = qualifiedMentors.slice(0, 3).map(m => ({
         id: m.profile?.user_id || (m as { id?: string }).id || m.user?.id || '',
         image: m.profile?.avatar_url || '/mentor_fallback_1.jpg',
         name: m.profile?.full_name || 'Unknown Mentor',
         countryCode: m.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
         jobTitle: m.mentor_profile?.headline || 'Mentor',
         company: '', // Not available from backend currently
+        current_role: m.mentor_profile?.current_role,
+        current_company: m.mentor_profile?.current_company,
         sessions: m.stats?.total_sessions ?? 0,
         reviews: m.mentor_profile?.rating_count ?? 0,
         attendance: m.stats?.total_sessions ? 95 : 0,
         experience: m.mentor_profile?.experience_years ?? 0,
+        price_per_session_solo: m.mentor_profile?.price_per_session_solo,
       }));
       setSuggestedMentors(mentorCards);
     } else {
@@ -163,7 +181,7 @@ export default function DashboardHomePage() {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map(n => n[0]?.toUpperCase())
       .join('')
       .toUpperCase();
   };
@@ -514,12 +532,12 @@ export default function DashboardHomePage() {
         {user.role !== 'mentee' && <CalendarWidget userRole={user.role === 'admin' ? 'mentor' : user.role} />}
       </div>
 
-      {/* Suggested Mentors (for mentees) / Recent Activity (for mentors) */}
+      {/* Top Mentors (for mentees) / Recent Activity (for mentors) */}
       {user.role === 'mentee' ? (
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-brand-dark">Suggested Mentors</h2>
+              <h2 className="text-xl font-bold text-brand-dark">Top Mentors</h2>
               <p className="text-sm text-gray-600">Mentors that match your interests</p>
             </div>
             <Button variant="ghost" size="sm" asChild>

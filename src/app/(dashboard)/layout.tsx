@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
-import { DashboardFooter } from '@/components/dashboard/footer';
+import LandingFooter from '@/components/landing/footer';
 
 export default function DashboardLayout({
   children,
@@ -58,7 +58,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Footer */}
-      <DashboardFooter />
+      <LandingFooter />
     </div>
   );
 }
