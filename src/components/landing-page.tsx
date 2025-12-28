@@ -22,10 +22,13 @@ interface LandingMentor {
   countryCode: string;
   jobTitle: string;
   company: string;
+  current_role?: string;
+  current_company?: string;
   sessions: number;
   reviews: number;
   attendance: number;
   experience: number;
+  price_per_session_solo?: number;
   isTopRated: boolean;
   isAvailableASAP: boolean;
 }
@@ -73,9 +76,57 @@ const dummyTestimonials = [
     reviewerRole: "Design Student",
     reviewerCompany: "Karachi University",
   },
+  {
+    mentorImage: "/mentor_fallback_2.jpg",
+    mentorName: "Fatima Khan",
+    mentorCountryCode: "PK",
+    mentorJobTitle: "Software Engineer",
+    mentorCompany: "Google",
+    mentorSessions: 245,
+    mentorReviews: 52,
+    reviewText: "Fatima provided excellent guidance on system design and best practices. Her real-world experience was invaluable for my interviews. Highly recommend!",
+    reviewerImage: "/mentor_fallback_2.jpg",
+    reviewerName: "Ali Raza",
+    reviewerRole: "Computer Science Student",
+    reviewerCompany: "FAST University",
+  },
+  {
+    mentorImage: "/mentor_fallback_2.jpg",
+    mentorName: "Michael Chen",
+    mentorCountryCode: "US",
+    mentorJobTitle: "Marketing Manager",
+    mentorCompany: "Amazon",
+    mentorSessions: 156,
+    mentorReviews: 38,
+    reviewText: "Michael helped me craft a winning marketing strategy for my startup. His insights on consumer behavior were game-changing. Thanks Mike!",
+    reviewerImage: "/mentor_fallback_2.jpg",
+    reviewerName: "Sarah Johnson",
+    reviewerRole: "Entrepreneur",
+    reviewerCompany: "Tech Startup Co",
+  },
+  {
+    mentorImage: "/mentor_fallback_2.jpg",
+    mentorName: "Dr. Ayesha Siddiqui",
+    mentorCountryCode: "PK",
+    mentorJobTitle: "Research Lead",
+    mentorCompany: "Microsoft Research",
+    mentorSessions: 198,
+    mentorReviews: 41,
+    reviewText: "Dr. Ayesha's approach to research methodology transformed my understanding of AI. Every session was packed with insights and actionable advice.",
+    reviewerImage: "/mentor_fallback_2.jpg",
+    reviewerName: "Hassan Khan",
+    reviewerRole: "PhD Student",
+    reviewerCompany: "Karachi University",
+  },
 ];
 
 const logos = ['/google.png', '/slack.png', '/grammarly.png', '/microsoft.png', '/paypal.png', '/amazon.png', '/nasa.png', '/liftpro.png'];
+
+// Helper function to get random testimonials
+const getRandomTestimonials = (count: number) => {
+  const shuffled = [...dummyTestimonials].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('mentee');
@@ -113,11 +164,14 @@ const LandingPage = () => {
           name: mentor.profile?.full_name || 'Mentor',
           countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
           jobTitle: mentor.mentor_profile?.headline || 'Mentor',
-          company: '', // Not available from backend currently
+          company: '', // Deprecated - kept for backwards compatibility
+          current_role: mentor.mentor_profile?.current_role,
+          current_company: mentor.mentor_profile?.current_company,
           sessions: mentor.stats?.total_sessions ?? 0,
           reviews: mentor.mentor_profile?.rating_count ?? 0,
           attendance: mentor.stats?.total_sessions ? 95 : 0,
           experience: mentor.mentor_profile?.experience_years ?? 0,
+          price_per_session_solo: mentor.mentor_profile?.price_per_session_solo,
           isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.5,
           isAvailableASAP: true,
         }));
@@ -142,10 +196,11 @@ const LandingPage = () => {
       });
 
       if (result.success && result.data && result.data.data.length > 0) {
-        // Convert to testimonial format - for now use dummy reviews
-        setTestimonials(dummyTestimonials.slice(0, 3));
+        // Show random testimonials from dummy pool
+        setTestimonials(getRandomTestimonials(3));
       } else {
-        setTestimonials(dummyTestimonials.slice(0, 3));
+        // Fallback to random testimonials if no mentors found
+        setTestimonials(getRandomTestimonials(3));
       }
       setTestimonialsLoading(false);
     })();

@@ -37,10 +37,19 @@ export default function ProfilePage() {
   const [mentorProfile, setMentorProfile] = useState<MentorProfileResponse | null>(null);
   const [mentorFormData, setMentorFormData] = useState({
     headline: '',
+    current_role: '',
+    current_company: '',
+    employment_status: 'employed' as 'employed' | 'self_employed' | 'business_owner' | 'freelancer' | 'retired',
+    mentoring_niche: 'other',
     experience_years: 0,
     skills: [] as string[],
     price_per_session_solo: 0,
-    price_per_session_group: 0,
+    group_pricing: {
+      2: 0,
+      3: 0,
+      5: 0,
+      10: 0,
+    },
     visible: true,
   });
   const [newSkill, setNewSkill] = useState('');
@@ -83,20 +92,38 @@ export default function ProfilePage() {
           // Update form data with fetched mentor profile
           setMentorFormData({
             headline: mp?.headline || '',
+            current_role: mp?.current_role || '',
+            current_company: mp?.current_company || '',
+            employment_status: mp?.employment_status || 'employed',
+            mentoring_niche: mp?.mentoring_niche || 'other',
             experience_years: mp?.experience_years || 0,
             skills: mp?.skills || [],
             price_per_session_solo: mp?.price_per_session_solo || 0,
-            price_per_session_group: mp?.price_per_session_group || 0,
+            group_pricing: {
+              2: mp?.group_pricing?.[2] || 0,
+              3: mp?.group_pricing?.[3] || 0,
+              5: mp?.group_pricing?.[5] || 0,
+              10: mp?.group_pricing?.[10] || 0,
+            },
             visible: mp?.visible ?? true,
           });
         } else {
           // Set defaults if mentor profile not found
           setMentorFormData({
             headline: '',
+            current_role: '',
+            current_company: '',
+            employment_status: 'employed',
+            mentoring_niche: 'other',
             experience_years: 0,
             skills: [],
             price_per_session_solo: 0,
-            price_per_session_group: 0,
+            group_pricing: {
+              2: 0,
+              3: 0,
+              5: 0,
+              10: 0,
+            },
             visible: true,
           });
         }
@@ -138,10 +165,14 @@ export default function ProfilePage() {
       if (user.role === 'mentor') {
         const mentorResult = await mentorManagementApi.updateMentorProfile({
           headline: mentorFormData.headline || null,
+          current_role: mentorFormData.current_role || null,
+          current_company: mentorFormData.current_company || null,
+          employment_status: mentorFormData.employment_status,
+          mentoring_niche: mentorFormData.mentoring_niche,
           experience_years: mentorFormData.experience_years,
           skills: mentorFormData.skills,
           price_per_session_solo: mentorFormData.price_per_session_solo || null,
-          price_per_session_group: mentorFormData.price_per_session_group || null,
+          group_pricing: mentorFormData.group_pricing,
           visible: mentorFormData.visible,
         });
 
@@ -482,6 +513,111 @@ export default function ProfilePage() {
               )}
             </div>
 
+            {/* Current Role */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Current Role</Label>
+              {isEditing ? (
+                <Input
+                  value={mentorFormData.current_role}
+                  onChange={(e) => setMentorFormData({ ...mentorFormData, current_role: e.target.value })}
+                  placeholder="Senior Backend Engineer"
+                  className="mt-1"
+                  maxLength={100}
+                />
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.current_role || mentorProfile?.current_role || 'Not specified'}
+                </p>
+              )}
+            </div>
+
+            {/* Current Company */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Current Company</Label>
+              {isEditing ? (
+                <Input
+                  value={mentorFormData.current_company}
+                  onChange={(e) => setMentorFormData({ ...mentorFormData, current_company: e.target.value })}
+                  placeholder="Google, Startup XYZ, etc."
+                  className="mt-1"
+                  maxLength={150}
+                />
+              ) : (
+                <p className="text-sm text-gray-900 mt-1">
+                  {mentorFormData.current_company || mentorProfile?.current_company || 'Not specified'}
+                </p>
+              )}
+            </div>
+
+            {/* Employment Status */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Employment Status</Label>
+              {isEditing ? (
+                <Select
+                  value={mentorFormData.employment_status}
+                  onValueChange={(value: any) => setMentorFormData({ ...mentorFormData, employment_status: value })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select employment status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employed">Employee</SelectItem>
+                    <SelectItem value="self_employed">Self-Employed / Freelancer</SelectItem>
+                    <SelectItem value="business_owner">Business Owner / Startup Founder</SelectItem>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="retired">Retired</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-gray-900 mt-1 capitalize">
+                  {mentorFormData.employment_status === 'employed' && 'Employee'}
+                  {mentorFormData.employment_status === 'self_employed' && 'Self-Employed / Freelancer'}
+                  {mentorFormData.employment_status === 'business_owner' && 'Business Owner / Startup Founder'}
+                  {mentorFormData.employment_status === 'freelancer' && 'Freelancer'}
+                  {mentorFormData.employment_status === 'retired' && 'Retired'}
+                </p>
+              )}
+            </div>
+
+            {/* Mentoring Niche */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Mentoring Niche</Label>
+              {isEditing ? (
+                <Select
+                  value={mentorFormData.mentoring_niche}
+                  onValueChange={(value) => setMentorFormData({ ...mentorFormData, mentoring_niche: value })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select your niche" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="backend">Backend Development</SelectItem>
+                    <SelectItem value="frontend">Frontend Development</SelectItem>
+                    <SelectItem value="fullstack">Full Stack Development</SelectItem>
+                    <SelectItem value="devops">DevOps</SelectItem>
+                    <SelectItem value="mobile">Mobile Development</SelectItem>
+                    <SelectItem value="data_science">Data Science</SelectItem>
+                    <SelectItem value="machine_learning">Machine Learning</SelectItem>
+                    <SelectItem value="cloud">Cloud Computing</SelectItem>
+                    <SelectItem value="ai_llm">AI & LLM</SelectItem>
+                    <SelectItem value="blockchain">Blockchain</SelectItem>
+                    <SelectItem value="product">Product Management</SelectItem>
+                    <SelectItem value="design">Design (UI/UX)</SelectItem>
+                    <SelectItem value="entrepreneurship">Entrepreneurship</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="hr">Human Resources</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-gray-900 mt-1 capitalize">
+                  {mentorFormData.mentoring_niche.replace(/_/g, ' ')}
+                </p>
+              )}
+            </div>
+
             {/* Experience Years */}
             <div>
               <Label className="text-sm font-medium text-gray-700">Years of Experience</Label>
@@ -564,26 +700,126 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Price per Session - Group */}
+            {/* Group Pricing - Tiered */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">Price per Session - Group (PKR)</Label>
-              {isEditing ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    step={100}
-                    value={mentorFormData.price_per_session_group}
-                    onChange={(e) => setMentorFormData({ ...mentorFormData, price_per_session_group: parseFloat(e.target.value) || 0 })}
-                    className="w-40"
-                  />
-                  <span className="text-sm text-gray-500">PKR/session</span>
+              <Label className="text-sm font-medium text-gray-700 mb-3">Group Session Pricing (Total Price per Session)</Label>
+              <div className="space-y-3">
+                {/* Group of 2 */}
+                <div>
+                  <Label className="text-sm text-gray-600">Group of 2 Mentees</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={mentorFormData.group_pricing[2]}
+                        onChange={(e) => setMentorFormData({ 
+                          ...mentorFormData, 
+                          group_pricing: { ...mentorFormData.group_pricing, 2: parseFloat(e.target.value) || 0 }
+                        })}
+                        className="w-40"
+                      />
+                      <span className="text-sm text-gray-500">PKR total</span>
+                      {mentorFormData.group_pricing[2] > 0 && (
+                        <span className="text-xs text-gray-400">({(mentorFormData.group_pricing[2] / 2).toFixed(0)} PKR per person)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-900 mt-1">
+                      {mentorFormData.group_pricing[2] || 0} PKR total
+                      {mentorFormData.group_pricing[2] > 0 && ` (${(mentorFormData.group_pricing[2] / 2).toFixed(0)} PKR per person)`}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-900 mt-1">
-                  {mentorFormData.price_per_session_group || mentorProfile?.price_per_session_group || 0} PKR/session
-                </p>
-              )}
+
+                {/* Group of 3 */}
+                <div>
+                  <Label className="text-sm text-gray-600">Group of 3 Mentees</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={mentorFormData.group_pricing[3]}
+                        onChange={(e) => setMentorFormData({ 
+                          ...mentorFormData, 
+                          group_pricing: { ...mentorFormData.group_pricing, 3: parseFloat(e.target.value) || 0 }
+                        })}
+                        className="w-40"
+                      />
+                      <span className="text-sm text-gray-500">PKR total</span>
+                      {mentorFormData.group_pricing[3] > 0 && (
+                        <span className="text-xs text-gray-400">({(mentorFormData.group_pricing[3] / 3).toFixed(0)} PKR per person)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-900 mt-1">
+                      {mentorFormData.group_pricing[3] || 0} PKR total
+                      {mentorFormData.group_pricing[3] > 0 && ` (${(mentorFormData.group_pricing[3] / 3).toFixed(0)} PKR per person)`}
+                    </p>
+                  )}
+                </div>
+
+                {/* Group of 5 */}
+                <div>
+                  <Label className="text-sm text-gray-600">Group of 5 Mentees</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={mentorFormData.group_pricing[5]}
+                        onChange={(e) => setMentorFormData({ 
+                          ...mentorFormData, 
+                          group_pricing: { ...mentorFormData.group_pricing, 5: parseFloat(e.target.value) || 0 }
+                        })}
+                        className="w-40"
+                      />
+                      <span className="text-sm text-gray-500">PKR total</span>
+                      {mentorFormData.group_pricing[5] > 0 && (
+                        <span className="text-xs text-gray-400">({(mentorFormData.group_pricing[5] / 5).toFixed(0)} PKR per person)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-900 mt-1">
+                      {mentorFormData.group_pricing[5] || 0} PKR total
+                      {mentorFormData.group_pricing[5] > 0 && ` (${(mentorFormData.group_pricing[5] / 5).toFixed(0)} PKR per person)`}
+                    </p>
+                  )}
+                </div>
+
+                {/* Group of 10 */}
+                <div>
+                  <Label className="text-sm text-gray-600">Group of 10 Mentees</Label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={mentorFormData.group_pricing[10]}
+                        onChange={(e) => setMentorFormData({ 
+                          ...mentorFormData, 
+                          group_pricing: { ...mentorFormData.group_pricing, 10: parseFloat(e.target.value) || 0 }
+                        })}
+                        className="w-40"
+                      />
+                      <span className="text-sm text-gray-500">PKR total</span>
+                      {mentorFormData.group_pricing[10] > 0 && (
+                        <span className="text-xs text-gray-400">({(mentorFormData.group_pricing[10] / 10).toFixed(0)} PKR per person)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-900 mt-1">
+                      {mentorFormData.group_pricing[10] || 0} PKR total
+                      {mentorFormData.group_pricing[10] > 0 && ` (${(mentorFormData.group_pricing[10] / 10).toFixed(0)} PKR per person)`}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Visibility Toggle */}

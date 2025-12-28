@@ -197,10 +197,19 @@ export interface ProfileUpdateRequest {
 export interface MentorProfile {
   user_id: string;
   headline?: string;
+  current_role?: string;
+  current_company?: string;
+  employment_status?: 'employed' | 'self_employed' | 'business_owner' | 'freelancer' | 'retired';
+  mentoring_niche?: string;
   experience_years: number;
   skills: string[];
   price_per_session_solo?: number;
-  price_per_session_group?: number;
+  group_pricing?: {
+    2?: number;  // Total price for 2 mentees
+    3?: number;  // Total price for 3 mentees
+    5?: number;  // Total price for 5 mentees
+    10?: number; // Total price for 10 mentees
+  };
   visible: boolean;
   rating_avg: number;
   rating_count: number;

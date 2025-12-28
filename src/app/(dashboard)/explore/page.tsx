@@ -16,6 +16,29 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Mentoring niche categories
+const MENTORING_NICHES = [
+  { value: 'web_dev', label: 'Web Development' },
+  { value: 'mobile_dev', label: 'Mobile Development' },
+  { value: 'backend', label: 'Backend' },
+  { value: 'frontend', label: 'Frontend' },
+  { value: 'fullstack', label: 'Full Stack' },
+  { value: 'devops', label: 'DevOps' },
+  { value: 'data_science', label: 'Data Science' },
+  { value: 'machine_learning', label: 'Machine Learning' },
+  { value: 'cloud', label: 'Cloud Computing' },
+  { value: 'ai_llm', label: 'AI & LLM' },
+  { value: 'blockchain', label: 'Blockchain' },
+  { value: 'product', label: 'Product Management' },
+  { value: 'design', label: 'Design (UI/UX)' },
+  { value: 'entrepreneurship', label: 'Entrepreneurship' },
+  { value: 'business', label: 'Business' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'other', label: 'Other' },
+];
+
 // Convert backend mentor to card format
 // Note: Backend returns { id, profile, mentor_profile } - no user or stats objects
 const backendMentorToCard = (mentor: MentorDetailResponse) => ({
@@ -25,11 +48,14 @@ const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   // TODO: Get country from backend profile.timezone or location field
   countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
   jobTitle: mentor.mentor_profile?.headline || 'Mentor',
-  company: '', // Not available from backend currently
+  company: '', // Deprecated - kept for backwards compatibility
+  current_role: mentor.mentor_profile?.current_role || undefined,
+  current_company: mentor.mentor_profile?.current_company || undefined,
   sessions: mentor.stats?.total_sessions ?? 0,
   reviews: mentor.mentor_profile?.rating_count ?? 0,
   attendance: mentor.stats?.total_sessions ? 95 : 0, // Default if has sessions, 0 if none
   experience: mentor.mentor_profile?.experience_years ?? 0,
+  price_per_session_solo: mentor.mentor_profile?.price_per_session_solo,
   isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
 });
@@ -38,13 +64,12 @@ type MentorCardData = ReturnType<typeof backendMentorToCard>;
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSkill, setSelectedSkill] = useState('all');
-  const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'price'>('rating');
+  const [selectedNiche, setSelectedNiche] = useState('all');
+  const [sortBy, setSortBy] = useState<'experience' | 'price'>('experience');
   const [mentors, setMentors] = useState<MentorCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [skills, setSkills] = useState<string[]>([]);
 
   // Load mentors from API
   const loadMentors = async (reset = false) => {
@@ -59,7 +84,6 @@ export default function ExplorePage() {
       page: reset ? 1 : page,
       limit: 20,
       sort: sortBy,
-      skills: selectedSkill !== 'all' ? [selectedSkill] : undefined,
     });
 
     if (result.success && result.data) {
@@ -72,12 +96,14 @@ export default function ExplorePage() {
       // Filter mentors who meet listing criteria:
       // - Must have experience > 0 years
       // - Must have complete profile
+      // - Must match selected niche (if not 'all')
       const qualifiedMentors = result.data.data.filter(mentor => {
         const experience = mentor.mentor_profile?.experience_years ?? 0;
         const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
         const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
+        const matchesNiche = selectedNiche === 'all' || mentor.mentor_profile?.mentoring_niche === selectedNiche;
         
-        return experience > 0 && hasHeadline && hasSkills;
+        return experience > 0 && hasHeadline && hasSkills && matchesNiche;
       });
 
       const cardData = qualifiedMentors.map(backendMentorToCard);
@@ -94,39 +120,18 @@ export default function ExplorePage() {
       // If API returns empty data, show empty state
       if (filtered.length === 0 && !searchQuery) {
         setMentors([]);
-        setSkills([]);
       } else {
         setMentors(prev => reset ? filtered : [...prev, ...filtered]);
-        // Extract unique skills from qualified mentors
-        const allSkills = qualifiedMentors.flatMap(m => m.mentor_profile.skills);
-        setSkills(Array.from(new Set(allSkills)).sort());
       }
       setHasMore(result.data.hasNext);
     } else {
       // API error - show empty state
       setMentors([]);
       setHasMore(false);
-      setSkills([]);
     }
 
     setIsLoading(false);
   };
-
-  // Load all available skills on mount
-  useEffect(() => {
-    const loadAllSkills = async () => {
-      const result = await mentorsApi.searchMentors({ page: 1, limit: 100 });
-      if (result.success && result.data) {
-        const qualifiedMentors = result.data.data.filter(mentor => {
-          const experience = mentor.mentor_profile?.experience_years ?? 0;
-          return experience > 0 && mentor.mentor_profile?.skills?.length;
-        });
-        const allSkills = qualifiedMentors.flatMap(m => m.mentor_profile.skills);
-        setSkills(Array.from(new Set(allSkills)).sort());
-      }
-    };
-    loadAllSkills();
-  }, []);
 
   // Initial load
   useEffect(() => {
@@ -142,7 +147,7 @@ export default function ExplorePage() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedSkill, sortBy]);
+  }, [searchQuery, selectedNiche, sortBy]);
 
   return (
     <div className="space-y-6">
@@ -179,15 +184,15 @@ export default function ExplorePage() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Skills" />
+              <Select value={selectedNiche} onValueChange={setSelectedNiche}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Mentoring Niche" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Skills</SelectItem>
-                  {skills.map((skill) => (
-                    <SelectItem key={skill} value={skill}>
-                      {skill}
+                  <SelectItem value="all">All Niches</SelectItem>
+                  {MENTORING_NICHES.map((niche) => (
+                    <SelectItem key={niche.value} value={niche.value}>
+                      {niche.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -198,7 +203,6 @@ export default function ExplorePage() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
                   <SelectItem value="experience">Most Experience</SelectItem>
                   <SelectItem value="price">Price</SelectItem>
                 </SelectContent>
@@ -261,7 +265,7 @@ export default function ExplorePage() {
               variant="outline"
               onClick={() => {
                 setSearchQuery('');
-                setSelectedSkill('all');
+                setSelectedNiche('all');
               }}
             >
               Clear Filters

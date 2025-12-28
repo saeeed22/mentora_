@@ -45,10 +45,19 @@ export interface AvailabilityExceptionCreate {
 // Types for mentor profile update
 export interface MentorProfileUpdate {
     headline?: string | null;
+    current_role?: string | null;
+    current_company?: string | null;
+    employment_status?: 'employed' | 'self_employed' | 'business_owner' | 'freelancer' | 'retired';
+    mentoring_niche?: string;
     experience_years?: number;
     skills?: string[];
     price_per_session_solo?: number | null;
-    price_per_session_group?: number | null;
+    group_pricing?: {
+        2?: number;  // Total price for 2 mentees
+        3?: number;  // Total price for 3 mentees
+        5?: number;  // Total price for 5 mentees
+        10?: number; // Total price for 10 mentees
+    };
     visible?: boolean;
     // Group session settings (optional)
     group_enabled?: boolean;
@@ -58,10 +67,19 @@ export interface MentorProfileUpdate {
 
 export interface MentorProfileResponse {
     headline: string | null;
+    current_role: string | null;
+    current_company: string | null;
+    employment_status: 'employed' | 'self_employed' | 'business_owner' | 'freelancer' | 'retired';
+    mentoring_niche: string;
     experience_years: number;
     skills: string[];
     price_per_session_solo: number | null;
-    price_per_session_group: number | null;
+    group_pricing?: {
+        2?: number;
+        3?: number;
+        5?: number;
+        10?: number;
+    };
     visible: boolean;
     user_id: string;
     rating_avg: number;

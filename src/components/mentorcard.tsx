@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Briefcase, MessageSquare } from 'lucide-react';
+import { Briefcase, MessageSquare, Building2, DollarSign } from 'lucide-react';
 
 interface MentorCardProps {
   mentor: {
@@ -9,12 +9,15 @@ interface MentorCardProps {
     image: string;
     name: string;
     countryCode: string;
-    jobTitle: string;
-    company: string;
+    jobTitle?: string; // Deprecated - use current_role
+    company?: string; // Deprecated - use current_company
+    current_role?: string;
+    current_company?: string;
     sessions: number;
     reviews: number;
     attendance: number;
     experience: number;
+    price_per_session_solo?: number; // Pricing in PKR
     isTopRated?: boolean;
     hasAdvanceOption?: boolean;
     isAvailableASAP?: boolean;
@@ -49,18 +52,33 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
         </div>
 
           {mentor.groupEnabled && (
-            <div className="mb-2 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
+            <div className="mb-3 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Group sessions available
             </div>
           )}
 
-        {/* Job Title and Company */}
-        <div className="flex items-center text-sm text-gray-700 mb-1">
-          <Briefcase size={16} className="mr-2 text-gray-700 flex-shrink-0" />
-          <p className="text-sm text-gray-700">
-            {mentor.jobTitle}{mentor.company ? ` at ${mentor.company}` : ''}
-          </p>
+        {/* Job Title and Company - Enhanced Styling */}
+        <div className="mb-3 p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+          {/* Designation */}
+          {(mentor.current_role || mentor.jobTitle) && (
+            <div className="flex items-center gap-2 mb-1.5">
+              <Briefcase size={14} className="text-blue-600 flex-shrink-0" />
+              <p className="text-sm font-semibold text-gray-900">
+                {mentor.current_role || mentor.jobTitle}
+              </p>
+            </div>
+          )}
+          
+          {/* Company */}
+          {(mentor.current_company || mentor.company) && (
+            <div className="flex items-center gap-2 pl-0.5">
+              <Building2 size={14} className="text-indigo-600 flex-shrink-0" />
+              <p className="text-xs text-gray-700 font-medium">
+                {mentor.current_company || mentor.company}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Sessions and Reviews */}
@@ -95,6 +113,16 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
             <p className="font-bold text-brand text-left text-sm">
               New Mentor
             </p>
+          </div>
+        )}
+        {mentor.price_per_session_solo && (
+          <div>
+            <h6 className="text-gray-500 text-sm font-medium">Price</h6>
+            <div className="flex items-center justify-center gap-0.5 font-bold text-gray-700 text-sm">
+              <DollarSign size={14} className="text-green-600" />
+              <p>{mentor.price_per_session_solo}</p>
+              <p className="text-xs text-gray-500 font-normal">/session</p>
+            </div>
           </div>
         )}
       </div>

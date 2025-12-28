@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
         hostname: '*.cloudinary.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
     ],
   },
   turbopack: {
