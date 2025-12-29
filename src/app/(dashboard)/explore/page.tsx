@@ -225,10 +225,6 @@ export default function ExplorePage() {
                   <SelectItem value="price">Price</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -247,7 +243,7 @@ export default function ExplorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
             {mentors.map((mentor) => (
               <div key={mentor.id} className="flex justify-center items-stretch">
-                <MentorCard mentor={mentor} />
+                <MentorCard mentor={mentor} showBookButton={true} />
               </div>
             ))}
           </div>

@@ -346,17 +346,6 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
             </div>
           </div>
         )}
-
-        {/* Notification Banner */}
-        <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Bell className="h-4 w-4 text-gray-600" />
-            <span>Get notified for your sessions</span>
-          </div>
-          <button className="text-sm font-semibold text-brand hover:text-brand/90">
-            Allow
-          </button>
-        </div>
       </CardContent>
     </Card>
   );

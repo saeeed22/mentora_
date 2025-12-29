@@ -26,11 +26,14 @@ const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   name: mentor.profile?.full_name || 'Unknown Mentor',
   countryCode: mentor.profile?.timezone?.includes('Asia/Karachi') ? 'PK' : 'US',
   jobTitle: mentor.mentor_profile?.headline || 'Mentor',
-  company: '', // Not available from backend currently
+  company: '', // Deprecated - kept for backwards compatibility
+  current_role: mentor.mentor_profile?.current_role,
+  current_company: mentor.mentor_profile?.current_company,
   sessions: mentor.stats?.total_sessions ?? 0,
   reviews: mentor.mentor_profile?.rating_count ?? 0,
   attendance: mentor.stats?.total_sessions ? 95 : 0,
   experience: mentor.mentor_profile?.experience_years ?? 0,
+  price_per_session_solo: mentor.mentor_profile?.price_per_session_solo,
   isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
   groupEnabled: !!mentor.mentor_profile?.group_enabled,
@@ -239,7 +242,7 @@ export default function BrowseMentorsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {mentors.map((mentor) => (
                 <div key={mentor.id}>
-                  <MentorCard mentor={mentor} />
+                  <MentorCard mentor={mentor} showBookButton={true} />
                 </div>
               ))}
             </div>

@@ -385,7 +385,7 @@ const LandingPage = () => {
               <div className="flex space-x-8 pb-4 items-stretch">
                 {mentors.map((mentor, index) => (
                   <div key={mentor.id || index} className="flex-shrink-0">
-                    <MentorCard mentor={mentor} />
+                    <MentorCard mentor={mentor} showBookButton={true} />
                   </div>
                 ))}
               </div>

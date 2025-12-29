@@ -549,7 +549,7 @@ export default function DashboardHomePage() {
           <div className="flex gap-6 overflow-x-auto pb-4 items-stretch">
             {suggestedMentors.map((mentor) => (
               <div key={mentor.id} className="flex-shrink-0">
-                <MentorCard mentor={mentor} />
+                <MentorCard mentor={mentor} showBookButton={true} />
               </div>
             ))}
           </div>

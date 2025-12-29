@@ -1,7 +1,10 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Briefcase, MessageSquare, Building2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Briefcase, MessageSquare, Building2, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/api/auth';
 
 interface MentorCardProps {
   mentor: {
@@ -23,9 +26,30 @@ interface MentorCardProps {
     isAvailableASAP?: boolean;
     groupEnabled?: boolean;
   };
+  showBookButton?: boolean; // Show book button instead of link
 }
 
-const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
+const MentorCard: React.FC<MentorCardProps> = ({ mentor, showBookButton = false }) => {
+  const router = useRouter();
+
+  const handleBookNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if user is logged in
+    const currentUser = auth.getCurrentUser();
+    if (!currentUser) {
+      // Redirect to login
+      router.push('/login');
+      return;
+    }
+    
+    // Go to mentor detail page
+    if (mentor.id) {
+      router.push(`/mentor/${mentor.id}`);
+    }
+  };
+
   const cardContent = (
     <div
       className="rounded-xl border border-gray-200 bg-white shadow-sm w-[280px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer"
@@ -135,8 +159,27 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor }) => {
           </div>
         )}
       </div>
+
+      {/* Book Now Button - Only shown when showBookButton is true */}
+      {showBookButton && (
+        <div className="p-3 m-2 mt-0">
+          <Button 
+            onClick={handleBookNow}
+            className="w-full bg-brand hover:bg-brand/90"
+            size="sm"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Book Now
+          </Button>
+        </div>
+      )}
     </div>
   );
+
+  // If showBookButton is true, don't wrap in Link (button handles navigation)
+  if (showBookButton) {
+    return cardContent;
+  }
 
   // If mentor has an ID, wrap in Link, otherwise return card as-is
   if (mentor.id) {

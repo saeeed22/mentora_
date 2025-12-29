@@ -7,16 +7,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-
-
 import { messagingApi, ConversationResponse, MessageResponse } from '@/lib/api/messaging-api';
+import { mentorsApi } from '@/lib/api/mentors-api';
+import { MentorDetailResponse } from '@/lib/types';
 import { auth } from '@/lib/api/auth';
+
+// Extended conversation type to include suggested mentors
+interface ConversationOrMentor extends ConversationResponse {
+  isSuggestedMentor?: boolean;
+  mentorData?: MentorDetailResponse;
+  isMessageable?: boolean; // whether mentor has a valid UUID for messaging
+}
+
+const isUuid = (value: string | undefined | null) => {
+  if (!value) return false;
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
+};
 
 export default function MessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [conversations, setConversations] = useState<ConversationResponse[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<ConversationResponse | null>(null);
+  const [conversations, setConversations] = useState<ConversationOrMentor[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationOrMentor | null>(null);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +42,7 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load conversations
+  // Load conversations and suggested mentors for mentees
   useEffect(() => {
     const loadConversations = async () => {
       const currentUser = auth.getCurrentUser();
@@ -44,23 +56,94 @@ export default function MessagesPage() {
       const result = await messagingApi.getConversations();
       console.log('[Messages] Conversations result:', result);
 
+      let conversationList: ConversationOrMentor[] = [];
+
       if (result.success && result.data) {
         console.log('[Messages] Loaded conversations:', result.data.data.length);
-        setConversations(result.data.data);
+        conversationList = result.data.data;
+      }
+
+      // For mentees: Load top 10 mentors as suggested contacts
+      if (currentUser.role === 'mentee') {
+        console.log('[Messages] Loading suggested mentors for mentee...');
+        const mentorsResult = await mentorsApi.searchMentors({ limit: 10, sort: 'experience' });
+        
+        if (mentorsResult.success && mentorsResult.data) {
+          const mentorsData = mentorsResult.data.data || [];
+
+          // Prefer mentors with decent profiles; if none qualify, fall back to all returned mentors
+          const filteredMentors = mentorsData.filter(mentor => {
+            const mentorUserId = mentor.user?.id || mentor.profile?.user_id;
+            const experience = mentor.mentor_profile?.experience_years ?? 0;
+            const hasHeadline = Boolean(mentor.mentor_profile?.headline?.length);
+            const hasSkills = Boolean(mentor.mentor_profile?.skills?.length);
+            return Boolean(mentorUserId) && experience > 0 && hasHeadline && hasSkills;
+          });
+
+          const usableMentors = filteredMentors.length > 0 ? filteredMentors : mentorsData;
+
+          // Convert mentors to conversation format (exclude ones we already have conversations with)
+          const existingParticipantIds = conversationList.flatMap(c => 
+            c.participants?.map(p => p.id) || []
+          );
+
+          const suggestedMentors: ConversationOrMentor[] = usableMentors
+            .map((mentor, idx) => {
+              const mentorUserId = mentor.user?.id || mentor.profile?.user_id;
+              const fallbackId = mentor.profile?.id || mentor.user?.email || `mentor-fallback-${idx}`;
+              const participantId = mentorUserId || fallbackId;
+              if (!participantId || existingParticipantIds.includes(participantId)) return null;
+
+              const isMessageable = isUuid(mentorUserId);
+
+              return {
+                id: `mentor-${participantId}`,
+                isSuggestedMentor: true,
+                isMessageable,
+                mentorData: mentor,
+                created_at: new Date().toISOString(),
+                unread_count: 0,
+                participants: [{
+                  id: participantId,
+                  email: mentor.user?.email || '',
+                  full_name: mentor.profile?.full_name || 'Mentor',
+                  avatar_url: mentor.profile?.avatar_url,
+                }],
+              } as ConversationOrMentor;
+            })
+            .filter((m): m is ConversationOrMentor => m !== null)
+            .slice(0, 10);
+
+          conversationList = [...conversationList, ...suggestedMentors];
+        }
+      }
+
+      setConversations(conversationList);
 
         // Check if a conversation ID is specified in the URL
         const c = searchParams.get('c');
         if (c) {
-          const found = result.data.data.find(conv => conv.id === c);
+          const found = conversationList.find(conv => conv.id === c);
           if (found) {
             setSelectedConversation(found);
-            loadMessages(found.id);
+            if (!found.isSuggestedMentor) {
+              loadMessages(found.id);
+            }
           }
-        } else if (result.data.data.length > 0) {
-          setSelectedConversation(result.data.data[0]);
-          loadMessages(result.data.data[0].id);
+        } else if (conversationList.length > 0) {
+          // For mentors, auto-select first actual conversation. For mentees, don't auto-select.
+          const currentUser = auth.getCurrentUser();
+          if (currentUser?.role === 'mentor') {
+            const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
+            setSelectedConversation(firstConv);
+            if (!firstConv.isSuggestedMentor) {
+              loadMessages(firstConv.id);
+            }
+          } else {
+            // Mentees: show placeholder until a conversation is chosen
+            setSelectedConversation(null);
+          }
         }
-      }
       
       if (!result.success) {
         console.error('[Messages] Failed to load conversations:', result.error);
@@ -107,10 +190,39 @@ export default function MessagesPage() {
     const messageText = newMessage.trim();
     const currentUser = auth.getCurrentUser();
 
+    // If messaging a suggested mentor, create conversation first
+    let conversationId = selectedConversation.id;
+    if (selectedConversation.isSuggestedMentor && currentUser) {
+      const mentorId = selectedConversation.participants[0].id;
+      if (!isUuid(mentorId)) {
+        console.error('[Messages] Cannot message mentor: invalid ID (not UUID).');
+        setIsSending(false);
+        return;
+      }
+
+      console.log('[Messages] Creating new conversation with mentor...');
+      const createResult = await messagingApi.createConversation([currentUser.id, mentorId] as [string, string]);
+      
+      if (createResult.success && createResult.data) {
+        conversationId = createResult.data.id;
+        // Update the conversation in the list
+        setConversations(prev => prev.map(c => 
+          c.id === selectedConversation.id
+            ? { ...createResult.data!, isSuggestedMentor: false, isMessageable: true }
+            : c
+        ));
+        setSelectedConversation({ ...createResult.data!, isSuggestedMentor: false, isMessageable: true });
+      } else {
+        console.error('[Messages] Failed to create conversation:', createResult.error);
+        setIsSending(false);
+        return;
+      }
+    }
+
     // Optimistic update - show message immediately
     const optimisticMessage: MessageResponse = {
       id: 'temp-' + Date.now(),
-      conversation_id: selectedConversation.id,
+      conversation_id: conversationId,
       sender_id: currentUser?.id || '',
       content: messageText,
       attachments: [],
@@ -124,7 +236,7 @@ export default function MessagesPage() {
     setIsSending(true);
 
     console.log('[Messages] Calling API...');
-    const result = await messagingApi.sendMessage(selectedConversation.id, messageText);
+    const result = await messagingApi.sendMessage(conversationId, messageText);
     console.log('[Messages] API result:', result);
 
     if (result.success && result.data) {
@@ -148,9 +260,11 @@ export default function MessagesPage() {
     setIsSending(false);
   };
 
-  const handleSelectConversation = (conversation: ConversationResponse) => {
+  const handleSelectConversation = (conversation: ConversationOrMentor) => {
     setSelectedConversation(conversation);
-    loadMessages(conversation.id);
+    if (!conversation.isSuggestedMentor) {
+      loadMessages(conversation.id);
+    }
   };
 
   const getParticipantName = (conversation: ConversationResponse) => {
@@ -221,13 +335,18 @@ export default function MessagesPage() {
               const displayName = getParticipantName(conversation);
               const avatar = getParticipantAvatar(conversation);
               const lastTimestamp = conversation.updated_at || conversation.created_at;
-              const lastMessagePreview = conversation.last_message?.content || 'No messages yet';
+              const lastMessagePreview = conversation.isSuggestedMentor 
+                ? (conversation.mentorData?.mentor_profile?.headline || 'Mentor')
+                : (conversation.last_message?.content || 'No messages yet');
+
+              const canMessage = conversation.isSuggestedMentor ? conversation.isMessageable !== false : true;
 
               return (
                 <div
                   key={conversation.id}
-                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
-                    }`}
+                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
+                  } ${conversation.isSuggestedMentor ? 'opacity-75' : ''} ${!canMessage ? 'opacity-60 cursor-not-allowed' : ''}`}
                   onClick={() => handleSelectConversation(conversation)}
                 >
                   <div className="flex items-start space-x-3">
@@ -238,19 +357,29 @@ export default function MessagesPage() {
                           {getInitials(displayName)}
                         </AvatarFallback>
                       </Avatar>
-                      {/* Unread badge hidden - user is on messages page, reading messages */}
+                      {conversation.isSuggestedMentor && (
+                        <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                          <span className="text-white text-xs font-bold">+</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="text-sm font-medium text-gray-900 truncate">
                           {displayName}
+                                                  {conversation.isSuggestedMentor && (
+                                                    <span className="ml-2 text-xs text-gray-500 font-normal">• Suggested</span>
+                                                  )}
                         </h3>
-                        <span className="text-xs text-gray-500">
-                          {new Date(lastTimestamp).toLocaleDateString()}
-                        </span>
+                        {!conversation.isSuggestedMentor && (
+                          <span className="text-xs text-gray-500">
+                            {new Date(lastTimestamp).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm truncate text-gray-600">
                         {lastMessagePreview}
+                        {!canMessage && ' · Cannot message (invalid ID)'}
                       </p>
                     </div>
                   </div>
@@ -292,6 +421,27 @@ export default function MessagesPage() {
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                </div>
+              ) : selectedConversation.isSuggestedMentor ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                  <div className="mb-4">
+                    <Avatar className="h-20 w-20 mx-auto mb-4">
+                      <AvatarImage src={getParticipantAvatar(selectedConversation)} alt={getParticipantName(selectedConversation)} />
+                      <AvatarFallback className="bg-brand-light/20 text-brand text-2xl">
+                        {getInitials(getParticipantName(selectedConversation))}
+                      </AvatarFallback>
+                    </Avatar>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {getParticipantName(selectedConversation)}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-1">
+                      {selectedConversation.mentorData?.mentor_profile?.headline}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {selectedConversation.mentorData?.mentor_profile?.experience_years} years of experience
+                    </p>
+                  </div>
+                  <p className="text-gray-500 mb-4">Start a conversation with this mentor</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-gray-500">
