@@ -223,7 +223,7 @@ export default function MentorProfilePage() {
             period: '2024-Present'
           }],
           reviews: [],
-          isOnline: true,
+          isOnline: false,
           responseTime: 'Usually responds within 24 hours',
           availability: 'Flexible schedule',
         };

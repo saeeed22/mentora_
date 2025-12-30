@@ -263,7 +263,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
                 <div className="flex-1">
                   <h4 className="text-sm font-semibold text-green-900 mb-1">Availability Active</h4>
                   <p className="text-xs text-green-700">
-                    {availabilityTemplates.length} days with available time slots
+                    {availabilityTemplates.length} time {availabilityTemplates.length === 1 ? 'slot' : 'slots'} available
                   </p>
                   <Link
                     href="/availability"

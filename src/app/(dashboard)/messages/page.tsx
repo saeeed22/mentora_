@@ -80,9 +80,14 @@ const getDisplayUnread = (conversation: ConversationOrMentor, currentUser: Retur
 };
 
 const isConversationOnline = (conversation: ConversationOrMentor) => {
+  // Only show online if they have recent activity AND it's not just the initial conversation creation
+  // (initial creation doesn't indicate they're logged in)
   if (conversation.isSuggestedMentor) return false;
-  const lastActivity = conversation.updated_at || conversation.last_message?.created_at || conversation.created_at;
-  if (!lastActivity) return false;
+  
+  // Check if there's actual message activity (not just conversation creation)
+  if (!conversation.last_message || !conversation.last_message.created_at) return false;
+  
+  const lastActivity = conversation.last_message.created_at;
   return Date.now() - new Date(lastActivity).getTime() <= ONLINE_WINDOW_MS;
 };
 
