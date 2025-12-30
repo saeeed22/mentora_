@@ -154,6 +154,9 @@ export default function MentorProfilePage() {
   const [mentor, setMentor] = useState<MentorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [similarMentors, setSimilarMentors] = useState<MentorProfile[]>([]);
+  const [isViewerMentor, setIsViewerMentor] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
@@ -176,6 +179,14 @@ export default function MentorProfilePage() {
 
   // Load mentor from API
   useEffect(() => {
+    // Check if viewer is a mentor
+    const currentUser = auth.getCurrentUser();
+    if (currentUser) {
+      setIsViewerMentor(currentUser.role === 'mentor');
+      setViewerId(currentUser.id);
+      setIsOwnProfile(currentUser.id === mentorId);
+    }
+
     let mounted = true;
     (async () => {
       setIsLoading(true);
@@ -874,7 +885,7 @@ export default function MentorProfilePage() {
             </Card>
 
             {/* Booking Widget */}
-            {availableSlots && availableSlots.length > 0 && (
+            {availableSlots && availableSlots.length > 0 && !isViewerMentor && (
               <Card className="rounded-2xl shadow-sm bg-white">
                 <CardContent className="p-6">
                   <h3 className="text-lg font-bold text-brand-dark mb-4">
@@ -979,7 +990,7 @@ export default function MentorProfilePage() {
             )}
 
             {/* No Availability Message */}
-            {!availabilityLoading && availableSlots.length === 0 && (
+            {!availabilityLoading && availableSlots.length === 0 && !isViewerMentor && (
               <Card className="rounded-2xl shadow-sm bg-white border-dashed border-2 border-gray-200">
                 <CardContent className="p-6 text-center">
                   <div className="mb-3">
@@ -998,6 +1009,55 @@ export default function MentorProfilePage() {
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Send Message
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mentor viewing another mentor */}
+            {isViewerMentor && !isOwnProfile && (
+              <Card className="rounded-2xl shadow-sm bg-white border-2 border-blue-200">
+                <CardContent className="p-6 text-center">
+                  <div className="mb-3">
+                    <Briefcase className="h-10 w-10 text-blue-600 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Mentor Profile View
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    You&apos;re viewing this profile as a mentor. Booking is only available for mentees.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleMessage}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Send Message
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Own profile view */}
+            {isOwnProfile && (
+              <Card className="rounded-2xl shadow-sm bg-white border-2 border-brand">
+                <CardContent className="p-6 text-center">
+                  <div className="mb-3">
+                    <Star className="h-10 w-10 text-brand mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-brand-dark mb-2">
+                    This is Your Profile
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    This is how mentees see your profile. Manage your availability and profile settings.
+                  </p>
+                  <Button
+                    variant="default"
+                    className="w-full bg-brand hover:bg-brand/90"
+                    onClick={() => router.push('/profile')}
+                  >
+                    Edit Profile
                   </Button>
                 </CardContent>
               </Card>

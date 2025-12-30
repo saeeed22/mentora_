@@ -27,10 +27,30 @@ interface MentorCardProps {
     groupEnabled?: boolean;
   };
   showBookButton?: boolean; // Show book button instead of link
+  currentUserId?: string | null; // Current logged-in user's ID
+  isViewerMentor?: boolean; // Whether the viewer is a mentor
 }
 
-const MentorCard: React.FC<MentorCardProps> = ({ mentor, showBookButton = false }) => {
+const MentorCard: React.FC<MentorCardProps> = ({ 
+  mentor, 
+  showBookButton = false, 
+  currentUserId = null,
+  isViewerMentor = false 
+}) => {
   const router = useRouter();
+  
+  // Determine if this is the viewer's own card
+  const isOwnCard = currentUserId && mentor.id === currentUserId;
+  
+  // Determine button text and behavior
+  // Case 1: Viewing own card -> "View My Profile"
+  // Case 2: Mentor viewing another mentor -> "View Profile" (no booking)
+  // Case 3: Mentee or logged out -> "Book Now" (normal flow)
+  const buttonText = isOwnCard 
+    ? 'View My Profile' 
+    : (isViewerMentor ? 'View Profile' : 'Book Now');
+  
+  const buttonIcon = isOwnCard || isViewerMentor ? null : <Calendar className="w-4 h-4 mr-2" />;
 
   const handleBookNow = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,6 +61,12 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor, showBookButton = false 
     if (!currentUser) {
       // Redirect to login
       router.push('/login');
+      return;
+    }
+    
+    // If viewing own card, go to profile page
+    if (isOwnCard) {
+      router.push('/profile');
       return;
     }
     
@@ -167,9 +193,10 @@ const MentorCard: React.FC<MentorCardProps> = ({ mentor, showBookButton = false 
             onClick={handleBookNow}
             className="w-full bg-brand hover:bg-brand/90"
             size="sm"
+            variant={isOwnCard ? 'outline' : 'default'}
           >
-            <Calendar className="w-4 h-4 mr-2" />
-            Book Now
+            {buttonIcon}
+            {buttonText}
           </Button>
         </div>
       )}

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import MentorCard from '@/components/mentorcard';
 import { mentorsApi } from '@/lib/api/mentors-api';
 import type { MentorDetailResponse } from '@/lib/types';
+import { auth } from '@/lib/api/auth';
 import {
   Select,
   SelectContent,
@@ -70,6 +71,8 @@ export default function ExplorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isCurrentUserMentor, setIsCurrentUserMentor] = useState(false);
 
   // Load mentors from API
   const loadMentors = async (reset = false) => {
@@ -135,11 +138,21 @@ export default function ExplorePage() {
         )
         : cardData;
 
+      // Move logged-in mentor to the top if they exist in the list and user is a mentor
+      let finalList = filtered;
+      if (isCurrentUserMentor && currentUserId) {
+        const currentMentorIndex = filtered.findIndex(m => m.id === currentUserId);
+        if (currentMentorIndex > 0) { // Only move if not already at top
+          const currentMentor = filtered[currentMentorIndex];
+          finalList = [currentMentor, ...filtered.slice(0, currentMentorIndex), ...filtered.slice(currentMentorIndex + 1)];
+        }
+      }
+
       // If API returns empty data, show empty state
-      if (filtered.length === 0 && !searchQuery) {
+      if (finalList.length === 0 && !searchQuery) {
         setMentors([]);
       } else {
-        setMentors(prev => reset ? filtered : [...prev, ...filtered]);
+        setMentors(prev => reset ? finalList : [...prev, ...finalList]);
       }
       setHasMore(result.data.hasNext);
     } else {
@@ -153,6 +166,12 @@ export default function ExplorePage() {
 
   // Initial load
   useEffect(() => {
+    // Get current user info
+    const user = auth.getCurrentUser();
+    if (user) {
+      setCurrentUserId(user.id);
+      setIsCurrentUserMentor(user.role === 'mentor');
+    }
     loadMentors(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -243,7 +262,12 @@ export default function ExplorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
             {mentors.map((mentor) => (
               <div key={mentor.id} className="flex justify-center items-stretch">
-                <MentorCard mentor={mentor} showBookButton={true} />
+                <MentorCard 
+                  mentor={mentor} 
+                  showBookButton={true} 
+                  currentUserId={currentUserId}
+                  isViewerMentor={isCurrentUserMentor}
+                />
               </div>
             ))}
           </div>
