@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, Settings, Save, Loader2 } from 'lucide-react';
+import { Plus, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,35 +11,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
 import { mentorManagementApi, AvailabilityTemplate } from '@/lib/api/mentor-management-api';
+import { mentorsApi } from '@/lib/api/mentors-api';
 import { toast } from 'sonner';
+
+// Slot with group tier info (group tier = number of participants for pricing)
+type SlotData = {
+  start: string;
+  end: string;
+  templateId?: string;
+  groupTier?: number | null; // null for solo, number for group (e.g., 2, 4, 10)
+};
 
 // Default availability data structure
 const defaultAvailability = {
-  timezone: 'Asia/Karachi',
   weeklySchedule: {
-    monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-    sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+    monday: { enabled: false, slots: [] as SlotData[] },
+    tuesday: { enabled: false, slots: [] as SlotData[] },
+    wednesday: { enabled: false, slots: [] as SlotData[] },
+    thursday: { enabled: false, slots: [] as SlotData[] },
+    friday: { enabled: false, slots: [] as SlotData[] },
+    saturday: { enabled: false, slots: [] as SlotData[] },
+    sunday: { enabled: false, slots: [] as SlotData[] },
   },
-  sessionDuration: 60,
-  bufferTime: 15,
-  maxSessionsPerDay: 4,
-  autoAcceptBookings: true,
 };
 
 // Helper to create fresh schedule (avoids array reference mutation bugs)
 const createFreshSchedule = () => ({
-  monday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  tuesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  wednesday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  thursday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  friday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  saturday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
-  sunday: { enabled: false, slots: [] as { start: string; end: string; templateId?: string; isGroup?: boolean }[] },
+  monday: { enabled: false, slots: [] as SlotData[] },
+  tuesday: { enabled: false, slots: [] as SlotData[] },
+  wednesday: { enabled: false, slots: [] as SlotData[] },
+  thursday: { enabled: false, slots: [] as SlotData[] },
+  friday: { enabled: false, slots: [] as SlotData[] },
+  saturday: { enabled: false, slots: [] as SlotData[] },
+  sunday: { enabled: false, slots: [] as SlotData[] },
 });
 
 // Helper to map weekday number to day key
@@ -67,6 +71,21 @@ const daysOfWeek = [
   { key: 'sunday', label: 'Sunday' },
 ];
 
+// Helper to get next occurrence of weekday
+const getNextWeekdayDate = (dayKey: string): string => {
+  const today = new Date();
+  const targetDay = keyToWeekday[dayKey];
+  const currentDay = (today.getDay() + 6) % 7; // Convert to Monday=0 format
+  
+  let daysUntil = (targetDay - currentDay + 7) % 7;
+  if (daysUntil === 0) daysUntil = 0; // If today, show today's date
+  
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + daysUntil);
+  
+  return targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 export default function AvailabilityPage() {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -74,10 +93,10 @@ export default function AvailabilityPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  // Group session settings (frontend-managed; saved via mentor profile)
-  const [groupEnabled, setGroupEnabled] = useState(false);
-  const [groupMaxParticipants, setGroupMaxParticipants] = useState(5);
-  const [groupPricePKR, setGroupPricePKR] = useState(500);
+  // Available group pricing tiers from mentor profile (e.g., { 2: 500, 4: 800, 10: 1500 })
+  const [groupPricingTiers, setGroupPricingTiers] = useState<Record<number, number>>({});
+  // Solo session price from mentor profile
+  const [soloPrice, setSoloPrice] = useState<number | null>(null);
 
   useEffect(() => {
     const currentUser = auth.getCurrentUser();
@@ -91,9 +110,35 @@ export default function AvailabilityPage() {
     }
     setUser(currentUser);
 
-    // Load templates from backend
+    // Load templates and mentor profile from backend
     const loadTemplates = async () => {
       setIsLoading(true);
+      
+      // Fetch mentor profile to get group pricing tiers and solo price
+      if (currentUser?.id) {
+        const profileResult = await mentorsApi.getMentorById(currentUser.id);
+        if (profileResult.success && profileResult.data) {
+          const pricing = profileResult.data.mentor_profile?.group_pricing || {};
+          const solo = profileResult.data.mentor_profile?.price_per_session_solo || null;
+          setGroupPricingTiers(pricing);
+          setSoloPrice(solo);
+          console.log('[Availability] Loaded solo price:', solo);
+          console.log('[Availability] Loaded group pricing tiers:', pricing);
+          console.log('[Availability] Group pricing type:', typeof pricing);
+          console.log('[Availability] Group pricing entries:', Object.entries(pricing));
+          
+          // Log valid tiers
+          const validTiers = Object.entries(pricing)
+            .filter(([_, price]) => {
+              const numPrice = Number(price);
+              console.log(`[Availability] Tier price check: ${price} (${typeof price}) -> ${numPrice} -> valid: ${numPrice > 0}`);
+              return numPrice > 0;
+            });
+          console.log('[Availability] Valid group tiers (price > 0):', validTiers);
+        }
+      }
+
+      // Fetch availability templates
       const result = await mentorManagementApi.getAvailabilityTemplates();
 
       if (result.success && result.data) {
@@ -111,7 +156,7 @@ export default function AvailabilityPage() {
               start: normalizeTime(template.start_time),
               end: normalizeTime(template.end_time),
               templateId: template.id,
-              isGroup: template.is_group ?? false,
+              groupTier: template.group_tier ?? null,
             });
           }
         });
@@ -147,7 +192,7 @@ export default function AvailabilityPage() {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: [
             ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots,
-            { start: '09:00', end: '10:00', isGroup: false },
+            { start: '09:00', end: '10:00', groupTier: null },
           ],
         },
       },
@@ -171,7 +216,7 @@ export default function AvailabilityPage() {
     setHasChanges(true);
   };
 
-  const updateSlotMode = (day: string, index: number, isGroup: boolean) => {
+  const updateSlotGroupTier = (day: string, index: number, groupTier: number | null) => {
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -179,7 +224,7 @@ export default function AvailabilityPage() {
         [day]: {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) =>
-            i === index ? { ...slot, isGroup } : slot
+            i === index ? { ...slot, groupTier } : slot
           ),
         },
       },
@@ -214,30 +259,107 @@ export default function AvailabilityPage() {
 
   const handleSave = async () => {
     if (!user) return;
+
+    // Get current day and time in Pakistan timezone (Asia/Karachi)
+    const nowPKT = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+    const currentDayOfWeek = (nowPKT.getDay() + 6) % 7; // Convert to Monday=0 format
+    const currentTimeMinutes = nowPKT.getHours() * 60 + nowPKT.getMinutes();
+
+    // Validate all slots before saving
+    let hasValidationErrors = false;
+    for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
+      if (dayData.enabled) {
+        const dayNumber = keyToWeekday[dayKey];
+        
+        for (let i = 0; i < dayData.slots.length; i++) {
+          const slot = dayData.slots[i];
+          const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
+          const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
+          
+          // Check if start time < end time
+          if (startMinutes >= endMinutes) {
+            toast.error(`Invalid time slot on ${dayKey}`, {
+              description: `Start time (${slot.start}) must be before end time (${slot.end})`,
+            });
+            hasValidationErrors = true;
+          }
+
+          // Check slot duration (max 1 hour = 60 minutes)
+          const durationMinutes = endMinutes - startMinutes;
+          if (durationMinutes > 60) {
+            toast.error(`Time slot too long on ${dayKey}`, {
+              description: `Slot ${slot.start} - ${slot.end} is ${durationMinutes} minutes. Maximum allowed is 60 minutes (1 hour)`,
+            });
+            hasValidationErrors = true;
+          }
+
+          // Check if slot is in the past or overlaps with current time (only for today)
+          if (dayNumber === currentDayOfWeek && startMinutes < currentTimeMinutes) {
+            toast.error(`Cannot set past time slot on ${dayKey}`, {
+              description: `Time slot ${slot.start} - ${slot.end} has already started or passed. Current time (PKT) is ${nowPKT.getHours().toString().padStart(2, '0')}:${nowPKT.getMinutes().toString().padStart(2, '0')}`,
+            });
+            hasValidationErrors = true;
+          }
+
+          // Check for duplicate slots of the same type (solo or group)
+          for (let j = i + 1; j < dayData.slots.length; j++) {
+            const otherSlot = dayData.slots[j];
+            const otherStartMinutes = parseInt(otherSlot.start.split(':')[0]) * 60 + parseInt(otherSlot.start.split(':')[1]);
+            const otherEndMinutes = parseInt(otherSlot.end.split(':')[0]) * 60 + parseInt(otherSlot.end.split(':')[1]);
+            
+            // Check if slots overlap
+            const slotsOverlap = (
+              (startMinutes >= otherStartMinutes && startMinutes < otherEndMinutes) ||
+              (endMinutes > otherStartMinutes && endMinutes <= otherEndMinutes) ||
+              (startMinutes <= otherStartMinutes && endMinutes >= otherEndMinutes)
+            );
+
+            if (slotsOverlap) {
+              // Check if both are same type (both solo or both group with same tier)
+              const bothSolo = slot.groupTier === null && otherSlot.groupTier === null;
+              const bothSameTierGroup = slot.groupTier !== null && otherSlot.groupTier !== null && slot.groupTier === otherSlot.groupTier;
+
+              if (bothSolo) {
+                toast.error(`Duplicate solo slot on ${dayKey}`, {
+                  description: `Cannot have multiple solo slots at ${slot.start} - ${slot.end}. Remove one or change to group.`,
+                });
+                hasValidationErrors = true;
+              } else if (bothSameTierGroup) {
+                toast.error(`Duplicate group slot on ${dayKey}`, {
+                  description: `Cannot have multiple group (${slot.groupTier} people) slots at ${slot.start} - ${slot.end}. Remove one or change tier.`,
+                });
+                hasValidationErrors = true;
+              }
+              // If one is solo and one is group, that's allowed (they'll compete for booking)
+              // If both are group but different tiers, that's also allowed
+            }
+          }
+        }
+      }
+    }
+
+    if (hasValidationErrors) return;
+
     setIsSaving(true);
 
     try {
-      // Save group session settings first
-      const groupSave = await mentorManagementApi.updateMentorProfile({
-        group_enabled: groupEnabled,
-        group_max_participants: groupMaxParticipants,
-        group_price_per_session: groupPricePKR,
-      });
-      if (!groupSave.success) {
-        toast.error('Failed to save group session settings');
-      }
-
-      // Save or create all slots with current start/end and group flag
-      const newSlots: { day: string; start: string; end: string }[] = [];
-      const existingSlots: { day: string; start: string; end: string; templateId: string; isGroup?: boolean }[] = [];
+      // Save or create all slots with current start/end and group tier
+      const newSlots: { day: string; start: string; end: string; groupTier: number | null }[] = [];
+      const existingSlots: { day: string; start: string; end: string; templateId: string; groupTier: number | null }[] = [];
 
       for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
         if (dayData.enabled) {
           for (const slot of dayData.slots) {
             if (!slot.templateId) {
-              newSlots.push({ day: dayKey, start: slot.start, end: slot.end });
+              newSlots.push({ day: dayKey, start: slot.start, end: slot.end, groupTier: slot.groupTier ?? null });
             } else {
-              existingSlots.push({ day: dayKey, start: slot.start, end: slot.end, templateId: slot.templateId, isGroup: slot.isGroup });
+              existingSlots.push({ 
+                day: dayKey, 
+                start: slot.start, 
+                end: slot.end, 
+                templateId: slot.templateId, 
+                groupTier: slot.groupTier ?? null 
+              });
             }
           }
         }
@@ -250,8 +372,7 @@ export default function AvailabilityPage() {
           weekday: keyToWeekday[slot.day],
           start_time: slot.start,
           end_time: slot.end,
-          slot_duration_minutes: availability.sessionDuration,
-          is_group: availability ? (availability.weeklySchedule as any)[slot.day].slots.find((s:any)=>s.start===slot.start && s.end===slot.end)?.isGroup ?? false : false,
+          group_tier: slot.groupTier,
         });
 
         if (result.success) {
@@ -261,15 +382,14 @@ export default function AvailabilityPage() {
         }
       }
 
-      // Update existing templates (also to persist is_group changes)
+      // Update existing templates
       let updatedCount = 0;
       for (const slot of existingSlots) {
         const result = await mentorManagementApi.updateAvailabilityTemplate(slot.templateId, {
           weekday: keyToWeekday[slot.day],
           start_time: slot.start,
           end_time: slot.end,
-          slot_duration_minutes: availability.sessionDuration,
-          is_group: slot.isGroup ?? false,
+          group_tier: slot.groupTier,
         });
         if (result.success) {
           updatedCount++;
@@ -279,7 +399,7 @@ export default function AvailabilityPage() {
       }
 
       setHasChanges(false);
-      toast.success(`Availability saved! Created ${createdCount} new slot(s).`);
+      toast.success(`Availability saved! Created ${createdCount}, updated ${updatedCount} slot(s).`);
 
       // Reload to get the new template IDs
       const reloadResult = await mentorManagementApi.getAvailabilityTemplates();
@@ -296,7 +416,7 @@ export default function AvailabilityPage() {
               start: normalizeTime(template.start_time),
               end: normalizeTime(template.end_time),
               templateId: template.id,
-              isGroup: template.is_group ?? false,
+              groupTier: template.group_tier ?? null,
             });
           }
         });
@@ -335,189 +455,19 @@ export default function AvailabilityPage() {
             Manage your mentoring schedule and availability
           </p>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            className="bg-brand hover:bg-brand/90"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || isSaving}
+          className="bg-brand hover:bg-brand/90"
+        >
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
-
-      {/* General Settings */}
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-          <CardDescription>
-            Configure your basic availability preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Timezone</Label>
-              <Select value={availability.timezone} onValueChange={(value) => {
-                setAvailability(prev => ({ ...prev, timezone: value }));
-                setHasChanges(true);
-              }}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                  <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                  <SelectItem value="Asia/Karachi">Pakistan Standard Time (PKT)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Session Duration</Label>
-              <Select value={availability.sessionDuration.toString()} onValueChange={(value) => {
-                setAvailability(prev => ({ ...prev, sessionDuration: parseInt(value) }));
-                setHasChanges(true);
-              }}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="45">45 minutes</SelectItem>
-                  <SelectItem value="60">60 minutes</SelectItem>
-                  <SelectItem value="90">90 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Buffer Time</Label>
-              <Select value={availability.bufferTime.toString()} onValueChange={(value) => {
-                setAvailability(prev => ({ ...prev, bufferTime: parseInt(value) }));
-                setHasChanges(true);
-              }}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">No buffer</SelectItem>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">60 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Max Sessions Per Day</Label>
-              <Select value={availability.maxSessionsPerDay.toString()} onValueChange={(value) => {
-                setAvailability(prev => ({ ...prev, maxSessionsPerDay: parseInt(value) }));
-                setHasChanges(true);
-              }}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 session</SelectItem>
-                  <SelectItem value="2">2 sessions</SelectItem>
-                  <SelectItem value="3">3 sessions</SelectItem>
-                  <SelectItem value="4">4 sessions</SelectItem>
-                  <SelectItem value="5">5 sessions</SelectItem>
-                  <SelectItem value="6">6 sessions</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Auto-accept bookings</Label>
-              <p className="text-xs text-gray-500 mt-1">
-                Automatically accept booking requests within your available hours
-              </p>
-            </div>
-            <Switch
-              checked={availability.autoAcceptBookings}
-              onCheckedChange={(checked) => {
-                setAvailability(prev => ({ ...prev, autoAcceptBookings: checked }));
-                setHasChanges(true);
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Group Sessions */}
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader>
-          <CardTitle>Group Sessions</CardTitle>
-          <CardDescription>
-            Offer combined sessions with multiple mentees for economical mentoring
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Allow group sessions</Label>
-              <p className="text-xs text-gray-500 mt-1">
-                Enable to allow multiple mentees to join a single scheduled session
-              </p>
-            </div>
-            <Switch
-              checked={groupEnabled}
-              onCheckedChange={(checked) => setGroupEnabled(checked)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Max participants</Label>
-              <Select value={groupMaxParticipants.toString()} onValueChange={(value) => setGroupMaxParticipants(parseInt(value))}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[2,3,4,5,6,8,10].map((n) => (
-                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Price per mentee (PKR)</Label>
-              <Select value={groupPricePKR.toString()} onValueChange={(value) => setGroupPricePKR(parseInt(value))}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[250,500,750,1000,1500,2000].map((p) => (
-                    <SelectItem key={p} value={p.toString()}>PKR {p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-2">Applied per mentee per session</p>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Payment gateways</Label>
-              <p className="text-xs text-gray-500 mt-2">JazzCash, Easypaisa, and PayFast PK supported</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Weekly Schedule */}
       <Card className="rounded-2xl shadow-sm">
@@ -539,9 +489,12 @@ export default function AvailabilityPage() {
                       checked={daySchedule.enabled}
                       onCheckedChange={(checked) => handleDayToggle(day.key, checked)}
                     />
-                    <Label className="text-sm font-medium text-gray-700">
-                      {day.label}
-                    </Label>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        {day.label}
+                      </Label>
+                      <p className="text-xs text-gray-500">{getNextWeekdayDate(day.key)}</p>
+                    </div>
                     {daySchedule.enabled && daySchedule.slots.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
                         {daySchedule.slots.length} slot{daySchedule.slots.length > 1 ? 's' : ''}
@@ -600,18 +553,76 @@ export default function AvailabilityPage() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {/* Session Type: Solo or Group */}
                           <Select
-                            value={(slot.isGroup ? 'group' : 'solo') as 'solo'|'group'}
-                            onValueChange={(value) => updateSlotMode(day.key, index, value === 'group')}
+                            value={slot.groupTier === null ? 'solo' : 'group'}
+                            onValueChange={(value) => {
+                              if (value === 'solo') {
+                                updateSlotGroupTier(day.key, index, null);
+                              } else {
+                                // When switching to group, set to first available tier
+                                const validTiers = Object.entries(groupPricingTiers)
+                                  .filter(([_, price]) => Number(price) > 0)
+                                  .map(([tier, _]) => Number(tier))
+                                  .sort((a, b) => a - b);
+                                if (validTiers.length > 0) {
+                                  updateSlotGroupTier(day.key, index, validTiers[0]);
+                                }
+                              }
+                            }}
                           >
-                            <SelectTrigger className="w-28">
+                            <SelectTrigger className="w-24">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="solo">Solo</SelectItem>
-                              <SelectItem value="group">Group</SelectItem>
+                              <SelectItem 
+                                value="group"
+                                disabled={(() => {
+                                  const validTiers = Object.entries(groupPricingTiers)
+                                    .filter(([_, price]) => Number(price) > 0);
+                                  return validTiers.length === 0;
+                                })()}
+                              >
+                                Group
+                              </SelectItem>
                             </SelectContent>
                           </Select>
+                          {/* Solo Price Display - Only show if Solo is selected */}
+                          {slot.groupTier === null && soloPrice !== null && (
+                            <div className="flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-md w-44">
+                              <span className="text-sm font-medium text-blue-900">
+                                PKR {soloPrice}/session
+                              </span>
+                            </div>
+                          )}
+                          {/* Group Tier Selection - Only show if Group is selected */}
+                          {slot.groupTier !== null && (
+                            <Select
+                              value={slot.groupTier?.toString() ?? ''}
+                              onValueChange={(value) => {
+                                updateSlotGroupTier(day.key, index, Number(value));
+                              }}
+                            >
+                              <SelectTrigger className="w-44">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(groupPricingTiers)
+                                  .filter(([_, price]) => Number(price) > 0)
+                                  .map(([tier, price]) => Number(tier))
+                                  .sort((a, b) => a - b)
+                                  .map((tier) => {
+                                    const price = groupPricingTiers[tier];
+                                    return (
+                                      <SelectItem key={tier} value={tier.toString()}>
+                                        {tier} people - PKR {price}
+                                      </SelectItem>
+                                    );
+                                  })}
+                              </SelectContent>
+                            </Select>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -631,52 +642,13 @@ export default function AvailabilityPage() {
         </CardContent>
       </Card>
 
-      {/* Calendar Integration */}
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader>
-          <CardTitle>Calendar Integration</CardTitle>
-          <CardDescription>
-            Connect your external calendars to sync availability
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-2 border-dashed border-gray-200 hover:border-gray-300 transition-colors">
-              <CardContent className="p-6 text-center">
-                <Calendar className="mx-auto h-8 w-8 text-gray-400 mb-3" />
-                <h3 className="font-medium text-gray-900 mb-1">Google Calendar</h3>
-                <p className="text-sm text-gray-500 mb-3">
-                  Sync with your Google Calendar
-                </p>
-                <Button variant="outline" size="sm">
-                  Connect
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-dashed border-gray-200 hover:border-gray-300 transition-colors">
-              <CardContent className="p-6 text-center">
-                <Calendar className="mx-auto h-8 w-8 text-gray-400 mb-3" />
-                <h3 className="font-medium text-gray-900 mb-1">Outlook Calendar</h3>
-                <p className="text-sm text-gray-500 mb-3">
-                  Sync with your Outlook Calendar
-                </p>
-                <Button variant="outline" size="sm">
-                  Connect
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Quick Stats */}
       <Card className="rounded-2xl shadow-sm bg-blue-50 border-blue-200">
         <CardHeader>
           <CardTitle className="text-blue-800">Availability Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-900">
                 {Object.values(availability.weeklySchedule).filter(day => day.enabled).length}
@@ -689,12 +661,6 @@ export default function AvailabilityPage() {
                   .reduce((total, day) => total + day.slots.length, 0)}
               </p>
               <p className="text-blue-700">Total time slots</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-900">
-                {availability.sessionDuration}m
-              </p>
-              <p className="text-blue-700">Session duration</p>
             </div>
           </div>
         </CardContent>

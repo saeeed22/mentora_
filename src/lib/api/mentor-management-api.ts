@@ -12,8 +12,10 @@ export interface AvailabilityTemplate {
     weekday: number; // 0 = Monday, 6 = Sunday
     start_time: string; // "09:00"
     end_time: string; // "17:00"
-    slot_duration_minutes: number;
-    // Optional: this slot allows group sessions
+    slot_duration_minutes?: number;
+    // Group tier: null for solo, number for group (e.g., 2, 4, 10 participants)
+    group_tier?: number | null;
+    // Deprecated: use group_tier instead
     is_group?: boolean;
 }
 
@@ -22,6 +24,8 @@ export interface AvailabilityTemplateCreate {
     start_time: string;
     end_time: string;
     slot_duration_minutes?: number;
+    group_tier?: number | null;
+    // Deprecated: use group_tier instead
     is_group?: boolean;
 }
 
@@ -101,6 +105,21 @@ export const mentorManagementApi = {
             const response = await apiClient.patch<MentorProfileResponse>(
                 '/v1/mentors/me',
                 data
+            );
+            return { success: true, data: response.data };
+        } catch (error) {
+            const apiError = parseApiError(error);
+            return { success: false, error: apiError.message };
+        }
+    },
+
+    /**
+     * Get current mentor's profile
+     */
+    async getMentorProfile(): Promise<ApiResult<MentorProfileResponse>> {
+        try {
+            const response = await apiClient.get<MentorProfileResponse>(
+                '/v1/mentors/me'
             );
             return { success: true, data: response.data };
         } catch (error) {
