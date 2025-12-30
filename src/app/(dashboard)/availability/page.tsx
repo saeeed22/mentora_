@@ -120,7 +120,14 @@ export default function AvailabilityPage() {
         if (profileResult.success && profileResult.data) {
           const pricing = profileResult.data.mentor_profile?.group_pricing || {};
           const solo = profileResult.data.mentor_profile?.price_per_session_solo || null;
-          setGroupPricingTiers(pricing);
+          // Filter out undefined values to match Record<number, number> type
+          const cleanPricing: Record<number, number> = {};
+          Object.entries(pricing).forEach(([key, value]) => {
+            if (value !== undefined) {
+              cleanPricing[Number(key)] = value;
+            }
+          });
+          setGroupPricingTiers(cleanPricing);
           setSoloPrice(solo);
           console.log('[Availability] Loaded solo price:', solo);
           console.log('[Availability] Loaded group pricing tiers:', pricing);
