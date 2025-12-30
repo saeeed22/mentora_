@@ -142,15 +142,34 @@ export interface ApiError {
 
 export function parseApiError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ detail?: string | Array<{ msg: string }> }>;
-        const detail = axiosError.response?.data?.detail;
+        const axiosError = error as AxiosError<{ detail?: string | Array<{ msg: string }>; message?: string; error?: string; errors?: Array<{ msg: string }>; [key: string]: unknown }>;
+        const data = axiosError.response?.data;
+        const detail = data?.detail;
+
+        // Prefer explicit backend message fields
+        if (typeof data?.message === 'string' && data.message.trim().length > 0) {
+            return { message: data.message };
+        }
+        if (typeof data?.error === 'string' && data.error.trim().length > 0) {
+            return { message: data.error };
+        }
 
         if (typeof detail === 'string') {
             return { message: detail };
         }
-        if (Array.isArray(detail) && detail.length > 0) {
+        if (Array.isArray(detail) && detail.length > 0 && typeof detail[0]?.msg === 'string') {
             return { message: detail[0].msg };
         }
+
+        if (Array.isArray(data?.errors) && data.errors.length > 0 && typeof data.errors[0]?.msg === 'string') {
+            return { message: data.errors[0].msg };
+        }
+
+        // Fallback to response body if present
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            return { message: JSON.stringify(data) };
+        }
+
         return { message: axiosError.message || 'An error occurred' };
     }
     return { message: 'An unexpected error occurred' };

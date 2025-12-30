@@ -45,9 +45,43 @@ const isUuid = (value: string | undefined | null) => {
   return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
 };
 
+const ONLINE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes considered "online"
+
 const emitUnreadCount = (conversationList: ConversationOrMentor[]) => {
-  const totalUnread = conversationList.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const currentUser = auth.getCurrentUser();
+  const totalUnread = conversationList.reduce((sum, c) => sum + getDisplayUnread(c, currentUser), 0);
   window.dispatchEvent(new CustomEvent('unreadMessagesChange', { detail: { count: totalUnread } }));
+};
+
+const filterConversationsForRole = (list: ConversationOrMentor[], currentUser: ReturnType<typeof auth.getCurrentUser>) => {
+  if (currentUser?.role === 'mentor') {
+    return list.filter(conv => (conv.last_message != null) || (conv.unread_count || 0) > 0);
+  }
+  return list;
+};
+
+const normalizeUnreadForSelf = (list: ConversationOrMentor[], currentUser: ReturnType<typeof auth.getCurrentUser>) => {
+  if (!currentUser) return list;
+  return list.map(conv => {
+    const lastSender = conv.last_message?.sender_id;
+    if (lastSender && lastSender === currentUser.id) {
+      return { ...conv, unread_count: 0 };
+    }
+    return conv;
+  });
+};
+
+const getDisplayUnread = (conversation: ConversationOrMentor, currentUser: ReturnType<typeof auth.getCurrentUser>) => {
+  const lastSender = conversation.last_message?.sender_id;
+  if (lastSender && currentUser && lastSender === currentUser.id) return 0;
+  return conversation.unread_count || 0;
+};
+
+const isConversationOnline = (conversation: ConversationOrMentor) => {
+  if (conversation.isSuggestedMentor) return false;
+  const lastActivity = conversation.updated_at || conversation.last_message?.created_at || conversation.created_at;
+  if (!lastActivity) return false;
+  return Date.now() - new Date(lastActivity).getTime() <= ONLINE_WINDOW_MS;
 };
 
 export default function MessagesPage() {
@@ -101,14 +135,8 @@ export default function MessagesPage() {
 
       if (result.success && result.data) {
         console.log('[Messages] Loaded conversations:', result.data.data.length);
-        conversationList = result.data.data;
-
-        // Mentors: only show mentees who have actually messaged (have a last_message or unread)
-        if (currentUser.role === 'mentor') {
-          conversationList = conversationList.filter(conv =>
-            (conv.last_message != null) || (conv.unread_count || 0) > 0
-          );
-        }
+        const normalized = normalizeUnreadForSelf(result.data.data, currentUser);
+        conversationList = filterConversationsForRole(normalized, currentUser);
       }
 
       // For mentees: Load top 10 mentors as suggested contacts
@@ -207,8 +235,41 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadMessages = async (conversationId: string) => {
-    setIsLoadingMessages(true);
+  // Refresh conversations periodically to keep presence and unread counts fresh
+  useEffect(() => {
+    const currentUser = auth.getCurrentUser();
+    if (!currentUser) return;
+
+    const interval = setInterval(async () => {
+      const result = await messagingApi.getConversations();
+      if (result.success && result.data) {
+        setConversations(prev => {
+          const suggested = prev.filter(c => c.isSuggestedMentor);
+          const normalized = normalizeUnreadForSelf(result.data!.data, currentUser);
+          const updatedList = filterConversationsForRole(normalized, currentUser);
+          return [...updatedList, ...suggested];
+        });
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll messages for the selected conversation to catch read receipts and new messages
+  useEffect(() => {
+    if (!selectedConversation || selectedConversation.isSuggestedMentor) return;
+
+    const interval = setInterval(() => {
+      loadMessages(selectedConversation.id, { silent: true });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedConversation]);
+
+  const loadMessages = async (conversationId: string, options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setIsLoadingMessages(true);
+    }
     const result = await messagingApi.getMessages(conversationId);
     if (result.success && result.data) {
       // Messages are returned newest first, reverse for display
@@ -216,7 +277,9 @@ export default function MessagesPage() {
 
       // Mark messages as read
       const lastMessage = result.data.data[0];
-      if (lastMessage) {
+      const viewer = auth.getCurrentUser();
+      const lastSenderIsViewer = lastMessage?.sender_id === viewer?.id;
+      if (lastMessage && !lastSenderIsViewer) {
         await messagingApi.markAsRead(conversationId, lastMessage.id);
         // Update conversation unread count locally and emit
         setConversations(prev => {
@@ -227,7 +290,9 @@ export default function MessagesPage() {
         });
       }
     }
-    setIsLoadingMessages(false);
+    if (!options?.silent) {
+      setIsLoadingMessages(false);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -304,15 +369,27 @@ export default function MessagesPage() {
     console.log('[Messages] API result:', result);
 
     if (result.success && result.data) {
-      // Replace optimistic message with real one
+      // Replace optimistic message with real one, but keep sender read receipt false until receiver actually reads
+      const currentUserId = currentUser?.id;
+      const deliveredMessage = result.data!;
+      const normalizedMessage = (deliveredMessage.sender_id === currentUserId)
+        ? { ...deliveredMessage, is_read: false }
+        : deliveredMessage;
+
       setMessages(prev => prev.map(m =>
-        m.id === optimisticMessage.id ? result.data! : m
+        m.id === optimisticMessage.id ? normalizedMessage : m
       ));
 
       // Refresh conversations to update last message (background)
       messagingApi.getConversations().then(convResult => {
         if (convResult.success && convResult.data) {
-          setConversations(convResult.data.data);
+          setConversations(prev => {
+            const currentUser = auth.getCurrentUser();
+            const normalized = normalizeUnreadForSelf(convResult.data!.data, currentUser);
+            const updated = filterConversationsForRole(normalized, currentUser);
+            const suggested = prev.filter(c => c.isSuggestedMentor);
+            return [...updated, ...suggested];
+          });
         }
       });
     } else {
@@ -362,9 +439,10 @@ export default function MessagesPage() {
         if (!aSelected && bSelected) return 1;
       }
 
-      // Unread conversations come next
-      const aUnread = a.unread_count || 0;
-      const bUnread = b.unread_count || 0;
+      // Unread conversations come next (use display unread to avoid self-sent messages counting)
+      const currentUser = auth.getCurrentUser();
+      const aUnread = getDisplayUnread(a, currentUser);
+      const bUnread = getDisplayUnread(b, currentUser);
       if (aUnread !== bUnread) {
         return bUnread - aUnread; // Higher unread count first
       }
@@ -378,6 +456,8 @@ export default function MessagesPage() {
       const name = getParticipantName(conversation);
       return name.toLowerCase().includes(searchQuery.toLowerCase());
     });
+
+  const selectedOnline = selectedConversation ? isConversationOnline(selectedConversation) : false;
 
   if (isLoading) {
     return (
@@ -426,6 +506,9 @@ export default function MessagesPage() {
                 : (conversation.last_message?.content || 'No messages yet');
 
               const canMessage = conversation.isSuggestedMentor ? conversation.isMessageable !== false : true;
+              const currentUser = auth.getCurrentUser();
+              const displayUnread = getDisplayUnread(conversation, currentUser);
+              const isOnline = isConversationOnline(conversation);
 
               return (
                 <div
@@ -443,6 +526,9 @@ export default function MessagesPage() {
                           {getInitials(displayName)}
                         </AvatarFallback>
                       </Avatar>
+                      {isOnline && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 ring-2 ring-white" />
+                      )}
                       {conversation.isSuggestedMentor && (
                         <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
                           <span className="text-white text-xs font-bold">+</span>
@@ -458,11 +544,17 @@ export default function MessagesPage() {
                           {conversation.isSuggestedMentor && (
                             <span className="ml-2 text-xs text-gray-500 font-normal">• Suggested</span>
                           )}
+                          {isOnline && (
+                            <span className="ml-2 inline-flex items-center text-[11px] font-semibold text-green-600">
+                              <span className="h-2 w-2 rounded-full bg-green-500 mr-1" />
+                              Online
+                            </span>
+                          )}
                         </h3>
                         <div className="flex items-center gap-2">
-                          {(conversation.unread_count || 0) > 0 && (
+                          {displayUnread > 0 && (
                             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
-                              {conversation.unread_count}
+                              {displayUnread}
                             </span>
                           )}
                           {!conversation.isSuggestedMentor && (
@@ -508,6 +600,12 @@ export default function MessagesPage() {
                     <h3 className="font-medium text-gray-900">
                       {getParticipantName(selectedConversation)}
                     </h3>
+                    {selectedOnline && (
+                      <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                        Online
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -568,7 +666,7 @@ export default function MessagesPage() {
                             <div className="flex-shrink-0">
                               <CheckCheck
                                 className={`h-3.5 w-3.5 filter drop-shadow-[0_0_2px_rgba(0,0,0,0.35)] ${
-                                  message.is_read ? 'text-green-600' : 'text-green-400'
+                                  message.is_read ? 'text-green-600' : 'text-gray-300'
                                 }`}
                               />
                             </div>
