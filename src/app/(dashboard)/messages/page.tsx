@@ -32,6 +32,7 @@ import { messagingApi, ConversationResponse, MessageResponse } from '@/lib/api/m
 import { mentorsApi } from '@/lib/api/mentors-api';
 import { MentorDetailResponse } from '@/lib/types';
 import { auth } from '@/lib/api/auth';
+import { tokenManager } from '@/lib/api-client';
 
 // Extended conversation type to include suggested mentors
 interface ConversationOrMentor extends ConversationResponse {
@@ -100,6 +101,9 @@ export default function MessagesPage() {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const initialScrollDone = useRef(false);
   const shouldScrollOnSend = useRef(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll to latest message (skip initial load to avoid jumping)
   useEffect(() => {
@@ -264,11 +268,133 @@ export default function MessagesPage() {
     if (!selectedConversation || selectedConversation.isSuggestedMentor) return;
 
     const interval = setInterval(() => {
+      console.log('[Polling] Fetching messages...');
       loadMessages(selectedConversation.id, { silent: true });
     }, 5000);
 
     return () => clearInterval(interval);
   }, [selectedConversation]);
+
+  // WebSocket connection for real-time messaging (DISABLED - backend CORS issue)
+  // TODO: Re-enable when backend CORS is configured for WebSocket
+  /*
+  useEffect(() => {
+    if (!selectedConversation || selectedConversation.isSuggestedMentor) return;
+
+    const connectWebSocket = () => {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        console.log('[WebSocket] No token, skipping WS connection');
+        return;
+      }
+
+      // Always use wss:// for Railway production (they don't allow ws://)
+      const wsUrl = `wss://mentora-backend-production-d4c3.up.railway.app/v1/conversations/ws?token=${token}`;
+      
+      console.log('[WebSocket] Attempting connection...');
+      console.log('[WebSocket] URL:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
+      console.log('[WebSocket] Token present:', !!token);
+
+      try {
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[WebSocket] ✅ Connected successfully');
+          setWsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('[WebSocket] 📨 Received:', data);
+
+            // Handle new message
+            if (data.type === 'new_message' && data.message) {
+              console.log('[WebSocket] ➕ Adding new message:', data.message.id);
+              setMessages(prev => {
+                const exists = prev.some(m => m.id === data.message.id);
+                if (exists) {
+                  console.log('[WebSocket] Message already exists, skipping');
+                  return prev;
+                }
+                return [...prev, data.message];
+              });
+              shouldScrollOnSend.current = true;
+            }
+
+            // Handle read receipts
+            if (data.type === 'messages_read' && data.message_id && selectedConversation) {
+              console.log('[WebSocket] ✅ Messages marked as read:', {
+                conversation: data.conversation_id,
+                upToMessage: data.message_id,
+                reader: data.reader_id
+              });
+              
+              // Refetch messages to get updated is_read flags from backend
+              // This is more reliable than trying to compare UUIDs
+              if (data.conversation_id === selectedConversation.id) {
+                console.log('[WebSocket] 🔄 Refreshing messages to show green ticks');
+                loadMessages(selectedConversation.id, { silent: true });
+              }
+            }
+          } catch (error) {
+            console.error('[WebSocket] ❌ Error parsing message:', error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('[WebSocket] ⚠️ Error event (details in close event)');
+          setWsConnected(false);
+        };
+
+        ws.onclose = (event) => {
+          console.log('[WebSocket] 🔌 Connection closed');
+          console.log('[WebSocket] Close code:', event.code);
+          console.log('[WebSocket] Close reason:', event.reason || 'None provided');
+          console.log('[WebSocket] Was clean:', event.wasClean);
+          
+          // Common close codes:
+          // 1000 = Normal closure
+          // 1006 = Abnormal closure (no close frame, likely connection failure)
+          // 1008 = Policy violation (e.g., CORS, authentication failed)
+          // 1011 = Server error
+          
+          if (event.code === 1006) {
+            console.error('[WebSocket] ❌ Connection failed - likely CORS or network issue');
+          } else if (event.code === 1008) {
+            console.error('[WebSocket] ❌ Authentication or policy error');
+          }
+          
+          setWsConnected(false);
+          wsRef.current = null;
+          // Attempt reconnect after 3 seconds
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('[WebSocket] 🔄 Attempting reconnect...');
+            connectWebSocket();
+          }, 3000);
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.error('[WebSocket] Connection error:', error);
+        setWsConnected(false);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      setWsConnected(false);
+    };
+  }, [selectedConversation]);
+  */
 
   const loadMessages = async (conversationId: string, options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -276,10 +402,17 @@ export default function MessagesPage() {
     }
     const result = await messagingApi.getMessages(conversationId);
     if (result.success && result.data) {
+      // Log is_read states for debugging
+      console.log('[Messages] Fetched messages:', result.data.data.map(m => ({ id: m.id, sender_id: m.sender_id, is_read: m.is_read })));
       // Messages are returned newest first, reverse for display
       setMessages(result.data.data.reverse());
 
-      // Mark messages as read
+      // Don't call markAsRead if WebSocket is connected (it broadcasts messages_read event)
+      if (wsConnected) {
+        console.log('[Messages] WebSocket connected, skipping redundant markAsRead call');
+      }
+
+      // Always mark as read regardless of WebSocket status (ensures backend is updated)
       const viewer = auth.getCurrentUser();
       const latestOther = result.data.data.find(m => m.sender_id !== viewer?.id);
 
@@ -287,7 +420,9 @@ export default function MessagesPage() {
       setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c));
 
       if (latestOther) {
-        await messagingApi.markAsRead(conversationId, latestOther.id);
+        console.log('[Messages] Calling markAsRead for message:', latestOther.id);
+        const readResult = await messagingApi.markAsRead(conversationId, latestOther.id);
+        console.log('[Messages] markAsRead result:', readResult);
       }
     }
     if (!options?.silent) {
