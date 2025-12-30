@@ -64,7 +64,8 @@ const normalizeUnreadForSelf = (list: ConversationOrMentor[], currentUser: Retur
   if (!currentUser) return list;
   return list.map(conv => {
     const lastSender = conv.last_message?.sender_id;
-    if (lastSender && lastSender === currentUser.id) {
+    const lastIsRead = conv.last_message?.is_read;
+    if ((lastSender && lastSender === currentUser.id) || lastIsRead) {
       return { ...conv, unread_count: 0 };
     }
     return conv;
@@ -272,22 +273,32 @@ export default function MessagesPage() {
     }
     const result = await messagingApi.getMessages(conversationId);
     if (result.success && result.data) {
+      const viewer = auth.getCurrentUser();
+      const latestOther = result.data.data.find(m => m.sender_id !== viewer?.id);
+      const latestOtherTime = latestOther ? new Date(latestOther.created_at).getTime() : 0;
+
+      // If conversation is already read (badge zeroed), treat all my messages as read.
+      const convoUnread = conversations.find(c => c.id === conversationId)?.unread_count || 0;
+      const forceAllMineRead = convoUnread === 0;
+
+      const withInferredRead = result.data.data.map(msg => {
+        if (!viewer) return msg;
+        const isMine = msg.sender_id === viewer.id;
+        if (isMine && (forceAllMineRead || (latestOtherTime && new Date(msg.created_at).getTime() <= latestOtherTime))) {
+          return { ...msg, is_read: true };
+        }
+        return msg;
+      });
+
       // Messages are returned newest first, reverse for display
-      setMessages(result.data.data.reverse());
+      setMessages(withInferredRead.reverse());
 
       // Mark messages as read
-      const lastMessage = result.data.data[0];
-      const viewer = auth.getCurrentUser();
-      const lastSenderIsViewer = lastMessage?.sender_id === viewer?.id;
-      if (lastMessage && !lastSenderIsViewer) {
-        await messagingApi.markAsRead(conversationId, lastMessage.id);
-        // Update conversation unread count locally and emit
-        setConversations(prev => {
-          const updated = prev.map(c =>
-            c.id === conversationId ? { ...c, unread_count: 0 } : c
-          );
-          return updated;
-        });
+      // Always zero unread locally once messages are viewed
+      setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c));
+
+      if (latestOther) {
+        await messagingApi.markAsRead(conversationId, latestOther.id);
       }
     }
     if (!options?.silent) {
@@ -403,6 +414,8 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conversation: ConversationOrMentor) => {
     setSelectedConversation(conversation);
+    // Optimistically clear unread locally when opening the conversation
+    setConversations(prev => prev.map(c => c.id === conversation.id ? { ...c, unread_count: 0 } : c));
     if (!conversation.isSuggestedMentor) {
       loadMessages(conversation.id);
     }
@@ -441,8 +454,8 @@ export default function MessagesPage() {
 
       // Unread conversations come next (use display unread to avoid self-sent messages counting)
       const currentUser = auth.getCurrentUser();
-      const aUnread = getDisplayUnread(a, currentUser);
-      const bUnread = getDisplayUnread(b, currentUser);
+      const aUnread = selectedConversation?.id === a.id ? 0 : getDisplayUnread(a, currentUser);
+      const bUnread = selectedConversation?.id === b.id ? 0 : getDisplayUnread(b, currentUser);
       if (aUnread !== bUnread) {
         return bUnread - aUnread; // Higher unread count first
       }
@@ -507,7 +520,9 @@ export default function MessagesPage() {
 
               const canMessage = conversation.isSuggestedMentor ? conversation.isMessageable !== false : true;
               const currentUser = auth.getCurrentUser();
-              const displayUnread = getDisplayUnread(conversation, currentUser);
+              const displayUnread = selectedConversation?.id === conversation.id
+                ? 0
+                : getDisplayUnread(conversation, currentUser);
               const isOnline = isConversationOnline(conversation);
 
               return (
@@ -666,7 +681,7 @@ export default function MessagesPage() {
                             <div className="flex-shrink-0">
                               <CheckCheck
                                 className={`h-3.5 w-3.5 filter drop-shadow-[0_0_2px_rgba(0,0,0,0.35)] ${
-                                  message.is_read ? 'text-green-600' : 'text-gray-300'
+                                  message.is_read ? 'text-green-500' : 'text-gray-300'
                                 }`}
                               />
                             </div>
