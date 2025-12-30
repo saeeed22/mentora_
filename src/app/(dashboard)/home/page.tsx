@@ -256,24 +256,16 @@ export default function DashboardHomePage() {
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-brand-dark">
-            Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {displayName}👋!
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {user.role === 'mentor'
-              ? "Ready to inspire and guide today's learners?"
-              : "Ready to learn and grow today?"
-            }
-          </p>
-        </div>
-        <Link href="/profile" className="shrink-0" aria-label="Profile">
-          <Avatar className="h-12 w-12 border">
-            <AvatarImage src={user.avatar || undefined} alt={displayName} />
-            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
-          </Avatar>
-        </Link>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold text-brand-dark">
+          Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {displayName}👋!
+        </h1>
+        <p className="text-gray-600">
+          {user.role === 'mentor'
+            ? "Ready to inspire and guide today's learners?"
+            : "Ready to learn and grow today?"
+          }
+        </p>
       </div>
 
       {/* Let's Start with Basics & Profile Strength - Only for Mentees */}

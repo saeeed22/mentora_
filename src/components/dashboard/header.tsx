@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CurrentUser } from '@/lib/api/auth';
 
 interface HeaderProps {
@@ -31,6 +32,14 @@ export function Header({ user }: HeaderProps) {
 
         {/* Right Section */}
         <div className="flex items-center space-x-4 ml-auto">
+          {/* Compact identity avatar */}
+          <Avatar className="h-10 w-10 border border-gray-200 shadow-sm">
+            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarFallback className="bg-gray-100 text-gray-700 text-sm font-semibold">
+              {(user.name || user.email || 'U').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+
           {/* Book Session Button - Only for mentees */}
           {user.role === 'mentee' && (
             <Button className="bg-brand hover:bg-brand/90" asChild aria-label="Book a session">

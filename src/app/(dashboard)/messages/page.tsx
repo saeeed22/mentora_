@@ -2,7 +2,28 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Send, Loader2 } from 'lucide-react';
+import {
+  Search,
+  Send,
+  MessageCircle,
+  Heart,
+  MoreVertical,
+  Linkedin,
+  Twitter,
+  Globe,
+  Star,
+  Rocket,
+  Award,
+  Briefcase,
+  GraduationCap,
+  ChevronRight,
+  ChevronLeft,
+  ThumbsUp,
+  Loader2,
+  Clock,
+  Check,
+  CheckCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +45,11 @@ const isUuid = (value: string | undefined | null) => {
   return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
 };
 
+const emitUnreadCount = (conversationList: ConversationOrMentor[]) => {
+  const totalUnread = conversationList.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  window.dispatchEvent(new CustomEvent('unreadMessagesChange', { detail: { count: totalUnread } }));
+};
+
 export default function MessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,11 +62,26 @@ export default function MessagesPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialScrollDone = useRef(false);
+  const shouldScrollOnSend = useRef(false);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message (skip initial load to avoid jumping)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!initialScrollDone.current) {
+      initialScrollDone.current = true;
+      return;
+    }
+
+    if (shouldScrollOnSend.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      shouldScrollOnSend.current = false;
+    }
   }, [messages]);
+
+  // Emit unread count to sidebar when conversations change
+  useEffect(() => {
+    emitUnreadCount(conversations);
+  }, [conversations]);
 
   // Load conversations and suggested mentors for mentees
   useEffect(() => {
@@ -61,9 +102,17 @@ export default function MessagesPage() {
       if (result.success && result.data) {
         console.log('[Messages] Loaded conversations:', result.data.data.length);
         conversationList = result.data.data;
+
+        // Mentors: only show mentees who have actually messaged (have a last_message or unread)
+        if (currentUser.role === 'mentor') {
+          conversationList = conversationList.filter(conv =>
+            (conv.last_message != null) || (conv.unread_count || 0) > 0
+          );
+        }
       }
 
       // For mentees: Load top 10 mentors as suggested contacts
+      // For mentors: Only show conversations with mentees (no suggestions)
       if (currentUser.role === 'mentee') {
         console.log('[Messages] Loading suggested mentors for mentee...');
         const mentorsResult = await mentorsApi.searchMentors({ limit: 10, sort: 'experience' });
@@ -73,7 +122,8 @@ export default function MessagesPage() {
 
           // Prefer mentors with decent profiles; if none qualify, fall back to all returned mentors
           const filteredMentors = mentorsData.filter(mentor => {
-            const mentorUserId = mentor.user?.id || mentor.profile?.user_id;
+            // Backend search returns top-level 'id' field as user UUID
+            const mentorUserId = (mentor as any).id || mentor.user?.id || mentor.profile?.user_id;
             const experience = mentor.mentor_profile?.experience_years ?? 0;
             const hasHeadline = Boolean(mentor.mentor_profile?.headline?.length);
             const hasSkills = Boolean(mentor.mentor_profile?.skills?.length);
@@ -89,7 +139,8 @@ export default function MessagesPage() {
 
           const suggestedMentors: ConversationOrMentor[] = usableMentors
             .map((mentor, idx) => {
-              const mentorUserId = mentor.user?.id || mentor.profile?.user_id;
+              // Backend search returns top-level 'id' field as user UUID
+              const mentorUserId = (mentor as any).id || mentor.user?.id || mentor.profile?.user_id;
               const fallbackId = mentor.profile?.id || mentor.user?.email || `mentor-fallback-${idx}`;
               const participantId = mentorUserId || fallbackId;
               if (!participantId || existingParticipantIds.includes(participantId)) return null;
@@ -105,7 +156,7 @@ export default function MessagesPage() {
                 unread_count: 0,
                 participants: [{
                   id: participantId,
-                  email: mentor.user?.email || '',
+                  email: (mentor as any).email || mentor.user?.email || '',
                   full_name: mentor.profile?.full_name || 'Mentor',
                   avatar_url: mentor.profile?.avatar_url,
                 }],
@@ -167,6 +218,13 @@ export default function MessagesPage() {
       const lastMessage = result.data.data[0];
       if (lastMessage) {
         await messagingApi.markAsRead(conversationId, lastMessage.id);
+        // Update conversation unread count locally and emit
+        setConversations(prev => {
+          const updated = prev.map(c =>
+            c.id === conversationId ? { ...c, unread_count: 0 } : c
+          );
+          return updated;
+        });
       }
     }
     setIsLoadingMessages(false);
@@ -205,15 +263,20 @@ export default function MessagesPage() {
       
       if (createResult.success && createResult.data) {
         conversationId = createResult.data.id;
-        // Update the conversation in the list
-        setConversations(prev => prev.map(c => 
-          c.id === selectedConversation.id
-            ? { ...createResult.data!, isSuggestedMentor: false, isMessageable: true }
-            : c
-        ));
-        setSelectedConversation({ ...createResult.data!, isSuggestedMentor: false, isMessageable: true });
+        // Update the conversation in the list, preserving mentor data from suggestion
+        const newConversation = {
+          ...createResult.data!,
+          isSuggestedMentor: false,
+          isMessageable: true,
+          mentorData: selectedConversation.mentorData,
+        };
+        const updatedConversations = conversations.map(c => 
+          c.id === selectedConversation.id ? newConversation : c
+        );
+        setConversations(updatedConversations);
+        setSelectedConversation(newConversation);
       } else {
-        console.error('[Messages] Failed to create conversation:', createResult.error);
+        console.error('[Messages] Failed to create conversation');
         setIsSending(false);
         return;
       }
@@ -234,6 +297,7 @@ export default function MessagesPage() {
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
     setIsSending(true);
+    shouldScrollOnSend.current = true;
 
     console.log('[Messages] Calling API...');
     const result = await messagingApi.sendMessage(conversationId, messageText);
@@ -288,10 +352,32 @@ export default function MessagesPage() {
     return undefined;
   };
 
-  const filteredConversations = conversations.filter((conversation) => {
-    const name = getParticipantName(conversation);
-    return name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredConversations = [...conversations]
+    .sort((a, b) => {
+      // Pin the currently selected conversation to the top
+      if (selectedConversation) {
+        const aSelected = a.id === selectedConversation.id;
+        const bSelected = b.id === selectedConversation.id;
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+      }
+
+      // Unread conversations come next
+      const aUnread = a.unread_count || 0;
+      const bUnread = b.unread_count || 0;
+      if (aUnread !== bUnread) {
+        return bUnread - aUnread; // Higher unread count first
+      }
+
+      // Then sort by timestamp for read conversations
+      const aTime = new Date(a.updated_at || a.created_at).getTime();
+      const bTime = new Date(b.updated_at || b.created_at).getTime();
+      return bTime - aTime; // Newest first
+    })
+    .filter((conversation) => {
+      const name = getParticipantName(conversation);
+      return name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
 
   if (isLoading) {
     return (
@@ -365,19 +451,30 @@ export default function MessagesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className={`text-sm truncate ${
+                          (conversation.unread_count || 0) > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'
+                        }`}>
                           {displayName}
-                                                  {conversation.isSuggestedMentor && (
-                                                    <span className="ml-2 text-xs text-gray-500 font-normal">• Suggested</span>
-                                                  )}
+                          {conversation.isSuggestedMentor && (
+                            <span className="ml-2 text-xs text-gray-500 font-normal">• Suggested</span>
+                          )}
                         </h3>
-                        {!conversation.isSuggestedMentor && (
-                          <span className="text-xs text-gray-500">
-                            {new Date(lastTimestamp).toLocaleDateString()}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {(conversation.unread_count || 0) > 0 && (
+                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                              {conversation.unread_count}
+                            </span>
+                          )}
+                          {!conversation.isSuggestedMentor && (
+                            <span className="text-xs text-gray-500">
+                              {new Date(lastTimestamp).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm truncate text-gray-600">
+                      <p className={`text-sm truncate ${
+                        (conversation.unread_count || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'
+                      }`}>
                         {lastMessagePreview}
                         {!canMessage && ' · Cannot message (invalid ID)'}
                       </p>
@@ -465,7 +562,18 @@ export default function MessagesPage() {
                             : 'bg-gray-100 text-gray-900'
                             }`}
                         >
+                        <div className="flex items-baseline gap-2">
                           <p className="text-sm">{message.content}</p>
+                          {isYou && (
+                            <div className="flex-shrink-0">
+                              <CheckCheck
+                                className={`h-3.5 w-3.5 filter drop-shadow-[0_0_2px_rgba(0,0,0,0.35)] ${
+                                  message.is_read ? 'text-green-600' : 'text-green-400'
+                                }`}
+                              />
+                            </div>
+                          )}
+                        </div>
                           <p
                             className={`text-xs mt-1 ${isYou ? 'text-white/90' : 'text-gray-500'
                               }`}

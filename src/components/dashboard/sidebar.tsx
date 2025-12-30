@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -38,12 +38,18 @@ interface NavItem {
 
 export function Sidebar({ user, currentPath }: SidebarProps) {
   const router = useRouter();
-  const [unreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  // NOTE: Conversations API polling disabled due to backend CORS issues
-  // Re-enable when backend CORS is fixed
-  // The original code that polled for unread messages has been removed temporarily
+  // Listen for unread message count changes from messages page
+  useEffect(() => {
+    const handleUnreadChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      setUnreadCount(customEvent.detail?.count || 0);
+    };
+    window.addEventListener('unreadMessagesChange', handleUnreadChange);
+    return () => window.removeEventListener('unreadMessagesChange', handleUnreadChange);
+  }, []);
 
   const navItems: NavItem[] = [
     {
