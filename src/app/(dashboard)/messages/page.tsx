@@ -97,6 +97,7 @@ export default function MessagesPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const initialScrollDone = useRef(false);
   const shouldScrollOnSend = useRef(false);
 
@@ -108,7 +109,9 @@ export default function MessagesPage() {
     }
 
     if (shouldScrollOnSend.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
       shouldScrollOnSend.current = false;
     }
   }, [messages]);
@@ -273,27 +276,13 @@ export default function MessagesPage() {
     }
     const result = await messagingApi.getMessages(conversationId);
     if (result.success && result.data) {
-      const viewer = auth.getCurrentUser();
-      const latestOther = result.data.data.find(m => m.sender_id !== viewer?.id);
-      const latestOtherTime = latestOther ? new Date(latestOther.created_at).getTime() : 0;
-
-      // If conversation is already read (badge zeroed), treat all my messages as read.
-      const convoUnread = conversations.find(c => c.id === conversationId)?.unread_count || 0;
-      const forceAllMineRead = convoUnread === 0;
-
-      const withInferredRead = result.data.data.map(msg => {
-        if (!viewer) return msg;
-        const isMine = msg.sender_id === viewer.id;
-        if (isMine && (forceAllMineRead || (latestOtherTime && new Date(msg.created_at).getTime() <= latestOtherTime))) {
-          return { ...msg, is_read: true };
-        }
-        return msg;
-      });
-
       // Messages are returned newest first, reverse for display
-      setMessages(withInferredRead.reverse());
+      setMessages(result.data.data.reverse());
 
       // Mark messages as read
+      const viewer = auth.getCurrentUser();
+      const latestOther = result.data.data.find(m => m.sender_id !== viewer?.id);
+
       // Always zero unread locally once messages are viewed
       setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c));
 
@@ -627,7 +616,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-end">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-end" ref={chatScrollRef}>
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-brand" />
