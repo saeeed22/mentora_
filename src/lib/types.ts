@@ -236,8 +236,10 @@ export interface MentorDetailResponse {
 export interface BackendAvailabilitySlot {
   start_at: string;  // ISO datetime
   end_at: string;
-  // Whether this slot supports group sessions (optional)
+  // Deprecated: use group_tier instead
   is_group?: boolean;
+  // Group tier: null for solo, number for group (e.g., 2, 3, 5, 10)
+  group_tier?: number | null;
 }
 
 export interface MentorAvailabilityResponse {

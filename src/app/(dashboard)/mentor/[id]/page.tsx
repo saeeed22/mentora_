@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { BookingDialog } from '@/components/booking-dialog';
-import type { AvailabilitySlot, BackendAvailabilitySlot } from '@/lib/types';
+import type { AvailabilitySlot, BackendAvailabilitySlot, MentorDetailResponse } from '@/lib/types';
 import { messagingApi } from '@/lib/api/messaging-api';
 import { auth } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
@@ -110,7 +110,7 @@ interface MentorProfile {
 // Convert backend availability slots to frontend format
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  const slotsByDate = new Map<string, { display: string; iso: string; isGroup?: boolean }[]>();
+  const slotsByDate = new Map<string, { display: string; iso: string; isGroup?: boolean; groupTier?: number | null }[]>();
 
   backendSlots.forEach(slot => {
     const startDate = new Date(slot.start_at);
@@ -124,7 +124,17 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
     if (!slotsByDate.has(dateKey)) {
       slotsByDate.set(dateKey, []);
     }
-    slotsByDate.get(dateKey)!.push({ display: timeStr, iso: slot.start_at, isGroup: (slot as any).is_group });
+    
+    // Use group_tier if available, fall back to is_group for backwards compatibility
+    const groupTier = slot.group_tier !== undefined ? slot.group_tier : (slot.is_group ? null : null);
+    const isGroup = groupTier !== null && groupTier !== undefined ? true : false;
+    
+    slotsByDate.get(dateKey)!.push({ 
+      display: timeStr, 
+      iso: slot.start_at, 
+      isGroup,
+      groupTier
+    });
   });
 
   // Convert to array and sort by date
@@ -152,6 +162,7 @@ export default function MentorProfilePage() {
   const mentorId = params.id as string;
 
   const [mentor, setMentor] = useState<MentorProfile | null>(null);
+  const [backendMentor, setBackendMentor] = useState<MentorDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [similarMentors, setSimilarMentors] = useState<MentorProfile[]>([]);
   const [isViewerMentor, setIsViewerMentor] = useState(false);
@@ -196,36 +207,40 @@ export default function MentorProfilePage() {
 
       if (result.success && result.data && mounted) {
         // Convert backend response to MentorProfile format
-        const backendMentor = result.data;
+        const backendMentorData = result.data;
+        setBackendMentor(backendMentorData);
         const convertedMentor: MentorProfile = {
-          id: (backendMentor as { id?: string }).id || mentorId,
-          name: backendMentor.profile?.full_name || 'Unknown Mentor',
-          avatar: backendMentor.profile?.avatar_url || '/mentor_fallback_1.jpg',
-          title: backendMentor.mentor_profile?.headline || 'Mentor',
-          company: '',
+          id: (backendMentorData as { id?: string }).id || mentorId,
+          name: backendMentorData.profile?.full_name || 'Unknown Mentor',
+          avatar: backendMentorData.profile?.avatar_url || '/mentor_fallback_1.jpg',
+          title: backendMentorData.mentor_profile?.headline || 'Mentor',
+          company: backendMentorData.mentor_profile?.current_company || '',
           location: 'Pakistan',
-          bio: backendMentor.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey.',
-          fullBio: backendMentor.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey. Book a session to learn more!',
-          expertise: backendMentor.mentor_profile?.skills?.length > 0
-            ? backendMentor.mentor_profile.skills
+          bio: backendMentorData.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey.',
+          fullBio: backendMentorData.profile?.bio || 'Passionate about sharing knowledge and helping others grow in their career journey. Book a session to learn more!',
+          expertise: backendMentorData.mentor_profile?.skills?.length > 0
+            ? backendMentorData.mentor_profile.skills
             : ['Mentorship', 'Career Guidance', 'Professional Development'],
           disciplines: ['General'],
-          languages: backendMentor.profile?.languages?.length > 0
-            ? backendMentor.profile.languages
-            : ['English', 'Urdu'],
-          rating: backendMentor.mentor_profile?.rating_avg || 5.0,
-          reviewCount: backendMentor.mentor_profile?.rating_count || 12,
-          sessionsCompleted: backendMentor.stats?.total_sessions || 25,
-          totalMentoringTime: (backendMentor.stats?.total_sessions || 25) * 60,
-          experience: [{
-            title: 'Mentor',
-            company: 'Mentora',
-            period: '2024-Present'
-          }],
+          languages: backendMentorData.profile?.languages?.length > 0
+            ? backendMentorData.profile.languages
+            : ['English'],
+          rating: backendMentorData.mentor_profile?.rating_avg || 0,
+          reviewCount: backendMentorData.mentor_profile?.rating_count || 0,
+          sessionsCompleted: backendMentorData.stats?.total_sessions || 0,
+          totalMentoringTime: (backendMentorData.stats?.total_sessions || 0) * 60,
+          experience: [
+            {
+              title: backendMentorData.mentor_profile?.current_role || 'Mentor',
+              company: backendMentorData.mentor_profile?.current_company || 'Mentora',
+              period: `${backendMentorData.mentor_profile?.experience_years || 0}+ years experience`,
+              current: true
+            }
+          ],
           reviews: [],
           isOnline: false,
-          responseTime: 'Usually responds within 24 hours',
-          availability: 'Flexible schedule',
+          responseTime: `${backendMentorData.stats?.response_time_hours || 24} hours`,
+          availability: 'Check availability below',
         };
         setMentor(convertedMentor);
         setSimilarMentors([]); // No similar mentors from backend yet
@@ -257,6 +272,7 @@ export default function MentorProfilePage() {
       console.log('[Availability] Fetching from:', fromDateStr, 'to:', toDateStr);
       const result = await mentorsApi.getMentorAvailability(mentorId, fromDateStr, toDateStr);
       console.log('[Availability] API Response:', result);
+      console.log('[Availability] These slots are generated from the mentor\'s availability templates');
 
       if (!mounted) return;
 
@@ -426,21 +442,6 @@ export default function MentorProfilePage() {
                       >
                         <MessageCircle className="h-5 w-5" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-lg"
-                        aria-label="Favorite"
-                        onClick={() => setIsFavorite(!isFavorite)}
-                      >
-                        <Heart
-                          className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''
-                            }`}
-                        />
-                      </Button>
-                      <Button variant="outline" size="icon" className="rounded-lg" aria-label="More options">
-                        <MoreVertical className="h-5 w-5" />
-                      </Button>
                     </div>
                   </div>
 
@@ -506,22 +507,7 @@ export default function MentorProfilePage() {
                   value="reviews"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
                 >
-                  Reviews
-                </TabsTrigger>
-                <TabsTrigger
-                  value="achievements"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
-                >
-                  Achievements{' '}
-                  <Badge variant="secondary" className="ml-2">
-                    {mentor.achievements?.sessionMilestones.length || 0}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="sessions"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand data-[state=active]:bg-transparent"
-                >
-                  Group sessions
+                  Reviews ({reviewsTotal > 0 ? reviewsTotal : mentor.reviewCount})
                 </TabsTrigger>
               </TabsList>
 
@@ -848,63 +834,90 @@ export default function MentorProfilePage() {
 
           {/* Right Sidebar - Booking Widget & Stats */}
           <div className="lg:w-96 space-y-6 flex-shrink-0">
-            {/* Community Statistics */}
-            <Card className="rounded-2xl shadow-sm bg-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-brand-dark">Community statistics</h3>
-                  <button className="text-sm text-brand hover:underline">
-                    See more
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Rocket className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-brand-dark">
-                        {mentor.totalMentoringTime} mins
-                      </p>
-                      <p className="text-sm text-gray-600">Total mentoring time</p>
-                    </div>
+            {/* Statistics */}
+            {backendMentor && (backendMentor.stats?.total_sessions > 0 || backendMentor.mentor_profile?.rating_avg > 0) && (
+              <Card className="rounded-2xl shadow-sm bg-white">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-bold text-brand-dark mb-4">Statistics</h3>
+                  <div className="space-y-4">
+                    {/* Sessions Completed */}
+                    {backendMentor.stats && backendMentor.stats.total_sessions > 0 && (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <Star className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-brand-dark">
+                            {backendMentor.stats.total_sessions}
+                          </p>
+                          <p className="text-sm text-gray-600">Sessions completed</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rating */}
+                    {backendMentor.mentor_profile?.rating_avg > 0 && (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-yellow-100 rounded-lg">
+                          <Star className="h-6 w-6 text-yellow-600 fill-yellow-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-brand-dark">
+                            {backendMentor.mentor_profile.rating_avg.toFixed(1)}
+                          </p>
+                          <p className="text-sm text-gray-600">Average rating</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Active Mentees */}
+                    {backendMentor.stats?.active_mentees !== undefined && backendMentor.stats.active_mentees > 0 && (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-green-100 rounded-lg">
+                          <Rocket className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-brand-dark">
+                            {backendMentor.stats.active_mentees}
+                          </p>
+                          <p className="text-sm text-gray-600">Active mentees</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Response Time */}
+                    {backendMentor.stats?.response_time_hours && backendMentor.stats.response_time_hours < 72 && (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-purple-100 rounded-lg">
+                          <Clock className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-brand-dark">
+                            ~{backendMentor.stats.response_time_hours}h
+                          </p>
+                          <p className="text-sm text-gray-600">Response time</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-100 rounded-lg">
-                      <Star className="h-6 w-6 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-brand-dark">
-                        {mentor.sessionsCompleted}
-                      </p>
-                      <p className="text-sm text-gray-600">Sessions completed</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Booking Widget */}
             {availableSlots && availableSlots.length > 0 && !isViewerMentor && (
               <Card className="rounded-2xl shadow-sm bg-white">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-bold text-brand-dark mb-4">
+                  <h3 className="text-lg font-bold text-brand-dark mb-2">
                     Available sessions
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Book 1:1 sessions from the options based on your needs
+                  <p className="text-xs text-gray-500 mb-4">
+                    These slots are set by the mentor in their availability schedule
                   </p>
 
                   {/* Date Selector */}
                   <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <Button variant="ghost" size="sm">
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Select a date</h4>
                     <div className="grid grid-cols-4 gap-2">
                       {availableSlots.map((slot) => {
                         const date = new Date(slot.date);
@@ -934,17 +947,13 @@ export default function MentorProfilePage() {
                         );
                       })}
                     </div>
-                    <button className="text-sm text-brand hover:underline mt-3 w-full text-center">
-                      View all →
-                    </button>
                   </div>
 
                   {/* Time Slots */}
                   {selectedDateSlots && (
                     <div className="mb-6">
-                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center justify-between">
+                      <h4 className="font-semibold text-gray-900 mb-3">
                         Available time slots
-                        <ChevronRight className="h-4 w-4" />
                       </h4>
                       {selectedSlotIsGroup && (
                         <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
@@ -955,7 +964,7 @@ export default function MentorProfilePage() {
                       <div className="grid grid-cols-3 gap-2">
                         {selectedDateSlots.slots.map((time, idx) => (
                           <button
-                            key={time}
+                            key={idx}
                             onClick={() => {
                               setSelectedTimeSlot(time);
                               setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
@@ -1000,7 +1009,7 @@ export default function MentorProfilePage() {
                     No availability set
                   </h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    This mentor hasn&apos;t set their availability yet. You can message them to request a session.
+                    This mentor hasn&apos;t configured their availability schedule yet. Check back later or send them a message.
                   </p>
                   <Button
                     variant="outline"
@@ -1072,53 +1081,6 @@ export default function MentorProfilePage() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Similar Mentors */}
-            <Card className="rounded-2xl shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-brand-dark">Similar mentor profiles</h3>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm">
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {similarMentors.map((similarMentor) => (
-                    <Link
-                      key={similarMentor.id}
-                      href={`/mentor/${similarMentor.id}`}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage
-                          src={similarMentor.avatar}
-                          alt={similarMentor.name}
-                        />
-                        <AvatarFallback>
-                          {getInitials(similarMentor.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 truncate">
-                          {similarMentor.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 truncate">
-                          {similarMentor.title}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {similarMentor.company}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
