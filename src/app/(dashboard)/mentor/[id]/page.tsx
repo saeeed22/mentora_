@@ -113,8 +113,15 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
   const slotsByDate = new Map<string, { display: string; iso: string; isGroup?: boolean; groupTier?: number | null }[]>();
 
   backendSlots.forEach(slot => {
+    // Parse the ISO string and extract date/time components to avoid timezone shifts
     const startDate = new Date(slot.start_at);
-    const dateKey = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Use UTC methods to extract the date to prevent timezone conversion issues
+    const year = startDate.getUTCFullYear();
+    const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(startDate.getUTCDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${day}`; // YYYY-MM-DD in UTC
+    
     const timeStr = startDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
