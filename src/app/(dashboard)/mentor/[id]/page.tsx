@@ -126,8 +126,10 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
     }
     
     // Use group_tier if available, fall back to is_group for backwards compatibility
+    // Solo = null or 1, Group = 2, 3, 4, 5, 10, etc.
     const groupTier = slot.group_tier !== undefined ? slot.group_tier : (slot.is_group ? null : null);
-    const isGroup = groupTier !== null && groupTier !== undefined ? true : false;
+    const isGroup = groupTier !== null && groupTier !== undefined && groupTier > 1 ? true : false;
+    console.log('[convertBackendSlots] Processing slot:', { time: timeStr, group_tier: slot.group_tier, groupTier, isGroup });
     
     slotsByDate.get(dateKey)!.push({ 
       display: timeStr, 
@@ -150,6 +152,7 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
       slots: sorted.map(s => s.display),
       slotTimes: sorted.map(s => s.iso),
       slotGroupFlags: sorted.map(s => !!s.isGroup),
+      slotGroupTiers: sorted.map(s => s.groupTier ?? null),
     });
   });
 
@@ -170,9 +173,10 @@ export default function MentorProfilePage() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null); // ISO timestamp for booking
   const [selectedSlotIsGroup, setSelectedSlotIsGroup] = useState<boolean | null>(null);
+  const [selectedSlotGroupTier, setSelectedSlotGroupTier] = useState<number | null>(null);
   const [showFullBio, setShowFullBio] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -276,22 +280,29 @@ export default function MentorProfilePage() {
 
       if (!mounted) return;
 
-      if (result.success && result.data && result.data.slots.length > 0) {
-        console.log('[Availability] Raw slots from backend:', result.data.slots);
-        const slots = convertBackendSlots(result.data.slots);
-        console.log('[Availability] Converted slots:', slots);
-        setAvailableSlots(slots);
-        if (slots.length > 0) {
-          setSelectedDate(slots[0].date);
-          if (slots[0].slots.length > 0) {
-            setSelectedTimeSlot(slots[0].slots[0]);
-            setSelectedSlotStartTime(slots[0].slotTimes[0]);
-            setSelectedSlotIsGroup(slots[0].slotGroupFlags ? !!slots[0].slotGroupFlags[0] : null);
+      if (result.success && result.data) {
+        console.log('[Availability] ✓ Received', result.data.slots.length, 'slots from backend');
+        if (result.data.slots.length > 0) {
+          console.log('[Availability] Raw slots from backend:', result.data.slots);
+          const slots = convertBackendSlots(result.data.slots);
+          console.log('[Availability] Converted slots:', slots);
+          setAvailableSlots(slots);
+          if (slots.length > 0) {
+            setSelectedDate(slots[0].date);
+            if (slots[0].slots.length > 0) {
+              setSelectedSlotIndex(0);
+              setSelectedSlotStartTime(slots[0].slotTimes[0]);
+              setSelectedSlotIsGroup(slots[0].slotGroupFlags ? !!slots[0].slotGroupFlags[0] : null);
+            }
           }
+        } else {
+          // No availability from backend
+          console.warn('[Availability] ⚠ Backend returned 0 slots. This means either:');
+          console.warn('  1. No templates exist for this mentor');
+          console.warn('  2. Backend slot generation failed to process is_recurring/specific_date fields');
+          console.warn('  3. Date range doesn\'t match any templates');
+          setAvailableSlots([]);
         }
-      } else {
-        // No availability from backend
-        setAvailableSlots([]);
       }
       setAvailabilityLoading(false);
     })();
@@ -372,7 +383,7 @@ export default function MentorProfilePage() {
   };
 
   const handleBooking = () => {
-    if (!selectedDate || !selectedTimeSlot) {
+    if (!selectedDate || !selectedSlotStartTime) {
       return;
     }
     setBookingDialogOpen(true);
@@ -927,7 +938,10 @@ export default function MentorProfilePage() {
                             key={slot.date}
                             onClick={() => {
                               setSelectedDate(slot.date);
-                              setSelectedTimeSlot(slot.slots[0]);
+                              setSelectedSlotIndex(0);
+                              setSelectedSlotStartTime(slot.slotTimes[0]);
+                              setSelectedSlotIsGroup(slot.slotGroupFlags ? !!slot.slotGroupFlags[0] : null);
+                              setSelectedSlotGroupTier(slot.slotGroupTiers ? slot.slotGroupTiers[0] ?? null : null);
                             }}
                             className={`p-3 rounded-lg border-2 text-center transition-colors ${selectedDate === slot.date
                               ? 'border-brand bg-brand-light/10'
@@ -961,23 +975,45 @@ export default function MentorProfilePage() {
                           This slot supports group sessions
                         </div>
                       )}
-                      <div className="grid grid-cols-3 gap-2">
-                        {selectedDateSlots.slots.map((time, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              setSelectedTimeSlot(time);
-                              setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
-                              setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
-                            }}
-                            className={`p-2 rounded-lg border-2 text-sm font-medium transition-colors ${selectedTimeSlot === time
-                              ? 'border-brand bg-brand-light/10 text-brand'
-                              : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedDateSlots.slots.map((time, idx) => {
+                          const groupTier = selectedDateSlots.slotGroupTiers?.[idx] ?? null;
+                          // Solo = null or 1, Group = 2+ participants
+                          const isGroup = groupTier !== null && groupTier !== undefined && groupTier > 1;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                setSelectedSlotIndex(idx);
+                                setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
+                                setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
+                                setSelectedSlotGroupTier(groupTier);
+                              }}
+                              className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                                selectedSlotIndex === idx
+                                  ? 'border-brand bg-brand-light/10'
+                                  : 'border-gray-200 hover:border-gray-300'
                               }`}
-                          >
-                            {time}
-                          </button>
-                        ))}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`text-sm font-semibold ${
+                                  selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
+                                }`}>
+                                  {time}
+                                </span>
+                                {isGroup ? (
+                                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                                    Group of {groupTier}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                                    Solo
+                                  </Badge>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1092,7 +1128,7 @@ export default function MentorProfilePage() {
         mentorId={mentorId}
         mentorName={mentor.name}
         selectedDate={selectedDate}
-        selectedTimeSlot={selectedTimeSlot}
+        selectedTimeSlot={selectedDateSlots?.slots[selectedSlotIndex ?? 0] ?? ''}
         selectedSlotStartTime={selectedSlotStartTime}
         selectedSlotIsGroup={selectedSlotIsGroup}
       />

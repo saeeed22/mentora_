@@ -119,6 +119,7 @@ export interface AvailabilitySlot {
   slotTimes: string[]; // Original ISO timestamps for booking
   // Optional flags aligned with slots/slotTimes
   slotGroupFlags?: boolean[];
+  slotGroupTiers?: (number | null)[]; // null for solo, number for group (2, 4, 10, etc.)
 }
 
 // ============================================

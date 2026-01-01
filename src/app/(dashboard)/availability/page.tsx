@@ -14,12 +14,14 @@ import { mentorManagementApi, AvailabilityTemplate } from '@/lib/api/mentor-mana
 import { mentorsApi } from '@/lib/api/mentors-api';
 import { toast } from 'sonner';
 
-// Slot with group tier info (group tier = number of participants for pricing)
+// Slot with group tier info (group tier = 1 for solo, number > 1 for group)
 type SlotData = {
   start: string;
   end: string;
   templateId?: string;
-  groupTier?: number | null; // null for solo, number for group (e.g., 2, 4, 10)
+  groupTier: number | null; // 1 for solo, 2, 3, 5, 10 for group (participants count)
+  isRecurring?: boolean; // true for weekly recurring, false for date-specific
+  specificDate?: string; // YYYY-MM-DD format for date-specific slots
 };
 
 // Default availability data structure
@@ -154,17 +156,30 @@ export default function AvailabilityPage() {
         const schedule = createFreshSchedule();
 
         result.data.forEach((template: AvailabilityTemplate) => {
-          const dayKey = weekdayToKey[template.weekday];
+          // For recurring templates, use weekday. For date-specific, use the day from specific_date
+          const dayKey = template.weekday !== null && template.weekday !== undefined ? weekdayToKey[template.weekday] : 
+                        (template.specific_date ? weekdayToKey[new Date(template.specific_date).getDay()] : null);
+          console.log('[Availability] Processing template:', {
+            id: template.id,
+            weekday: template.weekday ?? 'undefined',
+            dayKey,
+            group_tier: template.group_tier,
+            type: typeof template.group_tier,
+          });
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
             // Normalize time format (backend may return "09:00:00", we need "09:00")
             const normalizeTime = (time: string) => time.substring(0, 5);
-            schedule[dayKey as keyof typeof schedule].slots.push({
+            const slotData = {
               start: normalizeTime(template.start_time),
               end: normalizeTime(template.end_time),
               templateId: template.id,
               groupTier: template.group_tier ?? null,
-            });
+              isRecurring: template.is_recurring ?? true,
+              specificDate: template.specific_date ?? undefined,
+            };
+            console.log('[Availability] Adding slot to schedule:', slotData);
+            schedule[dayKey as keyof typeof schedule].slots.push(slotData);
           }
         });
 
@@ -191,6 +206,16 @@ export default function AvailabilityPage() {
   };
 
   const addTimeSlot = (day: string) => {
+    // Calculate next occurrence of this weekday for default specific_date
+    const today = new Date();
+    const targetDay = keyToWeekday[day];
+    const currentDay = (today.getDay() + 6) % 7;
+    let daysUntil = (targetDay - currentDay + 7) % 7;
+    if (daysUntil === 0) daysUntil = 7; // Next occurrence, not today
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysUntil);
+    const specificDate = targetDate.toISOString().split('T')[0];
+    
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -199,7 +224,7 @@ export default function AvailabilityPage() {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: [
             ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots,
-            { start: '09:00', end: '10:00', groupTier: null },
+            { start: '09:00', end: '10:00', groupTier: 1, isRecurring: false, specificDate },
           ],
         },
       },
@@ -232,6 +257,56 @@ export default function AvailabilityPage() {
           ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
           slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) =>
             i === index ? { ...slot, groupTier } : slot
+          ),
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const updateSlotRecurringMode = (day: string, index: number, isRecurring: boolean) => {
+    setAvailability(prev => ({
+      ...prev,
+      weeklySchedule: {
+        ...prev.weeklySchedule,
+        [day]: {
+          ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
+          slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) => {
+            if (i === index) {
+              if (isRecurring) {
+                // Remove specific_date when switching to recurring
+                const { specificDate, ...rest } = slot;
+                return { ...rest, isRecurring: true };
+              } else {
+                // Add default specific_date when switching to date-specific
+                const today = new Date();
+                const targetDay = keyToWeekday[day];
+                const currentDay = (today.getDay() + 6) % 7;
+                let daysUntil = (targetDay - currentDay + 7) % 7;
+                if (daysUntil === 0) daysUntil = 7;
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + daysUntil);
+                const specificDate = targetDate.toISOString().split('T')[0];
+                return { ...slot, isRecurring: false, specificDate };
+              }
+            }
+            return slot;
+          }),
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const updateSlotSpecificDate = (day: string, index: number, specificDate: string) => {
+    setAvailability(prev => ({
+      ...prev,
+      weeklySchedule: {
+        ...prev.weeklySchedule,
+        [day]: {
+          ...prev.weeklySchedule[day as keyof typeof prev.weeklySchedule],
+          slots: prev.weeklySchedule[day as keyof typeof prev.weeklySchedule].slots.map((slot, i) =>
+            i === index ? { ...slot, specificDate } : slot
           ),
         },
       },
@@ -350,23 +425,18 @@ export default function AvailabilityPage() {
     setIsSaving(true);
 
     try {
-      // Save or create all slots with current start/end and group tier
-      const newSlots: { day: string; start: string; end: string; groupTier: number | null }[] = [];
-      const existingSlots: { day: string; start: string; end: string; templateId: string; groupTier: number | null }[] = [];
+      // Save or create all slots with current start/end, group tier, and recurring mode
+      const newSlots: Array<SlotData & { day: string }> = [];
+      const existingSlots: Array<SlotData & { day: string }> = [];
 
       for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
         if (dayData.enabled) {
           for (const slot of dayData.slots) {
+            const slotWithDay = { ...slot, day: dayKey };
             if (!slot.templateId) {
-              newSlots.push({ day: dayKey, start: slot.start, end: slot.end, groupTier: slot.groupTier ?? null });
+              newSlots.push(slotWithDay);
             } else {
-              existingSlots.push({ 
-                day: dayKey, 
-                start: slot.start, 
-                end: slot.end, 
-                templateId: slot.templateId, 
-                groupTier: slot.groupTier ?? null 
-              });
+              existingSlots.push(slotWithDay);
             }
           }
         }
@@ -375,46 +445,95 @@ export default function AvailabilityPage() {
       // Create new templates
       let createdCount = 0;
       for (const slot of newSlots) {
-        const result = await mentorManagementApi.createAvailabilityTemplate({
-          weekday: keyToWeekday[slot.day],
+        // Calculate slot duration in minutes
+        const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
+        const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
+        const durationMinutes = endMinutes - startMinutes;
+        
+        const templateData: any = {
           start_time: slot.start,
           end_time: slot.end,
+          slot_duration_minutes: durationMinutes,
           group_tier: slot.groupTier,
-        });
+        };
+
+        // Add weekday or specific_date based on isRecurring
+        if (slot.isRecurring !== false) {
+          // Recurring (default)
+          templateData.weekday = keyToWeekday[slot.day];
+          templateData.is_recurring = true;
+        } else {
+          // Date-specific
+          templateData.specific_date = slot.specificDate;
+          templateData.is_recurring = false;
+        }
+        
+        console.log('[Availability] Creating template:', templateData);
+        const result = await mentorManagementApi.createAvailabilityTemplate(templateData);
 
         if (result.success) {
+          console.log('[Availability] ✓ Created template successfully:', result.data);
           createdCount++;
         } else {
-          console.error('[Availability] Failed to create slot:', result.error);
+          console.error('[Availability] ✗ Failed to create slot:', result.error);
+          toast.error(`Failed to create slot: ${result.error}`);
         }
       }
 
       // Update existing templates
       let updatedCount = 0;
       for (const slot of existingSlots) {
-        const result = await mentorManagementApi.updateAvailabilityTemplate(slot.templateId, {
-          weekday: keyToWeekday[slot.day],
+        // Calculate slot duration in minutes
+        const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
+        const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
+        const durationMinutes = endMinutes - startMinutes;
+        
+        const templateData: any = {
           start_time: slot.start,
           end_time: slot.end,
+          slot_duration_minutes: durationMinutes,
           group_tier: slot.groupTier,
-        });
+        };
+
+        // Add weekday or specific_date based on isRecurring
+        if (slot.isRecurring !== false) {
+          templateData.weekday = keyToWeekday[slot.day];
+          templateData.is_recurring = true;
+        } else {
+          templateData.specific_date = slot.specificDate;
+          templateData.is_recurring = false;
+        }
+        
+        console.log('[Availability] Updating template:', slot.templateId, templateData);
+        const result = await mentorManagementApi.updateAvailabilityTemplate(slot.templateId!, templateData);
+        
         if (result.success) {
+          console.log('[Availability] ✓ Updated template successfully:', result.data);
           updatedCount++;
         } else {
-          console.error('[Availability] Failed to update slot:', result.error);
+          console.error('[Availability] ✗ Failed to update slot:', result.error);
+          toast.error(`Failed to update slot: ${result.error}`);
         }
       }
 
       setHasChanges(false);
-      toast.success(`Availability saved! Created ${createdCount}, updated ${updatedCount} slot(s).`);
+      toast.success(`✓ Availability saved! Created ${createdCount}, updated ${updatedCount} slot(s).`);
+      console.log('[Availability] Save complete. Created:', createdCount, 'Updated:', updatedCount);
 
       // Reload to get the new template IDs
+      console.log('[Availability] Reloading templates after save...');
       const reloadResult = await mentorManagementApi.getAvailabilityTemplates();
+      console.log('[Availability] Reload result:', reloadResult);
       if (reloadResult.success && reloadResult.data) {
+        console.log('[Availability] ✓ Reloaded templates successfully:', reloadResult.data.length, 'templates');
+        console.log('[Availability] Template details:', reloadResult.data);
         // Create a FRESH schedule object to avoid mutation bugs
         const schedule = createFreshSchedule();
+        let loadedCount = 0;
         reloadResult.data.forEach((template) => {
-          const dayKey = weekdayToKey[template.weekday];
+          const dayKey = template.weekday !== null && template.weekday !== undefined ? weekdayToKey[template.weekday] : 
+                        (template.specific_date ? weekdayToKey[new Date(template.specific_date).getDay()] : null);
+          console.log('[Availability] Processing template:', template.id, 'weekday:', template.weekday, 'specific_date:', template.specific_date, 'dayKey:', dayKey);
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
             // Normalize time format (backend may return "09:00:00", we need "09:00")
@@ -424,10 +543,27 @@ export default function AvailabilityPage() {
               end: normalizeTime(template.end_time),
               templateId: template.id,
               groupTier: template.group_tier ?? null,
+              isRecurring: template.is_recurring ?? true,
+              specificDate: template.specific_date ?? undefined,
             });
+            loadedCount++;
+            console.log('[Availability] ✓ Loaded slot:', dayKey, normalizeTime(template.start_time), '-', normalizeTime(template.end_time), 'isRecurring:', template.is_recurring, 'specificDate:', template.specific_date);
+          } else {
+            console.warn('[Availability] ⚠ Could not determine dayKey for template:', template.id);
           }
         });
+        console.log('[Availability] Successfully loaded', loadedCount, 'out of', reloadResult.data.length, 'templates');
+        
+        if (loadedCount === 0 && reloadResult.data.length > 0) {
+          toast.error('⚠️ Backend issue: Templates saved but weekday/specific_date fields are missing. Check backend response.');
+          console.error('[Availability] ⚠️ BACKEND ISSUE: All templates have null weekday AND specific_date. Backend needs to return these fields.');
+        }
+        
         setAvailability(prev => ({ ...prev, weeklySchedule: schedule }));
+        console.log('[Availability] Updated availability state with schedule');
+      } else {
+        console.error('[Availability] ✗ Failed to reload templates:', reloadResult);
+        toast.error('Failed to reload availability templates');
       }
     } catch (error) {
       console.error('[Availability] Save error:', error);
@@ -451,6 +587,9 @@ export default function AvailabilityPage() {
   if (!user || user.role !== 'mentor') {
     return null;
   }
+
+  // Always show all days so mentor can add slots to any day
+  const daysToShow = daysOfWeek;
 
   return (
     <div className="space-y-6">
@@ -485,7 +624,7 @@ export default function AvailabilityPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {daysOfWeek.map((day) => {
+          {daysToShow.map((day) => {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
 
             return (
@@ -560,16 +699,41 @@ export default function AvailabilityPage() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {/* Recurring vs Date-Specific Toggle */}
+                          <Select
+                            value={slot.isRecurring !== false ? 'recurring' : 'specific'}
+                            onValueChange={(value) => {
+                              updateSlotRecurringMode(day.key, index, value === 'recurring');
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="recurring">Recurring</SelectItem>
+                              <SelectItem value="specific">One-Time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {/* Date Picker for Date-Specific Slots */}
+                          {slot.isRecurring === false && (
+                            <input
+                              type="date"
+                              value={slot.specificDate || ''}
+                              onChange={(e) => updateSlotSpecificDate(day.key, index, e.target.value)}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                          )}
                           {/* Session Type: Solo or Group */}
                           <Select
-                            value={slot.groupTier === null ? 'solo' : 'group'}
+                            value={slot.groupTier === 1 || slot.groupTier === null ? 'solo' : 'group'}
                             onValueChange={(value) => {
                               if (value === 'solo') {
-                                updateSlotGroupTier(day.key, index, null);
+                                updateSlotGroupTier(day.key, index, 1);
                               } else {
                                 // When switching to group, set to first available tier
                                 const validTiers = Object.entries(groupPricingTiers)
-                                  .filter(([_, price]) => Number(price) > 0)
+                                  .filter(([tier, price]) => Number(tier) > 1 && Number(price) > 0)
                                   .map(([tier, _]) => Number(tier))
                                   .sort((a, b) => a - b);
                                 if (validTiers.length > 0) {
@@ -596,7 +760,7 @@ export default function AvailabilityPage() {
                             </SelectContent>
                           </Select>
                           {/* Solo Price Display - Only show if Solo is selected */}
-                          {slot.groupTier === null && soloPrice !== null && (
+                          {(slot.groupTier === 1 || slot.groupTier === null) && soloPrice !== null && (
                             <div className="flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-md w-44">
                               <span className="text-sm font-medium text-blue-900">
                                 PKR {soloPrice}/session
@@ -604,7 +768,7 @@ export default function AvailabilityPage() {
                             </div>
                           )}
                           {/* Group Tier Selection - Only show if Group is selected */}
-                          {slot.groupTier !== null && (
+                          {slot.groupTier !== null && slot.groupTier > 1 && (
                             <Select
                               value={slot.groupTier?.toString() ?? ''}
                               onValueChange={(value) => {

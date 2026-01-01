@@ -9,7 +9,9 @@ import { apiClient, parseApiError, ApiResult } from '../api-client';
 export interface AvailabilityTemplate {
     id: string;
     mentor_id: string;
-    weekday: number; // 0 = Monday, 6 = Sunday
+    weekday?: number; // 0 = Monday, 6 = Sunday (optional for date-specific)
+    specific_date?: string; // YYYY-MM-DD for date-specific slots
+    is_recurring?: boolean; // true for weekly recurring, false for date-specific
     start_time: string; // "09:00"
     end_time: string; // "17:00"
     slot_duration_minutes?: number;
@@ -20,7 +22,9 @@ export interface AvailabilityTemplate {
 }
 
 export interface AvailabilityTemplateCreate {
-    weekday: number;
+    weekday?: number;
+    specific_date?: string; // YYYY-MM-DD
+    is_recurring?: boolean; // Default true on backend
     start_time: string;
     end_time: string;
     slot_duration_minutes?: number;
