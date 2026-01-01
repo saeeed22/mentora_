@@ -157,11 +157,30 @@ export default function AvailabilityPage() {
 
         result.data.forEach((template: AvailabilityTemplate) => {
           // For recurring templates, use weekday. For date-specific, use the day from specific_date
-          const dayKey = template.weekday !== null && template.weekday !== undefined ? weekdayToKey[template.weekday] : 
-                        (template.specific_date ? weekdayToKey[new Date(template.specific_date).getDay()] : null);
+          let dayKey: string | null = null;
+          
+          if (template.weekday !== null && template.weekday !== undefined) {
+            // Recurring slot - use weekday directly
+            dayKey = weekdayToKey[template.weekday];
+          } else if (template.specific_date) {
+            // Date-specific slot - extract weekday from the date using UTC to avoid timezone shifts
+            const parts = template.specific_date.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const date = parseInt(parts[2]);
+            const dateObj = new Date(Date.UTC(year, month, date));
+            const weekday = dateObj.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+            const dayMap: Record<number, string> = {
+              0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+              4: 'thursday', 5: 'friday', 6: 'saturday',
+            };
+            dayKey = dayMap[weekday];
+          }
+          
           console.log('[Availability] Processing template:', {
             id: template.id,
             weekday: template.weekday ?? 'undefined',
+            specific_date: template.specific_date ?? 'undefined',
             dayKey,
             group_tier: template.group_tier,
             type: typeof template.group_tier,
@@ -299,6 +318,30 @@ export default function AvailabilityPage() {
   };
 
   const updateSlotSpecificDate = (day: string, index: number, specificDate: string) => {
+    // Validate that the selected date matches the weekday
+    // Parse date string to extract year, month, day to avoid timezone shifts
+    const parts = specificDate.split('-');
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1; // JavaScript months are 0-indexed
+    const date = parseInt(parts[2]);
+    
+    // Create date in UTC to get correct weekday
+    const selectedDate = new Date(Date.UTC(year, month, date));
+    const selectedWeekday = selectedDate.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+    
+    // Map getDay() result to our day keys (0=Sunday, 1=Monday, ...)
+    const dayMap: Record<number, string> = {
+      0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+      4: 'thursday', 5: 'friday', 6: 'saturday',
+    };
+    const selectedDayKey = dayMap[selectedWeekday];
+    
+    if (selectedDayKey !== day) {
+      const dayCapitalized = day.charAt(0).toUpperCase() + day.slice(1);
+      toast.error(`Please select a date that falls on ${dayCapitalized}`);
+      return;
+    }
+    
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -445,6 +488,26 @@ export default function AvailabilityPage() {
       // Create new templates
       let createdCount = 0;
       for (const slot of newSlots) {
+        // Validate date-specific slots match their weekday
+        if (slot.isRecurring === false && slot.specificDate) {
+          const parts = slot.specificDate.split('-');
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const date = parseInt(parts[2]);
+          const selectedDate = new Date(Date.UTC(year, month, date));
+          const selectedWeekday = selectedDate.getUTCDay();
+          const dayMap: Record<number, string> = {
+            0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+            4: 'thursday', 5: 'friday', 6: 'saturday',
+          };
+          const selectedDayKey = dayMap[selectedWeekday];
+          if (selectedDayKey !== slot.day) {
+            toast.error(`Slot in ${slot.day} section has invalid date ${slot.specificDate}. Please fix before saving.`);
+            setIsSaving(false);
+            return;
+          }
+        }
+        
         // Calculate slot duration in minutes
         const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
         const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
@@ -483,6 +546,26 @@ export default function AvailabilityPage() {
       // Update existing templates
       let updatedCount = 0;
       for (const slot of existingSlots) {
+        // Validate date-specific slots match their weekday
+        if (slot.isRecurring === false && slot.specificDate) {
+          const parts = slot.specificDate.split('-');
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const date = parseInt(parts[2]);
+          const selectedDate = new Date(Date.UTC(year, month, date));
+          const selectedWeekday = selectedDate.getUTCDay();
+          const dayMap: Record<number, string> = {
+            0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+            4: 'thursday', 5: 'friday', 6: 'saturday',
+          };
+          const selectedDayKey = dayMap[selectedWeekday];
+          if (selectedDayKey !== slot.day) {
+            toast.error(`Slot in ${slot.day} section has invalid date ${slot.specificDate}. Please fix before saving.`);
+            setIsSaving(false);
+            return;
+          }
+        }
+        
         // Calculate slot duration in minutes
         const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
         const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
@@ -531,8 +614,26 @@ export default function AvailabilityPage() {
         const schedule = createFreshSchedule();
         let loadedCount = 0;
         reloadResult.data.forEach((template) => {
-          const dayKey = template.weekday !== null && template.weekday !== undefined ? weekdayToKey[template.weekday] : 
-                        (template.specific_date ? weekdayToKey[new Date(template.specific_date).getDay()] : null);
+          let dayKey: string | null = null;
+          
+          if (template.weekday !== null && template.weekday !== undefined) {
+            // Recurring slot - use weekday directly
+            dayKey = weekdayToKey[template.weekday];
+          } else if (template.specific_date) {
+            // Date-specific slot - extract weekday from the date using UTC to avoid timezone shifts
+            const parts = template.specific_date.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const date = parseInt(parts[2]);
+            const dateObj = new Date(Date.UTC(year, month, date));
+            const weekday = dateObj.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+            const dayMap: Record<number, string> = {
+              0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+              4: 'thursday', 5: 'friday', 6: 'saturday',
+            };
+            dayKey = dayMap[weekday];
+          }
+          
           console.log('[Availability] Processing template:', template.id, 'weekday:', template.weekday, 'specific_date:', template.specific_date, 'dayKey:', dayKey);
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
@@ -620,7 +721,7 @@ export default function AvailabilityPage() {
         <CardHeader>
           <CardTitle>Weekly Schedule</CardTitle>
           <CardDescription>
-            Set your recurring weekly availability
+            Set your recurring weekly availability or one-time date-specific slots
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -639,7 +740,6 @@ export default function AvailabilityPage() {
                       <Label className="text-sm font-medium text-gray-700">
                         {day.label}
                       </Label>
-                      <p className="text-xs text-gray-500">{getNextWeekdayDate(day.key)}</p>
                     </div>
                     {daySchedule.enabled && daySchedule.slots.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
@@ -668,6 +768,15 @@ export default function AvailabilityPage() {
                     ) : (
                       daySchedule.slots.map((slot, index) => (
                         <div key={index} className="flex items-center space-x-2">
+                          {/* Show date badge for date-specific slots */}
+                          {slot.isRecurring === false && slot.specificDate && (
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric'
+                              })}
+                            </Badge>
+                          )}
                           <Select
                             value={slot.start}
                             onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
@@ -718,8 +827,14 @@ export default function AvailabilityPage() {
                           {slot.isRecurring === false && (
                             <input
                               type="date"
+                              key={`${day.key}-${index}-date`}
                               value={slot.specificDate || ''}
-                              onChange={(e) => updateSlotSpecificDate(day.key, index, e.target.value)}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                // Call update which validates
+                                updateSlotSpecificDate(day.key, index, value);
+                                // If validation failed, the input will be cleared by the controlled component
+                              }}
                               className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                               min={new Date().toISOString().split('T')[0]}
                             />
