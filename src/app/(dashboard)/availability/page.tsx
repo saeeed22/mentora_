@@ -418,13 +418,33 @@ export default function AvailabilityPage() {
             hasValidationErrors = true;
           }
 
-          // Check if slot is in the past or overlaps with current time (only for today)
-          if (dayNumber === currentDayOfWeek && startMinutes < currentTimeMinutes) {
-            toast.error(`Cannot set past time slot on ${dayKey}`, {
-              description: `Time slot ${slot.start} - ${slot.end} has already started or passed. Current time (PKT) is ${nowPKT.getHours().toString().padStart(2, '0')}:${nowPKT.getMinutes().toString().padStart(2, '0')}`,
-            });
-            hasValidationErrors = true;
+          // Check if slot is in the past (only for date-specific slots)
+          if (slot.isRecurring === false && slot.specificDate) {
+            // For date-specific slots, check if the date is in the past
+            const parts = slot.specificDate.split('-');
+            const slotYear = parseInt(parts[0]);
+            const slotMonth = parseInt(parts[1]) - 1;
+            const slotDay = parseInt(parts[2]);
+            const slotDate = new Date(slotYear, slotMonth, slotDay);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            slotDate.setHours(0, 0, 0, 0);
+            
+            if (slotDate < today) {
+              toast.error(`Cannot set past time slot on ${dayKey}`, {
+                description: `Date ${slot.specificDate} is in the past. Please select a future date.`,
+              });
+              hasValidationErrors = true;
+            } else if (slotDate.getTime() === today.getTime() && startMinutes < currentTimeMinutes) {
+              // If it's today, also check the time
+              toast.error(`Cannot set past time slot on ${dayKey}`, {
+                description: `Time slot ${slot.start} - ${slot.end} has already started or passed. Current time (PKT) is ${nowPKT.getHours().toString().padStart(2, '0')}:${nowPKT.getMinutes().toString().padStart(2, '0')}`,
+              });
+              hasValidationErrors = true;
+            }
           }
+          // Note: For recurring slots (isRecurring !== false), we don't validate past time
+          // because they repeat every week and are future-proof
 
           // Check for duplicate slots of the same type (solo or group)
           for (let j = i + 1; j < dayData.slots.length; j++) {
