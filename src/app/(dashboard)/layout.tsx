@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth, CurrentUser } from '@/lib/api/auth';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
+import { BottomNav } from '@/components/dashboard/bottom-nav';
 import LandingFooter from '@/components/landing/footer';
 
 export default function DashboardLayout({
@@ -52,10 +53,13 @@ export default function DashboardLayout({
         <Sidebar user={user} currentPath={pathname} />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 min-w-0">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 pb-20 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav user={user} currentPath={pathname} />
 
       {/* Footer */}
       <LandingFooter />

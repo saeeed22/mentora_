@@ -238,7 +238,7 @@ export default function BookingsPage() {
 
     return (
       <Card key={booking.id} className="rounded-2xl shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start space-x-4">
               <Avatar className="h-12 w-12">
@@ -329,7 +329,7 @@ export default function BookingsPage() {
 
           {/* Mentor: Pending booking actions */}
           {isUserMentor && booking.status === 'pending' && (
-            <div className="flex space-x-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
               <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleConfirmBooking(booking.id)}>
                 <Check className="w-4 h-4 mr-2" />
                 Confirm Booking
@@ -346,7 +346,7 @@ export default function BookingsPage() {
 
           {/* Confirmed booking actions */}
           {booking.status === 'confirmed' && (
-            <div className="flex space-x-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
               {/* Always show Join button for confirmed sessions */}
               {!sessionEnded && (
                 <Button className="bg-brand hover:bg-brand/90" onClick={() => handleJoinSession(booking)}>
@@ -375,7 +375,7 @@ export default function BookingsPage() {
 
           {/* Completed booking actions (mentees only - feedback) */}
           {booking.status === 'completed' && !isUserMentor && (
-            <div className="flex space-x-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
               <Button className="bg-brand hover:bg-brand/90" onClick={() => { setFeedbackTarget(booking); setFeedbackOpen(true); }}>
                 <Star className="w-4 h-4 mr-2" />
                 Leave Feedback
@@ -389,7 +389,7 @@ export default function BookingsPage() {
 
           {/* Completed booking actions (mentors only - just message) */}
           {booking.status === 'completed' && isUserMentor && (
-            <div className="flex space-x-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
               <Button variant="outline" onClick={() => handleMessage(booking)}>
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Message
@@ -416,8 +416,8 @@ export default function BookingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-brand-dark">My Bookings</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">My Bookings</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Manage your mentoring sessions and appointments
         </p>
       </div>

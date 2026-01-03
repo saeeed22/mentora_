@@ -83,10 +83,10 @@ const isConversationOnline = (conversation: ConversationOrMentor) => {
   // Only show online if they have recent activity AND it's not just the initial conversation creation
   // (initial creation doesn't indicate they're logged in)
   if (conversation.isSuggestedMentor) return false;
-  
+
   // Check if there's actual message activity (not just conversation creation)
   if (!conversation.last_message || !conversation.last_message.created_at) return false;
-  
+
   const lastActivity = conversation.last_message.created_at;
   return Date.now() - new Date(lastActivity).getTime() <= ONLINE_WINDOW_MS;
 };
@@ -157,7 +157,7 @@ export default function MessagesPage() {
       if (currentUser.role === 'mentee') {
         console.log('[Messages] Loading suggested mentors for mentee...');
         const mentorsResult = await mentorsApi.searchMentors({ limit: 10, sort: 'experience' });
-        
+
         if (mentorsResult.success && mentorsResult.data) {
           const mentorsData = mentorsResult.data.data || [];
 
@@ -174,7 +174,7 @@ export default function MessagesPage() {
           const usableMentors = filteredMentors.length > 0 ? filteredMentors : mentorsData;
 
           // Convert mentors to conversation format (exclude ones we already have conversations with)
-          const existingParticipantIds = conversationList.flatMap(c => 
+          const existingParticipantIds = conversationList.flatMap(c =>
             c.participants?.map(p => p.id) || []
           );
 
@@ -212,35 +212,35 @@ export default function MessagesPage() {
 
       setConversations(conversationList);
 
-        // Check if a conversation ID is specified in the URL
-        const c = searchParams.get('c');
-        if (c) {
-          const found = conversationList.find(conv => conv.id === c);
-          if (found) {
-            setSelectedConversation(found);
-            if (!found.isSuggestedMentor) {
-              loadMessages(found.id);
-            }
-          }
-        } else if (conversationList.length > 0) {
-          // For mentors, auto-select first actual conversation. For mentees, don't auto-select.
-          const currentUser = auth.getCurrentUser();
-          if (currentUser?.role === 'mentor') {
-            const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
-            setSelectedConversation(firstConv);
-            if (!firstConv.isSuggestedMentor) {
-              loadMessages(firstConv.id);
-            }
-          } else {
-            // Mentees: show placeholder until a conversation is chosen
-            setSelectedConversation(null);
+      // Check if a conversation ID is specified in the URL
+      const c = searchParams.get('c');
+      if (c) {
+        const found = conversationList.find(conv => conv.id === c);
+        if (found) {
+          setSelectedConversation(found);
+          if (!found.isSuggestedMentor) {
+            loadMessages(found.id);
           }
         }
-      
+      } else if (conversationList.length > 0) {
+        // For mentors, auto-select first actual conversation. For mentees, don't auto-select.
+        const currentUser = auth.getCurrentUser();
+        if (currentUser?.role === 'mentor') {
+          const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
+          setSelectedConversation(firstConv);
+          if (!firstConv.isSuggestedMentor) {
+            loadMessages(firstConv.id);
+          }
+        } else {
+          // Mentees: show placeholder until a conversation is chosen
+          setSelectedConversation(null);
+        }
+      }
+
       if (!result.success) {
         console.error('[Messages] Failed to load conversations:', result.error);
       }
-      
+
       setIsLoading(false);
     };
 
@@ -465,7 +465,7 @@ export default function MessagesPage() {
 
       console.log('[Messages] Creating new conversation with mentor...');
       const createResult = await messagingApi.createConversation([currentUser.id, mentorId] as [string, string]);
-      
+
       if (createResult.success && createResult.data) {
         conversationId = createResult.data.id;
         // Update the conversation in the list, preserving mentor data from suggestion
@@ -475,7 +475,7 @@ export default function MessagesPage() {
           isMessageable: true,
           mentorData: selectedConversation.mentorData,
         };
-        const updatedConversations = conversations.map(c => 
+        const updatedConversations = conversations.map(c =>
           c.id === selectedConversation.id ? newConversation : c
         );
         setConversations(updatedConversations);
@@ -613,9 +613,10 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] flex bg-white rounded-2xl shadow-sm overflow-hidden">
       {/* Conversations Sidebar */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
+      <div className={`${selectedConversation ? 'hidden md:block' : 'block'
+        } w-full md:w-80 border-r border-gray-200 flex flex-col`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Messages</h2>
@@ -643,7 +644,7 @@ export default function MessagesPage() {
               const displayName = getParticipantName(conversation);
               const avatar = getParticipantAvatar(conversation);
               const lastTimestamp = conversation.updated_at || conversation.created_at;
-              const lastMessagePreview = conversation.isSuggestedMentor 
+              const lastMessagePreview = conversation.isSuggestedMentor
                 ? (conversation.mentorData?.mentor_profile?.headline || 'Mentor')
                 : (conversation.last_message?.content || 'No messages yet');
 
@@ -657,9 +658,8 @@ export default function MessagesPage() {
               return (
                 <div
                   key={conversation.id}
-                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
-                  } ${conversation.isSuggestedMentor ? 'opacity-75' : ''} ${!canMessage ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversation?.id === conversation.id ? 'bg-brand-light/10 border-r-2 border-brand' : ''
+                    } ${conversation.isSuggestedMentor ? 'opacity-75' : ''} ${!canMessage ? 'opacity-60 cursor-not-allowed' : ''}`}
                   onClick={() => handleSelectConversation(conversation)}
                 >
                   <div className="flex items-start space-x-3">
@@ -681,9 +681,8 @@ export default function MessagesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className={`text-sm truncate ${
-                          (conversation.unread_count || 0) > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'
-                        }`}>
+                        <h3 className={`text-sm truncate ${(conversation.unread_count || 0) > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'
+                          }`}>
                           {displayName}
                           {conversation.isSuggestedMentor && (
                             <span className="ml-2 text-xs text-gray-500 font-normal">• Suggested</span>
@@ -708,9 +707,8 @@ export default function MessagesPage() {
                           )}
                         </div>
                       </div>
-                      <p className={`text-sm truncate ${
-                        (conversation.unread_count || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'
-                      }`}>
+                      <p className={`text-sm truncate ${(conversation.unread_count || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'
+                        }`}>
                         {lastMessagePreview}
                         {!canMessage && ' · Cannot message (invalid ID)'}
                       </p>
@@ -724,13 +722,22 @@ export default function MessagesPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${!selectedConversation ? 'hidden md:flex' : 'flex'
+        } flex-1 flex-col`}>
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="p-3 sm:p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
+                  {/* Back button for mobile */}
+                  <button
+                    className="md:hidden p-1 hover:bg-gray-100 rounded"
+                    onClick={() => setSelectedConversation(null)}
+                    aria-label="Back to conversations"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={getParticipantAvatar(selectedConversation)}
@@ -804,18 +811,17 @@ export default function MessagesPage() {
                             : 'bg-gray-100 text-gray-900'
                             }`}
                         >
-                        <div className="flex items-baseline gap-2">
-                          <p className="text-sm">{message.content}</p>
-                          {isYou && (
-                            <div className="flex-shrink-0">
-                              <CheckCheck
-                                className={`h-3.5 w-3.5 filter drop-shadow-[0_0_2px_rgba(0,0,0,0.35)] ${
-                                  message.is_read ? 'text-green-500' : 'text-gray-300'
-                                }`}
-                              />
-                            </div>
-                          )}
-                        </div>
+                          <div className="flex items-baseline gap-2">
+                            <p className="text-sm">{message.content}</p>
+                            {isYou && (
+                              <div className="flex-shrink-0">
+                                <CheckCheck
+                                  className={`h-3.5 w-3.5 filter drop-shadow-[0_0_2px_rgba(0,0,0,0.35)] ${message.is_read ? 'text-green-500' : 'text-gray-300'
+                                    }`}
+                                />
+                              </div>
+                            )}
+                          </div>
                           <p
                             className={`text-xs mt-1 ${isYou ? 'text-white/90' : 'text-gray-500'
                               }`}
