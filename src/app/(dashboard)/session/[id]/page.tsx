@@ -716,8 +716,8 @@ export default function SessionPage() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-brand-dark">Live Session</h1>
-            <div className="flex items-center gap-3 text-gray-600 text-sm">
+            <h1 className="text-xl sm:text-2xl font-bold text-brand-dark">Live Session</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-gray-600 text-xs sm:text-sm">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {sessionDate.toLocaleDateString('en-US', {
@@ -736,14 +736,15 @@ export default function SessionPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{sessionInfo.booking.duration_minutes} min</Badge>
-          <Badge variant="default">{sessionInfo.booking.status}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="text-xs sm:text-sm">{sessionInfo.booking.duration_minutes} min</Badge>
+          <Badge variant="default" className="text-xs sm:text-sm">{sessionInfo.booking.status}</Badge>
         </div>
       </div>
 
       {/* Agora Video Call */}
-      <div className="rounded-2xl overflow-hidden" style={{ minHeight: '70dvh' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ minHeight: '60dvh' }}>
+        {/* Height adjusted for mobile with bottom nav */}
         <AgoraVideoCall
           appId={sessionInfo.appId}
           channel={sessionInfo.channel}

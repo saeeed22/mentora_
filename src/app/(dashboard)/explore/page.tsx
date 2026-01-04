@@ -108,7 +108,7 @@ export default function ExplorePage() {
         const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
         const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
         const matchesNiche = selectedNiche === 'all' || mentor.mentor_profile?.mentoring_niche === selectedNiche;
-        
+
         return experience > 0 && hasHeadline && hasSkills && matchesNiche;
       });
 
@@ -191,8 +191,8 @@ export default function ExplorePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-brand-dark">Explore Mentors</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Explore Mentors</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Discover experienced professionals ready to guide your journey
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function ExplorePage() {
 
       {/* Search and Filters */}
       <Card className="rounded-2xl shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -262,9 +262,9 @@ export default function ExplorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
             {mentors.map((mentor) => (
               <div key={mentor.id} className="flex justify-center items-stretch">
-                <MentorCard 
-                  mentor={mentor} 
-                  showBookButton={true} 
+                <MentorCard
+                  mentor={mentor}
+                  showBookButton={true}
                   currentUserId={currentUserId}
                   isViewerMentor={isCurrentUserMentor}
                 />

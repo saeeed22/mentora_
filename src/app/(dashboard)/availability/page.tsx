@@ -78,13 +78,13 @@ const getNextWeekdayDate = (dayKey: string): string => {
   const today = new Date();
   const targetDay = keyToWeekday[dayKey];
   const currentDay = (today.getDay() + 6) % 7; // Convert to Monday=0 format
-  
+
   let daysUntil = (targetDay - currentDay + 7) % 7;
   if (daysUntil === 0) daysUntil = 0; // If today, show today's date
-  
+
   const targetDate = new Date(today);
   targetDate.setDate(today.getDate() + daysUntil);
-  
+
   return targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
@@ -115,7 +115,7 @@ export default function AvailabilityPage() {
     // Load templates and mentor profile from backend
     const loadTemplates = async () => {
       setIsLoading(true);
-      
+
       // Fetch mentor profile to get group pricing tiers and solo price
       if (currentUser?.id) {
         const profileResult = await mentorsApi.getMentorById(currentUser.id);
@@ -135,7 +135,7 @@ export default function AvailabilityPage() {
           console.log('[Availability] Loaded group pricing tiers:', pricing);
           console.log('[Availability] Group pricing type:', typeof pricing);
           console.log('[Availability] Group pricing entries:', Object.entries(pricing));
-          
+
           // Log valid tiers
           const validTiers = Object.entries(pricing)
             .filter(([_, price]) => {
@@ -158,7 +158,7 @@ export default function AvailabilityPage() {
         result.data.forEach((template: AvailabilityTemplate) => {
           // For recurring templates, use weekday. For date-specific, use the day from specific_date
           let dayKey: string | null = null;
-          
+
           if (template.weekday !== null && template.weekday !== undefined) {
             // Recurring slot - use weekday directly
             dayKey = weekdayToKey[template.weekday];
@@ -176,7 +176,7 @@ export default function AvailabilityPage() {
             };
             dayKey = dayMap[weekday];
           }
-          
+
           console.log('[Availability] Processing template:', {
             id: template.id,
             weekday: template.weekday ?? 'undefined',
@@ -234,7 +234,7 @@ export default function AvailabilityPage() {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + daysUntil);
     const specificDate = targetDate.toISOString().split('T')[0];
-    
+
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -324,24 +324,24 @@ export default function AvailabilityPage() {
     const year = parseInt(parts[0]);
     const month = parseInt(parts[1]) - 1; // JavaScript months are 0-indexed
     const date = parseInt(parts[2]);
-    
+
     // Create date in UTC to get correct weekday
     const selectedDate = new Date(Date.UTC(year, month, date));
     const selectedWeekday = selectedDate.getUTCDay(); // 0=Sunday, 1=Monday, etc.
-    
+
     // Map getDay() result to our day keys (0=Sunday, 1=Monday, ...)
     const dayMap: Record<number, string> = {
       0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
       4: 'thursday', 5: 'friday', 6: 'saturday',
     };
     const selectedDayKey = dayMap[selectedWeekday];
-    
+
     if (selectedDayKey !== day) {
       const dayCapitalized = day.charAt(0).toUpperCase() + day.slice(1);
       toast.error(`Please select a date that falls on ${dayCapitalized}`);
       return;
     }
-    
+
     setAvailability(prev => ({
       ...prev,
       weeklySchedule: {
@@ -395,12 +395,12 @@ export default function AvailabilityPage() {
     for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
       if (dayData.enabled) {
         const dayNumber = keyToWeekday[dayKey];
-        
+
         for (let i = 0; i < dayData.slots.length; i++) {
           const slot = dayData.slots[i];
           const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
           const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
-          
+
           // Check if start time < end time
           if (startMinutes >= endMinutes) {
             toast.error(`Invalid time slot on ${dayKey}`, {
@@ -429,7 +429,7 @@ export default function AvailabilityPage() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             slotDate.setHours(0, 0, 0, 0);
-            
+
             if (slotDate < today) {
               toast.error(`Cannot set past time slot on ${dayKey}`, {
                 description: `Date ${slot.specificDate} is in the past. Please select a future date.`,
@@ -451,7 +451,7 @@ export default function AvailabilityPage() {
             const otherSlot = dayData.slots[j];
             const otherStartMinutes = parseInt(otherSlot.start.split(':')[0]) * 60 + parseInt(otherSlot.start.split(':')[1]);
             const otherEndMinutes = parseInt(otherSlot.end.split(':')[0]) * 60 + parseInt(otherSlot.end.split(':')[1]);
-            
+
             // Check if slots overlap
             const slotsOverlap = (
               (startMinutes >= otherStartMinutes && startMinutes < otherEndMinutes) ||
@@ -527,12 +527,12 @@ export default function AvailabilityPage() {
             return;
           }
         }
-        
+
         // Calculate slot duration in minutes
         const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
         const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
         const durationMinutes = endMinutes - startMinutes;
-        
+
         const templateData: any = {
           start_time: slot.start,
           end_time: slot.end,
@@ -550,7 +550,7 @@ export default function AvailabilityPage() {
           templateData.specific_date = slot.specificDate;
           templateData.is_recurring = false;
         }
-        
+
         console.log('[Availability] Creating template:', templateData);
         const result = await mentorManagementApi.createAvailabilityTemplate(templateData);
 
@@ -585,12 +585,12 @@ export default function AvailabilityPage() {
             return;
           }
         }
-        
+
         // Calculate slot duration in minutes
         const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
         const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
         const durationMinutes = endMinutes - startMinutes;
-        
+
         const templateData: any = {
           start_time: slot.start,
           end_time: slot.end,
@@ -606,10 +606,10 @@ export default function AvailabilityPage() {
           templateData.specific_date = slot.specificDate;
           templateData.is_recurring = false;
         }
-        
+
         console.log('[Availability] Updating template:', slot.templateId, templateData);
         const result = await mentorManagementApi.updateAvailabilityTemplate(slot.templateId!, templateData);
-        
+
         if (result.success) {
           console.log('[Availability] ✓ Updated template successfully:', result.data);
           updatedCount++;
@@ -635,7 +635,7 @@ export default function AvailabilityPage() {
         let loadedCount = 0;
         reloadResult.data.forEach((template) => {
           let dayKey: string | null = null;
-          
+
           if (template.weekday !== null && template.weekday !== undefined) {
             // Recurring slot - use weekday directly
             dayKey = weekdayToKey[template.weekday];
@@ -653,7 +653,7 @@ export default function AvailabilityPage() {
             };
             dayKey = dayMap[weekday];
           }
-          
+
           console.log('[Availability] Processing template:', template.id, 'weekday:', template.weekday, 'specific_date:', template.specific_date, 'dayKey:', dayKey);
           if (dayKey) {
             schedule[dayKey as keyof typeof schedule].enabled = true;
@@ -674,12 +674,12 @@ export default function AvailabilityPage() {
           }
         });
         console.log('[Availability] Successfully loaded', loadedCount, 'out of', reloadResult.data.length, 'templates');
-        
+
         if (loadedCount === 0 && reloadResult.data.length > 0) {
           toast.error('⚠️ Backend issue: Templates saved but weekday/specific_date fields are missing. Check backend response.');
           console.error('[Availability] ⚠️ BACKEND ISSUE: All templates have null weekday AND specific_date. Backend needs to return these fields.');
         }
-        
+
         setAvailability(prev => ({ ...prev, weeklySchedule: schedule }));
         console.log('[Availability] Updated availability state with schedule');
       } else {
@@ -717,15 +717,15 @@ export default function AvailabilityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-brand-dark">Availability</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Availability</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage your mentoring schedule and availability
           </p>
         </div>
         <Button
           onClick={handleSave}
           disabled={!hasChanges || isSaving}
-          className="bg-brand hover:bg-brand/90"
+          className="bg-brand hover:bg-brand/90 w-full sm:w-auto"
         >
           {isSaving ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -749,7 +749,7 @@ export default function AvailabilityPage() {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
 
             return (
-              <div key={day.key} className="border border-gray-200 rounded-lg p-4">
+              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <Switch
@@ -772,6 +772,7 @@ export default function AvailabilityPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => addTimeSlot(day.key)}
+                      className="w-full sm:w-auto"
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Slot
@@ -787,47 +788,52 @@ export default function AvailabilityPage() {
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex items-center space-x-2">
+                        <div key={index} className="flex flex-col sm:flex-row sm:flex-wrap items-start gap-2 sm:gap-2 p-2 sm:p-0 bg-gray-50 sm:bg-transparent rounded-lg sm:rounded-none">
                           {/* Show date badge for date-specific slots */}
                           {slot.isRecurring === false && slot.specificDate && (
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', { 
-                                month: 'short', 
+                            <Badge variant="outline" className="text-xs shrink-0 w-full sm:w-auto justify-center sm:justify-start">
+                              📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', {
+                                month: 'short',
                                 day: 'numeric'
                               })}
                             </Badge>
                           )}
-                          <Select
-                            value={slot.start}
-                            onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {timeSlots.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <span className="text-gray-500">to</span>
-                          <Select
-                            value={slot.end}
-                            onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {timeSlots.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+
+                          {/* Time selects row */}
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Select
+                              value={slot.start}
+                              onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
+                            >
+                              <SelectTrigger className="w-full sm:w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map((time) => (
+                                  <SelectItem key={time} value={time}>
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-gray-500 text-sm">to</span>
+                            <Select
+                              value={slot.end}
+                              onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
+                            >
+                              <SelectTrigger className="w-full sm:w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map((time) => (
+                                  <SelectItem key={time} value={time}>
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
                           {/* Recurring vs Date-Specific Toggle */}
                           <Select
                             value={slot.isRecurring !== false ? 'recurring' : 'specific'}
@@ -835,7 +841,7 @@ export default function AvailabilityPage() {
                               updateSlotRecurringMode(day.key, index, value === 'recurring');
                             }}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-full sm:w-32">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -855,7 +861,7 @@ export default function AvailabilityPage() {
                                 updateSlotSpecificDate(day.key, index, value);
                                 // If validation failed, the input will be cleared by the controlled component
                               }}
-                              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm"
                               min={new Date().toISOString().split('T')[0]}
                             />
                           )}
@@ -877,12 +883,12 @@ export default function AvailabilityPage() {
                               }
                             }}
                           >
-                            <SelectTrigger className="w-24">
+                            <SelectTrigger className="w-full sm:w-24">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="solo">Solo</SelectItem>
-                              <SelectItem 
+                              <SelectItem
                                 value="group"
                                 disabled={(() => {
                                   const validTiers = Object.entries(groupPricingTiers)

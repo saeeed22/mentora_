@@ -304,7 +304,7 @@ export default function ProfilePage() {
     setIsDeleting(true);
     try {
       const result = await users.deleteAccount();
-      
+
       if (result.success) {
         toast.success('Account deleted successfully');
         auth.logout();
@@ -337,12 +337,12 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-brand-dark">Profile</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Profile</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage your profile information
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           {isEditing ? (
             <>
               <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
@@ -360,7 +360,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Profile Picture & Basic Info */}
         <Card className="rounded-2xl shadow-sm lg:col-span-1">
           <CardHeader className="text-center">
@@ -748,8 +748,8 @@ export default function ProfilePage() {
                         min={0}
                         step={100}
                         value={mentorFormData.group_pricing[2]}
-                        onChange={(e) => setMentorFormData({ 
-                          ...mentorFormData, 
+                        onChange={(e) => setMentorFormData({
+                          ...mentorFormData,
                           group_pricing: { ...mentorFormData.group_pricing, 2: parseFloat(e.target.value) || 0 }
                         })}
                         className="w-40"
@@ -777,8 +777,8 @@ export default function ProfilePage() {
                         min={0}
                         step={100}
                         value={mentorFormData.group_pricing[3]}
-                        onChange={(e) => setMentorFormData({ 
-                          ...mentorFormData, 
+                        onChange={(e) => setMentorFormData({
+                          ...mentorFormData,
                           group_pricing: { ...mentorFormData.group_pricing, 3: parseFloat(e.target.value) || 0 }
                         })}
                         className="w-40"
@@ -806,8 +806,8 @@ export default function ProfilePage() {
                         min={0}
                         step={100}
                         value={mentorFormData.group_pricing[5]}
-                        onChange={(e) => setMentorFormData({ 
-                          ...mentorFormData, 
+                        onChange={(e) => setMentorFormData({
+                          ...mentorFormData,
                           group_pricing: { ...mentorFormData.group_pricing, 5: parseFloat(e.target.value) || 0 }
                         })}
                         className="w-40"
@@ -835,8 +835,8 @@ export default function ProfilePage() {
                         min={0}
                         step={100}
                         value={mentorFormData.group_pricing[10]}
-                        onChange={(e) => setMentorFormData({ 
-                          ...mentorFormData, 
+                        onChange={(e) => setMentorFormData({
+                          ...mentorFormData,
                           group_pricing: { ...mentorFormData.group_pricing, 10: parseFloat(e.target.value) || 0 }
                         })}
                         className="w-40"
@@ -915,7 +915,7 @@ export default function ProfilePage() {
               {isMentor && <li>Your mentor profile will be permanently removed</li>}
             </ul>
           </div>
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={isDeleting}>

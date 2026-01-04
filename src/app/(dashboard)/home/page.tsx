@@ -144,7 +144,7 @@ export default function DashboardHomePage() {
         const experience = mentor.mentor_profile?.experience_years ?? 0;
         const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
         const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
-        
+
         return experience > 0 && hasHeadline && hasSkills;
       });
 
@@ -257,10 +257,10 @@ export default function DashboardHomePage() {
     <div className="space-y-6">
       {/* Welcome Header */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-brand-dark">
+        <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">
           Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {displayName}👋!
         </h1>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600">
           {user.role === 'mentor'
             ? "Ready to inspire and guide today's learners?"
             : "Ready to learn and grow today?"
@@ -270,10 +270,10 @@ export default function DashboardHomePage() {
 
       {/* Let's Start with Basics & Profile Strength - Only for Mentees */}
       {user.role === 'mentee' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Let's Start with the Basics Card or Upcoming Sessions */}
           {showBasicsCard ? (
-            <Card className="rounded-2xl shadow-sm lg:col-span-2 relative">
+            <Card className="rounded-2xl shadow-sm md:col-span-2 relative">
               <button
                 onClick={dismissBasicsCard}
                 className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded-lg transition-colors"
@@ -328,7 +328,7 @@ export default function DashboardHomePage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="rounded-2xl shadow-sm lg:col-span-2">
+            <Card className="rounded-2xl shadow-sm md:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-xl">Upcoming Sessions</CardTitle>
@@ -348,7 +348,7 @@ export default function DashboardHomePage() {
                   </div>
                 ) : displaySessions.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                    <Calendar className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mb-4" />
                     <p>No upcoming sessions</p>
                     <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
                       <Link href="/explore">Book a session</Link>
@@ -356,12 +356,12 @@ export default function DashboardHomePage() {
                   </div>
                 ) : (
                   displaySessions.map((session) => (
-                    <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
-                      <Avatar className="h-12 w-12">
+                    <div key={session.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                         <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
                         <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
                       </Avatar>
-                      <div className="ml-4 flex-1">
+                      <div className="sm:ml-4 flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
                           {session.status === 'pending' && (
@@ -382,16 +382,16 @@ export default function DashboardHomePage() {
                         </div>
                       </div>
                       {session.canJoin ? (
-                        <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
+                        <Button size="sm" className="bg-brand hover:bg-brand/90 w-full sm:w-auto" onClick={() => router.push(`/session/${session.id}`)}>
                           <Video className="w-4 h-4 mr-1" />
                           Join
                         </Button>
                       ) : session.status === 'pending' ? (
-                        <Button size="sm" variant="outline" disabled>
+                        <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
                           Awaiting Approval
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline" disabled>
+                        <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
                           Join opens 15 min before
                         </Button>
                       )}
@@ -463,7 +463,7 @@ export default function DashboardHomePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Upcoming Sessions - Only show here for mentors */}
         {user.role !== 'mentee' && (
           <Card className="rounded-2xl shadow-sm lg:col-span-2">
@@ -486,7 +486,7 @@ export default function DashboardHomePage() {
                 </div>
               ) : displaySessions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <Calendar className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mb-4" />
                   <p>No upcoming sessions</p>
                   <Button className="mt-4 bg-brand hover:bg-brand/90" size="sm" asChild>
                     <Link href={user.role === 'mentor' ? '/availability' : '/explore'}>
@@ -496,12 +496,12 @@ export default function DashboardHomePage() {
                 </div>
               ) : (
                 displaySessions.map((session) => (
-                  <div key={session.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
-                    <Avatar className="h-12 w-12">
+                  <div key={session.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                       <AvatarImage src={session.mentorAvatar} alt={session.mentorName} />
                       <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
                     </Avatar>
-                    <div className="ml-4 flex-1">
+                    <div className="sm:ml-4 flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
                       <p className="text-sm text-gray-600">{session.topic}</p>
                       <div className="flex items-center mt-1 text-xs text-gray-500">
@@ -509,7 +509,7 @@ export default function DashboardHomePage() {
                         {session.date} at {session.time}
                       </div>
                     </div>
-                    <Button size="sm" className="bg-brand hover:bg-brand/90" onClick={() => router.push(`/session/${session.id}`)}>
+                    <Button size="sm" className="bg-brand hover:bg-brand/90 w-full sm:w-auto" onClick={() => router.push(`/session/${session.id}`)}>
                       <Video className="w-4 h-4 mr-1" />
                       Join
                     </Button>

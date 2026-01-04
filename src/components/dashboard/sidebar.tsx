@@ -97,7 +97,7 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
   };
 
   return (
-    <div className="w-20 h-screen bg-white shadow-sm border-r border-gray-200 flex flex-col items-center pt-2 sticky top-0">
+    <div className="hidden lg:flex w-20 h-screen bg-white shadow-sm border-r border-gray-200 flex-col items-center pt-2 sticky top-0">
 
       {/* Navigation (icons with labels below) */}
       <nav className="w-full px-2 py-4 space-y-2">
