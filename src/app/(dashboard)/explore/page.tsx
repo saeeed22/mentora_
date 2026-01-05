@@ -189,16 +189,14 @@ export default function ExplorePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Explore Mentors</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">
-            Discover experienced professionals ready to guide your journey
-          </p>
-        </div>
-        <div className="text-sm text-gray-500">
+      <div className="text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Explore Mentors</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
+          Discover experienced professionals ready to guide your journey
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
           {mentors.length} mentors
-        </div>
+        </p>
       </div>
 
       {/* Search and Filters */}

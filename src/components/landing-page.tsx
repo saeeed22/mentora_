@@ -371,8 +371,8 @@ const LandingPage = () => {
         </div>
 
         {/* Mentors */}
-        <div className="flex flex-col items-center justify-center mb-8 px-4 pt-12 pb-8">
-          <h1 className="mb-10 text-gray-900 text-2xl sm:text-3xl font-bold text-center">Discover top mentors</h1>
+        <div className="flex flex-col items-center justify-center mb-8 px-4 pt-2 pb-2">
+          <h1 className="mb-6 text-gray-900 text-2xl sm:text-3xl font-bold text-center">Discover top mentors</h1>
         </div>
 
         <div className="px-4 md:px-12 lg:px-20">

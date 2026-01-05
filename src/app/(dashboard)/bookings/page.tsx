@@ -9,6 +9,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -204,8 +211,11 @@ export default function BookingsPage() {
     const currentUser = auth.getCurrentUser();
     if (!currentUser) return;
 
+    // Determine who to message based on current user's role
+    const otherUserId = currentUser.role === 'mentor' ? booking.mentee_id : booking.mentor_id;
+
     // Create or get conversation via backend API
-    const result = await messagingApi.createConversation([currentUser.id, booking.mentor_id]);
+    const result = await messagingApi.createConversation([currentUser.id, otherUserId]);
     if (result.success && result.data) {
       router.push(`/messages?c=${result.data.id}`);
     }
@@ -422,25 +432,60 @@ export default function BookingsPage() {
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Filters - Dropdown on mobile, Tabs on desktop */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isUserMentor ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        {/* Mobile: Dropdown */}
+        <div className="lg:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {isUserMentor && (
+                <SelectItem value="pending">
+                  Pending ({pendingBookings.length})
+                </SelectItem>
+              )}
+              <SelectItem value="upcoming">
+                Upcoming ({upcomingBookings.length})
+              </SelectItem>
+              <SelectItem value="past">
+                Past ({pastBookings.length})
+              </SelectItem>
+              <SelectItem value="cancelled">
+                Cancelled ({cancelledBookings.length})
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Tabs */}
+        <TabsList className={`hidden lg:grid w-full ${isUserMentor ? 'grid-cols-4' : 'grid-cols-3'} h-auto p-1 gap-1 bg-gray-100`}>
           {isUserMentor && (
-            <TabsTrigger value="pending" className="flex items-center space-x-2">
-              <Clock className="w-4 h-4" />
-              <span>Pending ({pendingBookings.length})</span>
+            <TabsTrigger
+              value="pending"
+              className="text-sm px-4 py-2 data-[state=active]:bg-white"
+            >
+              Pending ({pendingBookings.length})
             </TabsTrigger>
           )}
-          <TabsTrigger value="upcoming" className="flex items-center space-x-2">
-            <Clock className="w-4 h-4" />
-            <span>Upcoming ({upcomingBookings.length})</span>
+          <TabsTrigger
+            value="upcoming"
+            className="text-sm px-4 py-2 data-[state=active]:bg-white"
+          >
+            Upcoming ({upcomingBookings.length})
           </TabsTrigger>
-          <TabsTrigger value="past" className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4" />
-            <span>Past ({pastBookings.length})</span>
+          <TabsTrigger
+            value="past"
+            className="text-sm px-4 py-2 data-[state=active]:bg-white"
+          >
+            Past ({pastBookings.length})
           </TabsTrigger>
-          <TabsTrigger value="cancelled" className="flex items-center space-x-2">
-            <span>Cancelled ({cancelledBookings.length})</span>
+          <TabsTrigger
+            value="cancelled"
+            className="text-sm px-4 py-2 data-[state=active]:bg-white"
+          >
+            Cancelled ({cancelledBookings.length})
           </TabsTrigger>
         </TabsList>
 

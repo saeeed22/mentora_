@@ -353,9 +353,39 @@ export default function ProfilePage() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)} className="bg-brand hover:bg-brand/90">
-              Edit Profile
-            </Button>
+            <>
+              <Button onClick={() => setIsEditing(true)} className="bg-brand hover:bg-brand/90">
+                Edit Profile
+              </Button>
+              {/* Logout Button - Only visible on mobile/tablet */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="lg:hidden">
+                    Logout
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to logout? You'll need to sign in again to access your dashboard.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        await auth.logout();
+                        router.push('/');
+                      }}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Logout
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
       </div>
