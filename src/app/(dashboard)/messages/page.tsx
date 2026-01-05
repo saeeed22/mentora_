@@ -212,28 +212,47 @@ export default function MessagesPage() {
 
       setConversations(conversationList);
 
-      // Check if a conversation ID is specified in the URL
+      // Check if a conversation ID is specified in the URL (PRIORITY 1)
       const c = searchParams.get('c');
       if (c) {
         const found = conversationList.find(conv => conv.id === c);
         if (found) {
           setSelectedConversation(found);
+          // Save to localStorage for future visits
+          localStorage.setItem('mentora_last_conversation', c);
           if (!found.isSuggestedMentor) {
             loadMessages(found.id);
           }
         }
-      } else if (conversationList.length > 0) {
-        // For mentors, auto-select first actual conversation. For mentees, don't auto-select.
-        const currentUser = auth.getCurrentUser();
-        if (currentUser?.role === 'mentor') {
-          const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
-          setSelectedConversation(firstConv);
-          if (!firstConv.isSuggestedMentor) {
-            loadMessages(firstConv.id);
+      } else {
+        // No URL parameter - check localStorage (PRIORITY 2)
+        const lastConversationId = localStorage.getItem('mentora_last_conversation');
+        if (lastConversationId) {
+          const found = conversationList.find(conv => conv.id === lastConversationId);
+          if (found) {
+            setSelectedConversation(found);
+            if (!found.isSuggestedMentor) {
+              loadMessages(found.id);
+            }
+            // Exit early - we found the last conversation
+            setIsLoading(false);
+            return;
           }
-        } else {
-          // Mentees: show placeholder until a conversation is chosen
-          setSelectedConversation(null);
+        }
+
+        // No URL and no valid localStorage - use defaults (PRIORITY 3)
+        if (conversationList.length > 0) {
+          const currentUser = auth.getCurrentUser();
+          if (currentUser?.role === 'mentor') {
+            const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
+            setSelectedConversation(firstConv);
+            if (!firstConv.isSuggestedMentor) {
+              loadMessages(firstConv.id);
+            }
+          } else {
+            // Mentees: show placeholder until a conversation is chosen
+            setSelectedConversation(null);
+          }
         }
       }
 
@@ -543,6 +562,10 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conversation: ConversationOrMentor) => {
     setSelectedConversation(conversation);
+    // Save to localStorage for future visits (unless it's a suggested mentor)
+    if (!conversation.isSuggestedMentor) {
+      localStorage.setItem('mentora_last_conversation', conversation.id);
+    }
     // Optimistically clear unread locally when opening the conversation
     setConversations(prev => prev.map(c => c.id === conversation.id ? { ...c, unread_count: 0 } : c));
     if (!conversation.isSuggestedMentor) {

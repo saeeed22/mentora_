@@ -31,31 +31,31 @@ interface MentorCardProps {
   isViewerMentor?: boolean; // Whether the viewer is a mentor
 }
 
-const MentorCard: React.FC<MentorCardProps> = ({ 
-  mentor, 
-  showBookButton = false, 
+const MentorCard: React.FC<MentorCardProps> = ({
+  mentor,
+  showBookButton = false,
   currentUserId = null,
-  isViewerMentor = false 
+  isViewerMentor = false
 }) => {
   const router = useRouter();
-  
+
   // Determine if this is the viewer's own card
   const isOwnCard = currentUserId && mentor.id === currentUserId;
-  
+
   // Determine button text and behavior
   // Case 1: Viewing own card -> "View My Profile"
   // Case 2: Mentor viewing another mentor -> "View Profile" (no booking)
   // Case 3: Mentee or logged out -> "Book Now" (normal flow)
-  const buttonText = isOwnCard 
-    ? 'View My Profile' 
+  const buttonText = isOwnCard
+    ? 'View My Profile'
     : (isViewerMentor ? 'View Profile' : 'Book Now');
-  
+
   const buttonIcon = isOwnCard || isViewerMentor ? null : <Calendar className="w-4 h-4 mr-2" />;
 
   const handleBookNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check if user is logged in
     const currentUser = auth.getCurrentUser();
     if (!currentUser) {
@@ -63,13 +63,13 @@ const MentorCard: React.FC<MentorCardProps> = ({
       router.push('/login');
       return;
     }
-    
+
     // If viewing own card, go to profile page
     if (isOwnCard) {
       router.push('/profile');
       return;
     }
-    
+
     // Go to mentor detail page
     if (mentor.id) {
       router.push(`/mentor/${mentor.id}`);
@@ -78,7 +78,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
   const cardContent = (
     <div
-      className="rounded-xl border border-gray-200 bg-white shadow-sm w-[280px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer"
+      className={`rounded-xl border ${isOwnCard ? 'border-brand/30 bg-brand-light/5' : 'border-gray-200 bg-white'} shadow-sm w-[280px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer`}
     >
 
       {/* Image */}
@@ -119,7 +119,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
               </p>
             </div>
           )}
-          
+
           {/* Company */}
           {(mentor.current_company || mentor.company) && (
             <div className="flex items-center gap-2 pl-0.5">
@@ -152,10 +152,10 @@ const MentorCard: React.FC<MentorCardProps> = ({
               {mentor.experience} years
             </p>
           </div>
-          
+
           {/* Vertical Divider */}
           <div className="w-px h-10 bg-gray-300"></div>
-          
+
           {mentor.sessions > 0 ? (
             <div>
               <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
@@ -189,7 +189,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
       {/* Book Now Button - Only shown when showBookButton is true */}
       {showBookButton && (
         <div className="p-3 m-2 mt-0">
-          <Button 
+          <Button
             onClick={handleBookNow}
             className="w-full bg-brand hover:bg-brand/90"
             size="sm"

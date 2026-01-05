@@ -346,7 +346,7 @@ export default function MentorProfilePage() {
       // Create or get existing conversation with mentor
       const result = await messagingApi.createConversation([currentUser.id, mentorId]);
       if (result.success && result.data) {
-        router.push(`/messages?conversation=${result.data.id}`);
+        router.push(`/messages?c=${result.data.id}`);
       } else {
         // Still try to navigate to messages
         router.push('/messages');
@@ -1002,8 +1002,8 @@ export default function MentorProfilePage() {
                                 setSelectedSlotGroupTier(groupTier);
                               }}
                               className={`p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
-                                  ? 'border-brand bg-brand-light/10'
-                                  : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-brand bg-brand-light/10'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
                               <div className="flex items-center justify-between mb-1">
