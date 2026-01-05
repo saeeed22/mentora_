@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { Briefcase, MessageSquare } from 'lucide-react'; 
+import { Briefcase, MessageSquare } from 'lucide-react';
 
 interface TestimonialCardProps {
   testimonial: {
@@ -53,28 +53,9 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial }) => {
 
       {/* Review Text */}
       <div className="p-5">
-        <p className="text-gray-900 flex-grow mb-4 leading-relaxed text-sm md:text-base">
+        <p className="text-gray-900 flex-grow leading-relaxed text-sm md:text-base">
           {testimonial.reviewText}
         </p>
-      </div>
-
-      {/* Reviewer Info */}
-      <div className="flex items-center mt-auto p-5 pt-4 border-t border-gray-100">
-        <Image
-          src={testimonial.reviewerImage}
-          alt={testimonial.reviewerName}
-          width={32}
-          height={32}
-          className="rounded-full object-cover mr-4"
-        />
-        <div>
-          <p className="font-semibold text-gray-800 text-sm md:text-base">
-            {testimonial.reviewerName}
-          </p>
-          <p className="text-gray-500 leading-tight text-xs md:text-sm">
-            {testimonial.reviewerRole}, {testimonial.reviewerCompany}
-          </p>
-        </div>
       </div>
     </div>
   );

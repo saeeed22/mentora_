@@ -69,17 +69,17 @@ export function AgoraVideoCall({
     useEffect(() => {
         const initAgora = async () => {
             try {
-                console.log('[Agora] Initializing with:', { 
-                    appId: appId ? 'SET' : 'MISSING', 
-                    channel, 
+                console.log('[Agora] Initializing with:', {
+                    appId: appId ? 'SET' : 'MISSING',
+                    channel,
                     uid,
-                    tokenLength: token?.length 
+                    tokenLength: token?.length
                 });
-                
+
                 // Create client
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
                 clientRef.current = client;
-                
+
                 console.log('[Agora] Client created');
 
                 // Set up event handlers
@@ -294,19 +294,19 @@ export function AgoraVideoCall({
             </div>
 
             {/* Controls */}
-            <div className="bg-gray-800 rounded-b-2xl p-4">
-                <div className="flex items-center justify-center gap-3">
+            <div className="bg-gray-800 rounded-b-2xl p-3 sm:p-4 pb-6 sm:pb-4">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                     {/* Mic toggle */}
                     <Button
                         variant={isAudioMuted ? 'destructive' : 'secondary'}
                         size="lg"
-                        className="rounded-full w-14 h-14"
+                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
                         onClick={toggleAudio}
                     >
                         {isAudioMuted ? (
-                            <MicOff className="w-6 h-6" />
+                            <MicOff className="w-4 h-4 sm:w-6 sm:h-6" />
                         ) : (
-                            <Mic className="w-6 h-6" />
+                            <Mic className="w-4 h-4 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
@@ -314,13 +314,13 @@ export function AgoraVideoCall({
                     <Button
                         variant={isVideoMuted ? 'destructive' : 'secondary'}
                         size="lg"
-                        className="rounded-full w-14 h-14"
+                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
                         onClick={toggleVideo}
                     >
                         {isVideoMuted ? (
-                            <VideoOff className="w-6 h-6" />
+                            <VideoOff className="w-4 h-4 sm:w-6 sm:h-6" />
                         ) : (
-                            <Video className="w-6 h-6" />
+                            <Video className="w-4 h-4 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
@@ -328,13 +328,13 @@ export function AgoraVideoCall({
                     <Button
                         variant={isScreenSharing ? 'default' : 'secondary'}
                         size="lg"
-                        className="rounded-full w-14 h-14"
+                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
                         onClick={toggleScreenShare}
                     >
                         {isScreenSharing ? (
-                            <MonitorOff className="w-6 h-6" />
+                            <MonitorOff className="w-4 h-4 sm:w-6 sm:h-6" />
                         ) : (
-                            <Monitor className="w-6 h-6" />
+                            <Monitor className="w-4 h-4 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
@@ -342,9 +342,9 @@ export function AgoraVideoCall({
                     <Button
                         variant="secondary"
                         size="lg"
-                        className="rounded-full w-14 h-14"
+                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
                     >
-                        <Users className="w-6 h-6" />
+                        <Users className="w-4 h-4 sm:w-6 sm:h-6" />
                         <span className="sr-only">{remoteUsers.length + 1} participants</span>
                     </Button>
 
@@ -352,10 +352,10 @@ export function AgoraVideoCall({
                     <Button
                         variant="destructive"
                         size="lg"
-                        className="rounded-full w-14 h-14 ml-4"
+                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14 sm:ml-4"
                         onClick={leaveCall}
                     >
-                        <PhoneOff className="w-6 h-6" />
+                        <PhoneOff className="w-4 h-4 sm:w-6 sm:h-6" />
                     </Button>
                 </div>
             </div>

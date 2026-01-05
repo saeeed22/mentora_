@@ -239,36 +239,36 @@ export default function BookingsPage() {
     return (
       <Card key={booking.id} className="rounded-2xl shadow-sm">
         <CardContent className="p-4 sm:p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start space-x-4">
-              <Avatar className="h-12 w-12">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div className="flex items-start space-x-3 sm:space-x-4 flex-1">
+              <Avatar className="h-12 w-12 flex-shrink-0">
                 <AvatarImage src={isUserMentor ? booking.menteeAvatar : booking.mentorAvatar} alt={displayName} />
                 <AvatarFallback className="bg-brand-light/20 text-brand">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{displayName}</h3>
-                <p className="text-sm text-gray-600 mb-1">{displayTitle}</p>
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
+                <p className="text-sm text-gray-600 mb-1 truncate">{displayTitle}</p>
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <Badge variant="outline" className="text-xs">
                     {booking.duration_minutes} min session
                   </Badge>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center flex-wrap gap-2">
               {getStatusBadge(booking.status)}
               {/* Show "Ready to Join" indicator for confirmed sessions that haven't ended */}
               {booking.status === 'confirmed' && !sessionEnded && (
-                <Badge variant="default" className="bg-green-600">
+                <Badge variant="default" className="bg-green-600 whitespace-nowrap">
                   Ready to Join
                 </Badge>
               )}
               {showActions && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

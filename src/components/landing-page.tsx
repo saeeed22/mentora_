@@ -142,7 +142,7 @@ const LandingPage = () => {
   useEffect(() => {
     (async () => {
       setMentorsLoading(true);
-      const result = await mentorsApi.searchMentors({ page: 1, limit: 4 });
+      const result = await mentorsApi.searchMentors({ page: 1, limit: 12 });
 
       if (result.success && result.data && result.data.data.length > 0) {
         // Filter mentors who meet listing criteria (same as browse page):
@@ -153,7 +153,7 @@ const LandingPage = () => {
           const experience = mentor.mentor_profile?.experience_years ?? 0;
           const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
           const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
-          
+
           return experience > 0 && hasHeadline && hasSkills;
         });
 
@@ -189,8 +189,8 @@ const LandingPage = () => {
     (async () => {
       setTestimonialsLoading(true);
       // Filter mentors by category (using skills as categories)
-      const result = await mentorsApi.searchMentors({ 
-        page: 1, 
+      const result = await mentorsApi.searchMentors({
+        page: 1,
         limit: 3,
         skills: activeCategory !== "Product Research" ? [activeCategory] : undefined
       });
@@ -279,24 +279,24 @@ const LandingPage = () => {
             <div className="tab-content">
               {activeTab === 'mentee' && (
                 <div className="fade-in">
-                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
+                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-3xl md:text-4xl">
                     Reach your goals faster with <span className="text-brand">Expert Mentors</span>
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-lg md:text-lg lg:max-w-xl">
                     Accelerate your professional growth with 1:1 expert guidance from
-                     mentors in our community.
+                    mentors in our community.
                   </p>
                 </div>
               )}
               {activeTab === 'mentor' && (
                 <div className="fade-in">
-                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-4xl md:text-5xl">
+                  <h1 className="mb-6 text-brand-dark font-bold leading-tight max-w-2xl mx-auto text-balance text-3xl md:text-4xl">
                     Your next chapter, made possible by <span className="text-brand">Mentoring</span>
                   </h1>
                   <p className="px-6 mx-auto mb-8 text-gray-600 max-w-xl md:text-lg">
                     Build confidence as a leader, grow your network, and define your legacy in the community.
                   </p>
-     
+
                 </div>
               )}
             </div>
@@ -372,29 +372,29 @@ const LandingPage = () => {
 
         {/* Mentors */}
         <div className="flex flex-col items-center justify-center mb-8 px-4 pt-12 pb-8">
-          <h1 className="mb-10 text-gray-900 text-4xl font-bold text-center">Discover top mentors</h1>
+          <h1 className="mb-10 text-gray-900 text-2xl sm:text-3xl font-bold text-center">Discover top mentors</h1>
         </div>
 
         <div className="px-4 md:px-12 lg:px-20">
-          <div className={mentors.length <= 2 ? "flex justify-center mb-8" : "overflow-x-auto mb-8 scrollbar-hide"}>
-            {mentorsLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
-              </div>
-            ) : mentors.length > 0 ? (
-              <div className="flex space-x-8 pb-4 items-stretch">
+          {mentorsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
+            </div>
+          ) : mentors.length > 0 ? (
+            <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex gap-6 pb-4">
                 {mentors.map((mentor, index) => (
-                  <div key={mentor.id || index} className="flex-shrink-0">
+                  <div key={mentor.id || index} className="flex-shrink-0 w-[280px] sm:w-[300px]">
                     <MentorCard mentor={mentor} showBookButton={true} />
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No mentors available yet. Check back soon!</p>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No mentors available yet. Check back soon!</p>
+            </div>
+          )}
           <div className="flex justify-center mb-12">
             <Button variant="outline" className="px-4 border-[#05051B] hover:text-white hover:bg-[#05051B]" asChild>
               <Link href="/browse">Explore all</Link>
@@ -405,35 +405,35 @@ const LandingPage = () => {
         {/* Stats Section */}
         <div className="px-4 md:px-12 lg:px-20 py-10 bg-gradient-to-r from-red-50 via-pink-200 to-blue-300 my-18">
           <div className="flex flex-col items-center text-center">
-            <h1 className="mb-10 text-gray-900 text-4xl font-bold">Why Choose Mentora</h1>
+            <h1 className="mb-10 text-gray-900 text-2xl sm:text-3xl font-bold">Why Choose Mentora</h1>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-4 lg:gap-6">
             <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
-              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
-                <img src="/Expert_Mentor.png" alt="Expert Industry Mentors" className="h-16 w-16 object-contain" />
+              <div className="mx-auto mb-4 flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-500">
+                <img src="/Expert_Mentor.png" alt="Expert Industry Mentors" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               </div>
-              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Expert Industry Mentors</h3>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-lg sm:text-xl">Expert Industry Mentors</h3>
               <p className="mt-2 text-gray-700 text-center">Connect with experienced industry professionals and KU alumni who provide practical guidance based on real-world experience.</p>
             </div>
             <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
-              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
-                <img src="/realtimecommunication.png" alt="Real-Time Communication" className="h-16 w-16 object-contain" />
+              <div className="mx-auto mb-4 flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-500">
+                <img src="/realtimecommunication.png" alt="Real-Time Communication" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               </div>
-              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Real-Time Communication</h3>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-lg sm:text-xl">Real-Time Communication</h3>
               <p className="mt-2 text-gray-700 text-center">Engage in seamless mentorship through in-app messaging and live video sessions.</p>
             </div>
             <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
-              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
-                <img src="/1on1Session.png" alt="Structured Sessions" className="h-16 w-16 object-contain" />
+              <div className="mx-auto mb-4 flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-500">
+                <img src="/1on1Session.png" alt="Structured Sessions" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               </div>
-              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Structured 1-on-1 Sessions</h3>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-lg sm:text-xl">Structured 1-on-1 Sessions</h3>
               <p className="mt-2 text-gray-700 text-center">Book focused mentorship sessions with clear objectives, scheduled timelines, and meaningful outcomes.</p>
             </div>
             <div className="bg-white/40 p-6 py-18 rounded-2xl shadow-md backdrop-blur-lg transition-colors duration-200 hover:bg-white/60">
-              <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-blue-500">
-                <img src="/Smart_Mentor_Discovery.png" alt="Smart Mentor Discovery" className="h-16 w-16 object-contain" />
+              <div className="mx-auto mb-4 flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-500">
+                <img src="/Smart_Mentor_Discovery.png" alt="Smart Mentor Discovery" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               </div>
-              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-2xl">Smart Mentor Discovery</h3>
+              <h3 className="text-violet-900 font-extrabold text-center mb-3 text-lg sm:text-xl">Smart Mentor Discovery</h3>
               <p className="mt-2 text-gray-700 text-center">Find the right mentor using skill-based search, domain filters, availability, and verified profiles.</p>
             </div>
           </div>
@@ -442,19 +442,27 @@ const LandingPage = () => {
         {/* Testimonials */}
         <div className="px-4 md:px-12 lg:px-20 py-12">
           <div className="text-center mb-12">
-            <h1 className="text-gray-900 text-4xl font-bold">Loved by our community</h1>
+            <h1 className="text-gray-900 text-2xl sm:text-3xl font-bold">Loved by our community</h1>
           </div>
-          <div className="flex flex-wrap justify-center gap-5 mb-12">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={activeCategory === category ? "default" : "outline"}
-                className={activeCategory === category ? "bg-gray-900 text-white" : "border-gray-300 text-gray-700 hover:text-white hover:bg-[#05051B] "}
-                onClick={() => setActiveCategory(category)}
-              >
-                {category}
-              </Button>
-            ))}
+          {/* Category Filters - Horizontal scroll on mobile, wrap on desktop */}
+          <div className="mb-12 -mx-4 px-4 md:mx-0 md:px-0">
+            <div className="overflow-x-auto md:overflow-visible scrollbar-hide">
+              <div className="flex md:flex-wrap md:justify-center gap-2 md:gap-3 min-w-max md:min-w-0">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={activeCategory === category ? "default" : "outline"}
+                    size="sm"
+                    className={activeCategory === category
+                      ? "bg-gray-900 text-white hover:bg-gray-800 whitespace-nowrap"
+                      : "border-gray-300 text-gray-700 hover:text-white hover:bg-[#05051B] whitespace-nowrap"}
+                    onClick={() => setActiveCategory(category)}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
           {testimonialsLoading ? (
             <div className="flex justify-center py-12">
@@ -470,11 +478,11 @@ const LandingPage = () => {
         </div>
 
         {/* CTA */}
-        <div className="px-4 md:px-12 lg:px-20 py-20 text-center">
+        <div className="px-4 md:px-12 lg:px-20 text-center" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
           <div className="flex flex-col items-center">
-            <h1 className="max-w-3xl mb-8 text-3xl md:text-4xl font-bold">Ready to accelerate your growth?</h1>
+            <h1 className="max-w-3xl mb-8 text-2xl sm:text-3xl md:text-4xl font-bold">Ready to accelerate your growth?</h1>
             <p className="max-w-2xl mb-8 text-gray-600 leading-8 text-base md:text-lg">
-              Join hundreds of students and professionals who are already growing their careers with expert mentorship. 
+              Join hundreds of students and professionals who are already growing their careers with expert mentorship.
               Start your journey today - it's free to sign up and explore.
             </p>
           </div>

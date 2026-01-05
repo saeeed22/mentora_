@@ -115,13 +115,13 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
   backendSlots.forEach(slot => {
     // Parse the ISO string and extract date/time components to avoid timezone shifts
     const startDate = new Date(slot.start_at);
-    
+
     // Use UTC methods to extract the date to prevent timezone conversion issues
     const year = startDate.getUTCFullYear();
     const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
     const day = String(startDate.getUTCDate()).padStart(2, '0');
     const dateKey = `${year}-${month}-${day}`; // YYYY-MM-DD in UTC
-    
+
     const timeStr = startDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -131,16 +131,16 @@ function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): Availabil
     if (!slotsByDate.has(dateKey)) {
       slotsByDate.set(dateKey, []);
     }
-    
+
     // Use group_tier if available, fall back to is_group for backwards compatibility
     // Solo = null or 1, Group = 2, 3, 4, 5, 10, etc.
     const groupTier = slot.group_tier !== undefined ? slot.group_tier : (slot.is_group ? null : null);
     const isGroup = groupTier !== null && groupTier !== undefined && groupTier > 1 ? true : false;
     console.log('[convertBackendSlots] Processing slot:', { time: timeStr, group_tier: slot.group_tier, groupTier, isGroup });
-    
-    slotsByDate.get(dateKey)!.push({ 
-      display: timeStr, 
-      iso: slot.start_at, 
+
+    slotsByDate.get(dateKey)!.push({
+      display: timeStr,
+      iso: slot.start_at,
       isGroup,
       groupTier
     });
@@ -404,45 +404,50 @@ export default function MentorProfilePage() {
       <div className="bg-white">
         {/* Cover Background with decorative circles */}
         <div
-          className="h-48 w-full relative overflow-hidden"
+          className="h-32 sm:h-48 w-full relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #5eead4 100%)',
+            background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #5eead4 100)',
           }}
         >
           {/* Decorative circles */}
-          <div className="absolute top-0 left-20 w-40 h-40 rounded-full bg-green-700 opacity-30" />
-          <div className="absolute bottom-0 right-20 w-60 h-60 rounded-full bg-brand-light opacity-20" />
+          <div className="absolute top-0 left-10 sm:left-20 w-24 h-24 sm:w-40 sm:h-40 rounded-full bg-green-700 opacity-30" />
+          <div className="absolute bottom-0 right-10 sm:right-20 w-32 h-32 sm:w-60 sm:h-60 rounded-full bg-brand-light opacity-20" />
         </div>
 
         {/* Profile Content */}
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col lg:flex-row gap-8 -mt-20 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 -mt-16 sm:-mt-20 relative">
             {/* Left Section - Profile Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                 {/* Avatar */}
-                <Avatar className="h-44 w-44 border-8 border-white shadow-xl flex-shrink-0">
+                <Avatar className="h-32 w-32 sm:h-40 sm:w-40 lg:h-44 lg:w-44 border-4 sm:border-8 border-white shadow-xl flex-shrink-0">
                   <AvatarImage src={mentor.avatar} alt={mentor.name} />
-                  <AvatarFallback className="bg-brand-light/20 text-brand text-4xl">
+                  <AvatarFallback className="bg-brand-light/20 text-brand text-2xl sm:text-3xl lg:text-4xl">
                     {getInitials(mentor.name)}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Name and Title */}
-                <div className="flex-1 pt-24">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h1 className="text-3xl font-bold text-brand-dark mb-1">
+                <div className="flex-1 w-full pt-0 sm:pt-16 lg:pt-24">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
+                    <div className="min-w-0">
+                      <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark mb-1 truncate">
                         {mentor.name}
                       </h1>
-                      <p className="text-lg text-gray-700">
-                        {mentor.title} <span className="text-gray-500">at</span>{' '}
-                        <span className="font-medium">{mentor.company}</span>
+                      <p className="text-base sm:text-lg text-gray-700">
+                        <span className="block sm:inline truncate">{mentor.title}</span>
+                        {mentor.company && (
+                          <>
+                            {' '}<span className="text-gray-500 hidden sm:inline">at</span>{' '}
+                            <span className="font-medium block sm:inline truncate">{mentor.company}</span>
+                          </>
+                        )}
                       </p>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="icon"
@@ -996,16 +1001,14 @@ export default function MentorProfilePage() {
                                 setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
                                 setSelectedSlotGroupTier(groupTier);
                               }}
-                              className={`p-3 rounded-lg border-2 text-left transition-colors ${
-                                selectedSlotIndex === idx
+                              className={`p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
                                   ? 'border-brand bg-brand-light/10'
                                   : 'border-gray-200 hover:border-gray-300'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <span className={`text-sm font-semibold ${
-                                  selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
-                                }`}>
+                                <span className={`text-sm font-semibold ${selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
+                                  }`}>
                                   {time}
                                 </span>
                                 {isGroup ? (
