@@ -136,6 +136,9 @@ const LandingPage = () => {
   const [testimonials, setTestimonials] = useState<typeof dummyTestimonials>([]);
   const [testimonialsLoading, setTestimonialsLoading] = useState(false);
   const [getStartedEmail, setGetStartedEmail] = useState('');
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const mentorScrollRef = React.useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   // Fetch real mentors from API
@@ -205,6 +208,40 @@ const LandingPage = () => {
       setTestimonialsLoading(false);
     })();
   }, [activeCategory]);
+
+  // Check scroll position for mentor slider
+  const checkScrollPosition = () => {
+    if (mentorScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = mentorScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  // Update scroll position check when mentors load
+  useEffect(() => {
+    checkScrollPosition();
+  }, [mentors]);
+
+  // Scroll mentor slider left
+  const scrollMentorsLeft = () => {
+    if (mentorScrollRef.current) {
+      mentorScrollRef.current.scrollBy({
+        left: -320, // Scroll by one card width + gap
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Scroll mentor slider right
+  const scrollMentorsRight = () => {
+    if (mentorScrollRef.current) {
+      mentorScrollRef.current.scrollBy({
+        left: 320, // Scroll by one card width + gap
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handleGetStarted = () => {
     if (getStartedEmail) {
@@ -375,19 +412,48 @@ const LandingPage = () => {
           <h1 className="mb-6 text-gray-900 text-2xl sm:text-3xl font-bold text-center">Discover top mentors</h1>
         </div>
 
-        <div className="px-4 md:px-12 lg:px-20">
+        <div className="px-4 md:px-12 lg:px-20 relative">
           {mentorsLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full"></div>
             </div>
           ) : mentors.length > 0 ? (
-            <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="flex gap-6 pb-4">
-                {mentors.map((mentor, index) => (
-                  <div key={mentor.id || index} className="flex-shrink-0 w-[280px] sm:w-[300px]">
-                    <MentorCard mentor={mentor} showBookButton={true} />
-                  </div>
-                ))}
+            <div className="relative">
+              {/* Left Arrow */}
+              {canScrollLeft && (
+                <button
+                  onClick={scrollMentorsLeft}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-all duration-200 border border-gray-200 hidden md:flex items-center justify-center"
+                  aria-label="Scroll left"
+                >
+                  <ArrowLeft className="h-5 w-5 text-gray-700" />
+                </button>
+              )}
+
+              {/* Right Arrow */}
+              {canScrollRight && (
+                <button
+                  onClick={scrollMentorsRight}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-all duration-200 border border-gray-200 hidden md:flex items-center justify-center"
+                  aria-label="Scroll right"
+                >
+                  <ArrowRight className="h-5 w-5 text-gray-700" />
+                </button>
+              )}
+
+              <div
+                ref={mentorScrollRef}
+                onScroll={checkScrollPosition}
+                className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
+                <div className="flex gap-6 pb-4">
+                  {mentors.map((mentor, index) => (
+                    <div key={mentor.id || index} className="flex-shrink-0 w-[280px] sm:w-[300px]">
+                      <MentorCard mentor={mentor} showBookButton={true} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (

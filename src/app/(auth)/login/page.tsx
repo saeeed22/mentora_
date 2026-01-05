@@ -84,17 +84,17 @@ export default function LoginPage() {
             <p className="mt-2 text-gray-600">Sign in to your account</p>
           </div>
 
-        {/* Login Card */}
-        <Card className="rounded-2xl shadow-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-semibold">Welcome back</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Social Login - Temporarily disabled */}
-            {/* <div className="grid grid-cols-2 gap-4">
+          {/* Login Card */}
+          <Card className="rounded-2xl shadow-md">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-semibold">Welcome back</CardTitle>
+              <CardDescription>
+                Enter your credentials to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Social Login - Temporarily disabled */}
+              {/* <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 className="w-full"
@@ -131,50 +131,49 @@ export default function LoginPage() {
               </div>
             </div> */}
 
-            {/* Login Form */}
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  {...form.register('email')}
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
+              {/* Login Form */}
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {error && (
+                  <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                    {error}
+                  </div>
                 )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    {...form.register('password')}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    {...form.register('email')}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
+                  )}
                 </div>
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-600">{form.formState.errors.password.message}</p>
-                )}
-              </div>
 
-              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      {...form.register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-red-600">{form.formState.errors.password.message}</p>
+                  )}
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember"
@@ -185,34 +184,27 @@ export default function LoginPage() {
                     Remember me
                   </label>
                 </div>
-                <Link
-                  href="/reset-password"
-                  className="text-sm text-brand hover:text-brand/90"
+
+                <Button
+                  type="submit"
+                  className="w-full bg-brand hover:bg-brand/90"
+                  disabled={isLoading}
                 >
-                  Forgot password?
+                  {isLoading ? 'Signing in...' : 'Sign in'}
+                </Button>
+              </form>
+
+              <div className="text-center">
+                <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
+                <Link
+                  href="/signup"
+                  className="text-sm text-brand hover:text-brand/90 font-medium"
+                >
+                  Sign up
                 </Link>
               </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-brand hover:bg-brand/90"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign in'}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
-              <Link
-                href="/signup"
-                className="text-sm text-brand hover:text-brand/90 font-medium"
-              >
-                Sign up
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

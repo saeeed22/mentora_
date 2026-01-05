@@ -45,6 +45,7 @@ export default function BrowseMentorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('all');
   const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'price'>('rating');
+  const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
   const [mentors, setMentors] = useState<MentorCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -75,21 +76,40 @@ export default function BrowseMentorsPage() {
         const experience = mentor.mentor_profile?.experience_years ?? 0;
         const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
         const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
-        
+
         return experience > 0 && hasHeadline && hasSkills;
       });
 
       const cardData = qualifiedMentors.map(backendMentorToCard);
 
       // Filter by search query on client side
-      const filtered = searchQuery
+      let filtered = searchQuery
         ? cardData.filter(m =>
           m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
         )
         : cardData;
 
-      if (filtered.length === 0 && !searchQuery) {
+      // Filter by price range on client side
+      if (priceRange !== 'all') {
+        filtered = filtered.filter(m => {
+          const price = m.price_per_session_solo || 0;
+          switch (priceRange) {
+            case '0-1000':
+              return price >= 0 && price <= 1000;
+            case '1000-2000':
+              return price > 1000 && price <= 2000;
+            case '2000-5000':
+              return price > 2000 && price <= 5000;
+            case '5000+':
+              return price > 5000;
+            default:
+              return true;
+          }
+        });
+      }
+
+      if (filtered.length === 0 && !searchQuery && priceRange === 'all') {
         setMentors([]);
         setSkills([]);
       } else {
@@ -139,12 +159,12 @@ export default function BrowseMentorsPage() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedSkill, sortBy]);
+  }, [searchQuery, selectedSkill, sortBy, priceRange]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <LandingHeader />
-      
+
       <div className="flex-1 px-4 md:px-8 lg:px-16 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -170,7 +190,7 @@ export default function BrowseMentorsPage() {
                 Sign up now to book sessions and start your mentorship journey
               </p>
             </div>
-            <Button 
+            <Button
               className="bg-brand hover:bg-brand/90 whitespace-nowrap"
               asChild
             >
@@ -209,6 +229,20 @@ export default function BrowseMentorsPage() {
                       {skill}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+
+              {/* Price Range Filter */}
+              <Select value={priceRange} onValueChange={(v) => setPriceRange(v as typeof priceRange)}>
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="All Prices" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="0-1000">PKR 0 - 1,000</SelectItem>
+                  <SelectItem value="1000-2000">PKR 1,000 - 2,000</SelectItem>
+                  <SelectItem value="2000-5000">PKR 2,000 - 5,000</SelectItem>
+                  <SelectItem value="5000+">PKR 5,000+</SelectItem>
                 </SelectContent>
               </Select>
 

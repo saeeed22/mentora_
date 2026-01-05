@@ -67,6 +67,7 @@ export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNiche, setSelectedNiche] = useState('all');
   const [sortBy, setSortBy] = useState<'experience' | 'price'>('experience');
+  const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
   const [mentors, setMentors] = useState<MentorCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -131,12 +132,31 @@ export default function ExplorePage() {
       }
 
       // Filter by search query on client side
-      const filtered = searchQuery
+      let filtered = searchQuery
         ? cardData.filter(m =>
           m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
         )
         : cardData;
+
+      // Filter by price range on client side
+      if (priceRange !== 'all') {
+        filtered = filtered.filter(m => {
+          const price = m.price_per_session_solo || 0;
+          switch (priceRange) {
+            case '0-1000':
+              return price >= 0 && price <= 1000;
+            case '1000-2000':
+              return price > 1000 && price <= 2000;
+            case '2000-5000':
+              return price > 2000 && price <= 5000;
+            case '5000+':
+              return price > 5000;
+            default:
+              return true;
+          }
+        });
+      }
 
       // Move logged-in mentor to the top if they exist in the list and user is a mentor
       let finalList = filtered;
@@ -184,7 +204,7 @@ export default function ExplorePage() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedNiche, sortBy]);
+  }, [searchQuery, selectedNiche, sortBy, priceRange]);
 
   return (
     <div className="space-y-6">
@@ -230,6 +250,19 @@ export default function ExplorePage() {
                       {niche.label}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={priceRange} onValueChange={(v) => setPriceRange(v as typeof priceRange)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Price Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="0-1000">PKR 0 - 1,000</SelectItem>
+                  <SelectItem value="1000-2000">PKR 1,000 - 2,000</SelectItem>
+                  <SelectItem value="2000-5000">PKR 2,000 - 5,000</SelectItem>
+                  <SelectItem value="5000+">PKR 5,000+</SelectItem>
                 </SelectContent>
               </Select>
 
