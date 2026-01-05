@@ -317,21 +317,26 @@ export default function BookingsPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Content Section with improved layout */}
+          <div className="space-y-4">
+            {/* Session Notes with better formatting */}
             {booking.notes && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-1">Session Notes</h4>
-                <p className="text-sm text-gray-600">{booking.notes}</p>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <h4 className="font-semibold text-gray-900 text-sm mb-2">Session Notes</h4>
+                <p className="text-sm text-gray-700 leading-relaxed break-words">
+                  {booking.notes}
+                </p>
               </div>
             )}
 
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
-                <span>{formatDate(booking.start_at)}</span>
+            {/* Date and Time - Better mobile layout */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                <span className="font-medium">{formatDate(booking.start_at)}</span>
               </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-2" />
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 flex-shrink-0 text-gray-400" />
                 <span>{formatTime(booking.start_at)} ({booking.duration_minutes} min)</span>
               </div>
             </div>
