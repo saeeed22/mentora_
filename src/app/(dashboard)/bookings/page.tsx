@@ -214,10 +214,20 @@ export default function BookingsPage() {
     // Determine who to message based on current user's role
     const otherUserId = currentUser.role === 'mentor' ? booking.mentee_id : booking.mentor_id;
 
-    // Create or get conversation via backend API
-    const result = await messagingApi.createConversation([currentUser.id, otherUserId]);
-    if (result.success && result.data) {
-      router.push(`/messages?c=${result.data.id}`);
+    try {
+      // Create or get conversation via backend API
+      const result = await messagingApi.createConversation([currentUser.id, otherUserId]);
+      if (result.success && result.data) {
+        router.push(`/messages?c=${result.data.id}`);
+      } else {
+        // API call succeeded but returned error - navigate to messages page
+        console.error('[Bookings] Failed to create conversation');
+        router.push('/messages');
+      }
+    } catch (error) {
+      // API call failed - still navigate to messages page
+      console.error('[Bookings] Error creating conversation:', error);
+      router.push('/messages');
     }
   };
 
