@@ -342,25 +342,25 @@ export default function ProfilePage() {
             Manage your profile information
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="flex flex-row gap-2 sm:gap-3">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+              <Button variant="outline" onClick={handleCancel} disabled={isSaving} className="flex-1 sm:flex-initial">
                 Cancel
               </Button>
-              <Button onClick={handleSave} className="bg-brand hover:bg-brand/90" disabled={isSaving}>
+              <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 flex-1 sm:flex-initial" disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </>
           ) : (
             <>
-              <Button onClick={() => setIsEditing(true)} className="bg-brand hover:bg-brand/90">
+              <Button onClick={() => setIsEditing(true)} className="bg-brand hover:bg-brand/90 flex-1 sm:flex-initial">
                 Edit Profile
               </Button>
               {/* Logout Button - Only visible on mobile/tablet */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="lg:hidden">
+                  <Button variant="destructive" className="lg:hidden flex-1 sm:flex-initial">
                     Logout
                   </Button>
                 </AlertDialogTrigger>

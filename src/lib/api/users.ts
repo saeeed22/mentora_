@@ -83,9 +83,9 @@ export const users = {
                     if (xhr.status === 200 || xhr.status === 201) {
                         try {
                             const response = JSON.parse(xhr.responseText);
-                            resolve({ 
-                                success: true, 
-                                data: response.data || { avatar_url: response.avatar_url } 
+                            resolve({
+                                success: true,
+                                data: response.data || { avatar_url: response.avatar_url }
                             });
                         } catch {
                             resolve({ success: false, error: 'Invalid response from server' });

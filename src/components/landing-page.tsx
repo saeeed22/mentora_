@@ -191,20 +191,39 @@ const LandingPage = () => {
   useEffect(() => {
     (async () => {
       setTestimonialsLoading(true);
-      // Filter mentors by category (using skills as categories)
-      const result = await mentorsApi.searchMentors({
-        page: 1,
-        limit: 3,
-        skills: activeCategory !== "Product Research" ? [activeCategory] : undefined
-      });
 
-      if (result.success && result.data && result.data.data.length > 0) {
-        // Show random testimonials from dummy pool
-        setTestimonials(getRandomTestimonials(3));
-      } else {
-        // Fallback to random testimonials if no mentors found
-        setTestimonials(getRandomTestimonials(3));
+      // Filter dummy testimonials by category
+      let filteredTestimonials = dummyTestimonials;
+
+      // Map categories to job title keywords
+      const categoryKeywords: Record<string, string[]> = {
+        "Product": ["Product Manager", "Product"],
+        "Engineering": ["Software Engineer", "Engineer"],
+        "Design": ["UX Designer", "Designer", "Design"],
+        "Marketing": ["Marketing Manager", "Marketing"],
+        "Data Science": ["Data Scientist", "Data"],
+        "Product Research": ["Research Lead", "Research"]
+      };
+
+      const keywords = categoryKeywords[activeCategory] || [];
+
+      if (keywords.length > 0) {
+        filteredTestimonials = dummyTestimonials.filter(testimonial =>
+          keywords.some(keyword =>
+            testimonial.mentorJobTitle.toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
       }
+
+      // If no matches found, show all testimonials
+      if (filteredTestimonials.length === 0) {
+        filteredTestimonials = dummyTestimonials;
+      }
+
+      // Show up to 3 testimonials, randomized
+      const shuffled = [...filteredTestimonials].sort(() => 0.5 - Math.random());
+      setTestimonials(shuffled.slice(0, 3));
+
       setTestimonialsLoading(false);
     })();
   }, [activeCategory]);
@@ -571,9 +590,6 @@ const LandingPage = () => {
                 <Link href="/browse">Browse Mentors</Link>
               </Button>
             </div>
-            <p className="text-sm text-gray-500 mt-2">
-              No credit card required • Free to join • Cancel anytime
-            </p>
           </div>
         </div>
 

@@ -168,13 +168,13 @@ export default function BrowseMentorsPage() {
       <div className="flex-1 px-4 md:px-8 lg:px-16 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
+          <div className="text-center sm:text-left">
             <h1 className="text-3xl md:text-4xl font-bold text-brand-dark">Browse Mentors</h1>
             <p className="text-gray-600 mt-2">
               Discover experienced professionals ready to guide your journey
             </p>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 text-center sm:text-right">
             {mentors.length} mentors available
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function BrowseMentorsPage() {
               className="bg-brand hover:bg-brand/90 whitespace-nowrap"
               asChild
             >
-              <Link href="/signup">Get Started</Link>
+              <Link href="/signup">Signup Now</Link>
             </Button>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function BrowseMentorsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center sm:justify-items-stretch">
               {mentors.map((mentor) => (
                 <div key={mentor.id}>
                   <MentorCard mentor={mentor} showBookButton={true} />
