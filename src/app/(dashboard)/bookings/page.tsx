@@ -46,18 +46,23 @@ export default function BookingsPage() {
   const [activeTab, setActiveTab] = useState(isUserMentor ? 'pending' : 'upcoming');
   const [userBookings, setUserBookings] = useState<BookingWithUserInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackTarget, setFeedbackTarget] = useState<BookingWithUserInfo | null>(null);
 
-  const loadBookings = async () => {
+  const loadBookings = async (isRefresh = false) => {
     const currentUser = auth.getCurrentUser();
     if (!currentUser) {
       router.push('/login');
       return;
     }
 
-    setLoading(true);
-    const result = await bookingsApi.getMyBookings({ limit: 100 });
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    const result = await bookingsApi.getMyBookings({ limit: 30 });
 
     if (result.success && result.data) {
       // Fetch user info for each booking
@@ -91,21 +96,23 @@ export default function BookingsPage() {
 
       setUserBookings(bookingsWithInfo);
     }
-    setLoading(false);
+    if (isRefresh) {
+      setRefreshing(false);
+    } else {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadBookings();
-
-    // Auto-refresh bookings every 30 seconds to catch status changes
-    const refreshInterval = setInterval(() => {
-      console.log('[Bookings] Auto-refreshing bookings...');
-      loadBookings();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(refreshInterval);
+    // Auto-refresh removed for better performance
+    // Users can manually refresh using the refresh button
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleRefresh = () => {
+    loadBookings(true);
+  };
 
   if (!currentUser) return null;
 
@@ -440,11 +447,35 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">My Bookings</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-1">
-          Manage your mentoring sessions and appointments
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">My Bookings</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Manage your mentoring sessions and appointments
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="gap-2"
+        >
+          <svg
+            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
 
       {/* Filters - Dropdown on mobile, Tabs on desktop */}

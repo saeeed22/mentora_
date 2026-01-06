@@ -60,18 +60,13 @@ export default function DashboardHomePage() {
     if (currentUser) {
       loadUpcomingSessions(currentUser);
 
-      // Auto-refresh bookings every 30 seconds to catch status changes
-      const refreshInterval = setInterval(() => {
-        console.log('[Home] Auto-refreshing bookings...');
-        loadUpcomingSessions(currentUser);
-      }, 30000); // 30 seconds
+      // Auto-refresh removed for better performance
+      // Data will refresh when user navigates back to this page
 
       // Load suggested mentors from API
       if (currentUser.role === 'mentee') {
         loadSuggestedMentors();
       }
-
-      return () => clearInterval(refreshInterval);
     }
   }, []);
 
@@ -80,7 +75,7 @@ export default function DashboardHomePage() {
     try {
       // Get confirmed and pending bookings
       const result = await bookingsApi.getMyBookings({
-        limit: 100
+        limit: 30
       });
 
       if (result.success && result.data) {

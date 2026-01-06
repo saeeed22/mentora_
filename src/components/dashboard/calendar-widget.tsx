@@ -33,7 +33,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
     setIsLoading(true);
 
     // Fetch bookings from real API
-    const result = await bookingsApi.getMyBookings({ limit: 100 });
+    const result = await bookingsApi.getMyBookings({ limit: 30 });
 
     if (result.success && result.data) {
       // Enhance bookings with participant names
@@ -144,7 +144,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
     for (const template of availabilityTemplates) {
       // Skip templates without weekday (date-specific ones)
       if (template.weekday === null || template.weekday === undefined) continue;
-      
+
       // Convert backend weekday (0=Mon) to JS weekday (0=Sun)
       // Backend: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
       // JS:      0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
