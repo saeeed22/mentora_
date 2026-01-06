@@ -52,7 +52,6 @@ export default function LandingFooter() {
               <div className="space-y-3 col-span-2 sm:col-span-1">
                 <h4 className="font-semibold text-sm sm:text-base text-gray-900">Support</h4>
                 <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
-                  <li><Link href="/contact" className="hover:text-gray-900 transition-colors inline-block">FAQs</Link></li>
                   <li><Link href="/terms" className="hover:text-gray-900 transition-colors inline-block">Terms of service</Link></li>
                   <li><Link href="/privacy" className="hover:text-gray-900 transition-colors inline-block">Privacy policy</Link></li>
                 </ul>

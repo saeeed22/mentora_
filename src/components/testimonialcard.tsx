@@ -23,14 +23,16 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial }) => {
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col">
       {/* Mentor Info */}
-      <div className="flex items-center p-5 rounded-t-xl bg-gray-100 h-32">
-        <Image
-          src={testimonial.mentorImage}
-          alt={testimonial.mentorName}
-          width={48}
-          height={48}
-          className="rounded-full object-cover mr-3"
-        />
+      <div className="flex items-start gap-3 p-4 rounded-t-xl bg-gray-100">
+        <div className="relative flex-shrink-0">
+          <Image
+            src={testimonial.mentorImage}
+            alt={testimonial.mentorName}
+            width={48}
+            height={48}
+            className="rounded-full object-cover object-top w-12 h-12"
+          />
+        </div>
         <div className="flex-grow">
           <div className="flex items-baseline mb-1">
             <h6 className="text-gray-900 mr-2 font-semibold">{testimonial.mentorName}</h6>
@@ -52,7 +54,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial }) => {
       </div>
 
       {/* Review Text */}
-      <div className="p-5">
+      <div className="p-4">
         <p className="text-gray-900 flex-grow leading-relaxed text-sm md:text-base">
           {testimonial.reviewText}
         </p>

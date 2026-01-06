@@ -36,7 +36,7 @@ interface LandingMentor {
 const dummyTestimonials = [
   // Data Science
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Dr. Zainab Malik.jpg",
     mentorName: "Dr. Zainab Malik",
     mentorCountryCode: "PK",
     mentorJobTitle: "Data Scientist",
@@ -50,7 +50,7 @@ const dummyTestimonials = [
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Dr. Imran Shah.jpg",
     mentorName: "Dr. Imran Shah",
     mentorCountryCode: "US",
     mentorJobTitle: "Senior Data Scientist",
@@ -64,7 +64,7 @@ const dummyTestimonials = [
     reviewerCompany: "NED University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Nadia Iqbal.jpg",
     mentorName: "Nadia Iqbal",
     mentorCountryCode: "PK",
     mentorJobTitle: "Lead Data Scientist",
@@ -77,23 +77,10 @@ const dummyTestimonials = [
     reviewerRole: "Analytics Student",
     reviewerCompany: "IBA Karachi",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Kamran Ali",
-    mentorCountryCode: "US",
-    mentorJobTitle: "Data Science Manager",
-    mentorCompany: "Tesla",
-    mentorSessions: 267,
-    mentorReviews: 71,
-    reviewText: "Kamran's guidance on feature engineering and model deployment was invaluable. He shared industry best practices that I couldn't find in any textbook. Highly recommend for anyone serious about data science!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Zara Khan",
-    reviewerRole: "Computer Science Student",
-    reviewerCompany: "LUMS",
-  },
+
   // Product Management
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Ahmed Hassan.jpg",
     mentorName: "Ahmed Hassan",
     mentorCountryCode: "US",
     mentorJobTitle: "Product Manager",
@@ -107,7 +94,7 @@ const dummyTestimonials = [
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Sana Tariq.jpg",
     mentorName: "Sana Tariq",
     mentorCountryCode: "PK",
     mentorJobTitle: "Senior Product Manager",
@@ -121,7 +108,7 @@ const dummyTestimonials = [
     reviewerCompany: "IBA Karachi",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Jennifer Wong.jpg",
     mentorName: "Jennifer Wong",
     mentorCountryCode: "US",
     mentorJobTitle: "Product Lead",
@@ -134,23 +121,10 @@ const dummyTestimonials = [
     reviewerRole: "Product Intern",
     reviewerCompany: "Tech Startup",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Rizwan Ahmed",
-    mentorCountryCode: "PK",
-    mentorJobTitle: "VP of Product",
-    mentorCompany: "Daraz",
-    mentorSessions: 176,
-    mentorReviews: 45,
-    reviewText: "Rizwan shared invaluable lessons from scaling products in emerging markets. His strategic thinking and execution frameworks have been game-changers for my career. Grateful for his mentorship!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Maryam Khan",
-    reviewerRole: "Business Analyst",
-    reviewerCompany: "Karachi University",
-  },
+
   // Design
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Sara Raza.jpeg",
     mentorName: "Sara Raza",
     mentorCountryCode: "PK",
     mentorJobTitle: "UX Designer",
@@ -164,7 +138,7 @@ const dummyTestimonials = [
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Aisha Farooq.jpg",
     mentorName: "Aisha Farooq",
     mentorCountryCode: "US",
     mentorJobTitle: "Senior UX Designer",
@@ -178,7 +152,7 @@ const dummyTestimonials = [
     reviewerCompany: "Indus Valley School",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/David Park.jpg",
     mentorName: "David Park",
     mentorCountryCode: "US",
     mentorJobTitle: "Product Designer",
@@ -191,23 +165,10 @@ const dummyTestimonials = [
     reviewerRole: "UI/UX Student",
     reviewerCompany: "FAST University",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Hira Jamil",
-    mentorCountryCode: "PK",
-    mentorJobTitle: "Lead Designer",
-    mentorCompany: "Shopify",
-    mentorSessions: 142,
-    mentorReviews: 37,
-    reviewText: "Hira helped me transition from graphic design to UX design. Her guidance on user research and usability testing was practical and immediately applicable. She's an inspiring mentor!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Fahad Iqbal",
-    reviewerRole: "Design Graduate",
-    reviewerCompany: "NCA Lahore",
-  },
+
   // Engineering
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Fatima Khan.jpg",
     mentorName: "Fatima Khan",
     mentorCountryCode: "PK",
     mentorJobTitle: "Software Engineer",
@@ -221,7 +182,7 @@ const dummyTestimonials = [
     reviewerCompany: "FAST University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Usman Ghani.jpg",
     mentorName: "Usman Ghani",
     mentorCountryCode: "US",
     mentorJobTitle: "Senior Software Engineer",
@@ -235,7 +196,7 @@ const dummyTestimonials = [
     reviewerCompany: "NUST",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Carlos Rodriguez.jpg",
     mentorName: "Carlos Rodriguez",
     mentorCountryCode: "US",
     mentorJobTitle: "Staff Engineer",
@@ -248,23 +209,10 @@ const dummyTestimonials = [
     reviewerRole: "Junior Developer",
     reviewerCompany: "Systems Limited",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Shahzad Malik",
-    mentorCountryCode: "PK",
-    mentorJobTitle: "Principal Engineer",
-    mentorCompany: "Atlassian",
-    mentorSessions: 198,
-    mentorReviews: 49,
-    reviewText: "Shahzad's mentorship on backend development and API design was exceptional. He helped me understand scalability and performance optimization in ways that textbooks never could. Truly grateful!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Rahim Shah",
-    reviewerRole: "Full Stack Developer",
-    reviewerCompany: "Karachi University",
-  },
+
   // Marketing
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Michael Chen.jpg",
     mentorName: "Michael Chen",
     mentorCountryCode: "US",
     mentorJobTitle: "Marketing Manager",
@@ -278,7 +226,7 @@ const dummyTestimonials = [
     reviewerCompany: "Tech Startup Co",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Rabia Siddiqui.jpg",
     mentorName: "Rabia Siddiqui",
     mentorCountryCode: "PK",
     mentorJobTitle: "Digital Marketing Lead",
@@ -292,7 +240,7 @@ const dummyTestimonials = [
     reviewerCompany: "IBA Karachi",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Emily Davis.jpg",
     mentorName: "Emily Davis",
     mentorCountryCode: "US",
     mentorJobTitle: "Growth Marketing Manager",
@@ -305,23 +253,10 @@ const dummyTestimonials = [
     reviewerRole: "Marketing Coordinator",
     reviewerCompany: "E-commerce Startup",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Sadia Akhtar",
-    mentorCountryCode: "PK",
-    mentorJobTitle: "Brand Marketing Manager",
-    mentorCompany: "Nestle",
-    mentorSessions: 178,
-    mentorReviews: 44,
-    reviewText: "Sadia taught me the art of brand storytelling and positioning. Her experience in FMCG marketing provided practical insights I could apply immediately. She's a fantastic mentor!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Nida Farooq",
-    reviewerRole: "Business Graduate",
-    reviewerCompany: "Karachi University",
-  },
+
   // Product Research
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Dr. Ayesha Siddiqui.jpg",
     mentorName: "Dr. Ayesha Siddiqui",
     mentorCountryCode: "PK",
     mentorJobTitle: "Research Lead",
@@ -335,7 +270,7 @@ const dummyTestimonials = [
     reviewerCompany: "Karachi University",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Dr. James Wilson.jpg",
     mentorName: "Dr. James Wilson",
     mentorCountryCode: "US",
     mentorJobTitle: "Principal Researcher",
@@ -349,7 +284,7 @@ const dummyTestimonials = [
     reviewerCompany: "LUMS",
   },
   {
-    mentorImage: "/mentor_fallback_2.jpg",
+    mentorImage: "/images/testimonials/Dr. Samina Khalid.jpg",
     mentorName: "Dr. Samina Khalid",
     mentorCountryCode: "PK",
     mentorJobTitle: "UX Research Manager",
@@ -362,29 +297,10 @@ const dummyTestimonials = [
     reviewerRole: "UX Researcher",
     reviewerCompany: "FAST University",
   },
-  {
-    mentorImage: "/mentor_fallback_2.jpg",
-    mentorName: "Dr. Robert Chang",
-    mentorCountryCode: "US",
-    mentorJobTitle: "Senior Research Scientist",
-    mentorCompany: "DeepMind",
-    mentorSessions: 289,
-    mentorReviews: 76,
-    reviewText: "Dr. Chang's deep understanding of machine learning research and his ability to explain complex concepts simply is remarkable. He mentored me through my thesis and helped me think like a researcher. Truly inspiring!",
-    reviewerImage: "/mentor_fallback_2.jpg",
-    reviewerName: "Areeba Nasir",
-    reviewerRole: "MS Student",
-    reviewerCompany: "NED University",
-  },
+
 ];
 
 const logos = ['/google.png', '/slack.png', '/grammarly.png', '/microsoft.png', '/paypal.png', '/amazon.png', '/nasa.png', '/liftpro.png'];
-
-// Helper function to get random testimonials
-const getRandomTestimonials = (count: number) => {
-  const shuffled = [...dummyTestimonials].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-};
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('mentee');
@@ -455,7 +371,7 @@ const LandingPage = () => {
 
       // Map categories to job title keywords
       const categoryKeywords: Record<string, string[]> = {
-        "Product": ["Product Manager", "Product"],
+        "Product": ["Product Manager", "Product Lead"],
         "Engineering": ["Software Engineer", "Engineer"],
         "Design": ["UX Designer", "Designer", "Design"],
         "Marketing": ["Marketing Manager", "Marketing"],
@@ -478,10 +394,8 @@ const LandingPage = () => {
         filteredTestimonials = dummyTestimonials;
       }
 
-      // Show 2-4 testimonials randomly, different for each category
-      const randomCount = Math.floor(Math.random() * 3) + 2; // Random number between 2 and 4
-      const shuffled = [...filteredTestimonials].sort(() => 0.5 - Math.random());
-      setTestimonials(shuffled.slice(0, randomCount));
+      // Show ALL testimonials for the category (no random selection)
+      setTestimonials(filteredTestimonials);
 
       setTestimonialsLoading(false);
     })();
