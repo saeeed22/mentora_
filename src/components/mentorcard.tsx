@@ -78,42 +78,42 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
   const cardContent = (
     <div
-      className={`rounded-xl border ${isOwnCard ? 'border-brand/30 bg-brand-light/5' : 'border-gray-200 bg-white'} shadow-sm w-[280px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer`}
+      className={`rounded-xl border ${isOwnCard ? 'border-brand/30 bg-brand-light/5' : 'border-gray-200 bg-white'} shadow-sm w-[260px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer`}
     >
 
       {/* Image */}
-      <div className="relative mb-4">
+      <div className="relative">
         <Image
           src={mentor.image}
           alt={mentor.name}
-          width={280}
-          height={280}
-          className="rounded-t-xl object-cover"
+          width={260}
+          height={200}
+          className="rounded-t-xl object-cover w-full h-[200px]"
         />
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-grow flex flex-col">
-        <div className="flex items-baseline mb-3">
-          <h3 className="text-lg text-gray-900 mr-2 font-semibold">
+      <div className="p-3 flex-grow flex flex-col">
+        <div className="flex items-baseline mb-2">
+          <h3 className="text-base text-gray-900 mr-2 font-semibold">
             {mentor.name}
           </h3>
           <span className="text-sm text-gray-900 font-semibold">{mentor.countryCode}</span>
         </div>
 
         {mentor.groupEnabled && (
-          <div className="mb-3 inline-flex items-center gap-2 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Group sessions available
           </div>
         )}
 
         {/* Job Title and Company - Enhanced Styling */}
-        <div className="mb-3 p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+        <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
           {/* Designation */}
           {(mentor.current_role || mentor.jobTitle) && (
-            <div className="flex items-center gap-2 mb-1.5">
-              <Briefcase size={14} className="text-blue-600 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 mb-1">
+              <Briefcase size={13} className="text-blue-600 flex-shrink-0" />
               <p className="text-sm font-semibold text-gray-900">
                 {mentor.current_role || mentor.jobTitle}
               </p>
@@ -122,8 +122,8 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
           {/* Company */}
           {(mentor.current_company || mentor.company) && (
-            <div className="flex items-center gap-2 pl-0.5">
-              <Building2 size={14} className="text-indigo-600 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 pl-0.5">
+              <Building2 size={13} className="text-indigo-600 flex-shrink-0" />
               <p className="text-xs text-gray-700 font-medium">
                 {mentor.current_company || mentor.company}
               </p>
@@ -132,8 +132,8 @@ const MentorCard: React.FC<MentorCardProps> = ({
         </div>
 
         {/* Sessions and Reviews */}
-        <div className="flex items-center text-sm text-gray-700 mb-2">
-          <MessageSquare size={16} className="mr-2 text-gray-700" />
+        <div className="flex items-center text-sm text-gray-700 mb-1.5">
+          <MessageSquare size={15} className="mr-1.5 text-gray-700" />
           <p className="text-sm text-gray-700">
             {mentor.sessions} sessions ({mentor.reviews} reviews)
           </p>
@@ -143,29 +143,29 @@ const MentorCard: React.FC<MentorCardProps> = ({
       </div>
 
       {/* Footer Stats */}
-      <div className="bg-gray-100 p-3 rounded-b-xl mt-auto m-2">
+      <div className="bg-gray-100 p-2.5 rounded-b-xl mt-auto m-2">
         {/* Experience and Attendance/Status Row */}
-        <div className="flex justify-around items-center text-center mb-4">
+        <div className="flex justify-around items-center text-center mb-3">
           <div>
-            <h6 className="text-gray-500 text-sm font-medium">Experience</h6>
+            <h6 className="text-gray-500 text-xs font-medium">Experience</h6>
             <p className="text-gray-700 font-bold text-sm">
               {mentor.experience} years
             </p>
           </div>
 
           {/* Vertical Divider */}
-          <div className="w-px h-10 bg-gray-300"></div>
+          <div className="w-px h-8 bg-gray-300"></div>
 
           {mentor.sessions > 0 ? (
             <div>
-              <h6 className="text-gray-500 text-sm font-medium">Avg. Attendance</h6>
+              <h6 className="text-gray-500 text-xs font-medium">Avg. Attendance</h6>
               <p className="font-bold text-gray-700 text-sm">
                 {mentor.attendance}%
               </p>
             </div>
           ) : (
             <div>
-              <h6 className="text-gray-500 text-sm font-medium">Status</h6>
+              <h6 className="text-gray-500 text-xs font-medium">Status</h6>
               <p className="font-bold text-brand text-sm">
                 New Mentor
               </p>
@@ -175,8 +175,8 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
         {/* Price Row */}
         {mentor.price_per_session_solo && (
-          <div className="pt-3 border-t border-gray-200 text-center">
-            <h6 className="text-gray-500 text-sm font-medium mb-1">Price</h6>
+          <div className="pt-2.5 border-t border-gray-200 text-center">
+            <h6 className="text-gray-500 text-xs font-medium mb-0.5">Price</h6>
             <div className="flex items-center justify-center gap-1 font-bold text-gray-700 text-sm">
               <p className="text-xs text-gray-600 font-semibold">PKR</p>
               <p>{mentor.price_per_session_solo}</p>
@@ -188,7 +188,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
       {/* Book Now Button - Only shown when showBookButton is true */}
       {showBookButton && (
-        <div className="p-3 m-2 mt-0">
+        <div className="p-2.5 m-2 mt-0">
           <Button
             onClick={handleBookNow}
             className="w-full bg-brand hover:bg-brand/90"
