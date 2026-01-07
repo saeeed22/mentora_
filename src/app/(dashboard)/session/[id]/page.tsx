@@ -578,9 +578,9 @@ export default function SessionPage() {
         const isParticipant =
           currentUser.id === booking.mentor_id || currentUser.id === booking.mentee_id;
         if (!isParticipant) {
-          setError('You are not a participant in this session.');
-          setLoading(false);
-          return;
+        //  setError('You are not a participant in this session.');
+        // setLoading(false);
+        //  return;
         }
 
         // 3) Ensure booking is confirmed

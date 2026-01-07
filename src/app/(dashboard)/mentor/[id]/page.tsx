@@ -35,6 +35,12 @@ import { auth } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
 import { parseDateAsUTC } from '@/lib/datetime-utils';
 
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+
+
+const stripePromise = loadStripe("pk_test_51Jx2SZAvlR9VLW6RnoHSjzBsenAMiMuEZIzNLTDBwE2GVzfvYCDjX7a6zEB585vpPaNamjGteD8pRcgT7y7mDdti001Ox8L7nT");
+
 // MentorProfile interface (previously from mock-mentors)
 interface MentorProfile {
   id: string;
@@ -1132,16 +1138,20 @@ export default function MentorProfilePage() {
       </div>
 
       {/* Booking Dialog */}
-      <BookingDialog
-        open={bookingDialogOpen}
-        onOpenChange={setBookingDialogOpen}
-        mentorId={mentorId}
-        mentorName={mentor.name}
-        selectedDate={selectedDate}
-        selectedTimeSlot={selectedDateSlots?.slots[selectedSlotIndex ?? 0] ?? ''}
-        selectedSlotStartTime={selectedSlotStartTime}
-        selectedSlotIsGroup={selectedSlotIsGroup}
-      />
+      <Elements stripe={stripePromise}>
+        <BookingDialog
+                open={bookingDialogOpen}
+                onOpenChange={setBookingDialogOpen}
+                mentorId={mentorId}
+                mentorName={mentor.name}
+                selectedDate={selectedDate}
+                selectedTimeSlot={selectedDateSlots?.slots[selectedSlotIndex ?? 0] ?? ''}
+                selectedSlotStartTime={selectedSlotStartTime}
+                selectedSlotIsGroup={selectedSlotIsGroup}
+                selectedSlotGroupTier={selectedSlotGroupTier}
+              />
+      </Elements>
+      
     </div>
   );
 }
