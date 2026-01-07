@@ -9,6 +9,7 @@ import MentorCard from '@/components/mentorcard';
 import { mentorsApi } from '@/lib/api/mentors-api';
 import type { MentorDetailResponse } from '@/lib/types';
 import { auth } from '@/lib/api/auth';
+import { useDebounce } from 'use-debounce';
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ type MentorCardData = ReturnType<typeof backendMentorToCard>;
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300); // Debounce search by 300ms
   const [selectedNiche, setSelectedNiche] = useState('all');
   const [sortBy, setSortBy] = useState<'experience' | 'price'>('experience');
   const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
@@ -152,11 +154,11 @@ export default function ExplorePage() {
       filtered = filtered.filter(mentor => mentor.mentoring_niche === selectedNiche);
     }
 
-    // Filter by search query
-    if (searchQuery) {
+    // Filter by search query (using debounced value)
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(m =>
-        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
+        m.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        m.jobTitle.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
@@ -189,7 +191,7 @@ export default function ExplorePage() {
     }
 
     return filtered;
-  }, [rawMentors, selectedNiche, searchQuery, priceRange, isCurrentUserMentor, currentUserId]);
+  }, [rawMentors, selectedNiche, debouncedSearchQuery, priceRange, isCurrentUserMentor, currentUserId]);
 
   // Initial load
   useEffect(() => {

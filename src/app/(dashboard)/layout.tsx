@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
 import { BottomNav } from '@/components/dashboard/bottom-nav';
 import LandingFooter from '@/components/landing/footer';
+import { ReactQueryProvider } from '@/providers/react-query-provider';
 
 export default function DashboardLayout({
   children,
@@ -44,25 +45,27 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Global Header above sidebar */}
-      <Header user={user} />
+    <ReactQueryProvider>
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Global Header above sidebar */}
+        <Header user={user} />
 
-      {/* Content row: compact sidebar + page content */}
-      <div className="flex flex-1">
-        <Sidebar user={user} currentPath={pathname} />
+        {/* Content row: compact sidebar + page content */}
+        <div className="flex flex-1">
+          <Sidebar user={user} currentPath={pathname} />
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 pb-20 lg:pb-6">
-          {children}
-        </main>
+          {/* Main Content */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 pb-20 lg:pb-6">
+            {children}
+          </main>
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <BottomNav user={user} currentPath={pathname} />
+
+        {/* Footer */}
+        <LandingFooter />
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <BottomNav user={user} currentPath={pathname} />
-
-      {/* Footer */}
-      <LandingFooter />
-    </div>
+    </ReactQueryProvider>
   );
 }

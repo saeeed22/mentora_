@@ -184,17 +184,18 @@ export function BookingDialog({
       console.log('[Booking] API result:', bookingResult);
 
       if (!bookingResult.success || !bookingResult.data) {
-        throw new Error(bookingResult.error || 'Failed to create booking');
+        const errorMsg = !bookingResult.success ? (bookingResult as any).error : 'Failed to create booking';
+        throw new Error(errorMsg || 'Failed to create booking');
       }
 
       const bookingData = bookingResult.data;
 
       // Step 3: Stripe payment flow
-      if (paymentMethod === 'stripe' && bookingData.client_secret && stripe && elements) {
+      if (paymentMethod === 'stripe' && (bookingData as any).client_secret && stripe && elements) {
         const card = elements.getElement(CardElement);
         if (!card) throw new Error('Card element not found');
 
-        const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(bookingData.client_secret, {
+        const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment((bookingData as any).client_secret, {
           payment_method: { card },
         });
 
@@ -226,7 +227,8 @@ export function BookingDialog({
           window.location.href = payRes.data.payment_url;
           return;
         } else {
-          toast.error('Failed to initiate payment', { description: payRes.error || 'Please try again later.' });
+          const errorMsg = !payRes.success ? (payRes as any).error : 'Unknown error';
+          toast.error('Failed to initiate payment', { description: errorMsg || 'Please try again later.' });
         }
       }
 

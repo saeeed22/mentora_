@@ -189,7 +189,7 @@ export default function MentorProfilePage() {
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null); // ISO timestamp for booking
   const [selectedSlotIsGroup, setSelectedSlotIsGroup] = useState<boolean | null>(null);
-  const [selectedSlotGroupTier, setSelectedSlotGroupTier] = useState<number | null>(null);
+  const [selectedSlotGroupTier, setSelectedSlotGroupTier] = useState<1 | 2 | 3 | 5 | 10 | null>(null);
   const [showFullBio, setShowFullBio] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -959,7 +959,8 @@ export default function MentorProfilePage() {
                               setSelectedSlotIndex(0);
                               setSelectedSlotStartTime(slot.slotTimes[0]);
                               setSelectedSlotIsGroup(slot.slotGroupFlags ? !!slot.slotGroupFlags[0] : null);
-                              setSelectedSlotGroupTier(slot.slotGroupTiers ? slot.slotGroupTiers[0] ?? null : null);
+                              const tier = slot.slotGroupTiers?.[0] ?? null;
+                              setSelectedSlotGroupTier(tier === 1 || tier === 2 || tier === 3 || tier === 5 || tier === 10 ? tier : null);
                             }}
                             className={`p-3 rounded-lg border-2 text-center transition-colors ${selectedDate === slot.date
                               ? 'border-brand bg-brand-light/10'
@@ -1005,7 +1006,7 @@ export default function MentorProfilePage() {
                                 setSelectedSlotIndex(idx);
                                 setSelectedSlotStartTime(selectedDateSlots.slotTimes[idx]);
                                 setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
-                                setSelectedSlotGroupTier(groupTier);
+                                setSelectedSlotGroupTier(groupTier === 1 || groupTier === 2 || groupTier === 3 || groupTier === 5 || groupTier === 10 ? groupTier : null);
                               }}
                               className={`p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
                                 ? 'border-brand bg-brand-light/10'
@@ -1140,18 +1141,18 @@ export default function MentorProfilePage() {
       {/* Booking Dialog */}
       <Elements stripe={stripePromise}>
         <BookingDialog
-                open={bookingDialogOpen}
-                onOpenChange={setBookingDialogOpen}
-                mentorId={mentorId}
-                mentorName={mentor.name}
-                selectedDate={selectedDate}
-                selectedTimeSlot={selectedDateSlots?.slots[selectedSlotIndex ?? 0] ?? ''}
-                selectedSlotStartTime={selectedSlotStartTime}
-                selectedSlotIsGroup={selectedSlotIsGroup}
-                selectedSlotGroupTier={selectedSlotGroupTier}
-              />
+          open={bookingDialogOpen}
+          onOpenChange={setBookingDialogOpen}
+          mentorId={mentorId}
+          mentorName={mentor.name}
+          selectedDate={selectedDate}
+          selectedTimeSlot={selectedDateSlots?.slots[selectedSlotIndex ?? 0] ?? ''}
+          selectedSlotStartTime={selectedSlotStartTime}
+          selectedSlotIsGroup={selectedSlotIsGroup}
+          selectedSlotGroupTier={selectedSlotGroupTier}
+        />
       </Elements>
-      
+
     </div>
   );
 }

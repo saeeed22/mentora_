@@ -220,4 +220,14 @@ const MentorCard: React.FC<MentorCardProps> = ({
   return cardContent;
 };
 
-export default MentorCard;
+// Wrap with React.memo to prevent unnecessary re-renders
+export default React.memo(MentorCard, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if mentor ID or key props change
+  return (
+    prevProps.mentor.id === nextProps.mentor.id &&
+    prevProps.showBookButton === nextProps.showBookButton &&
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.isViewerMentor === nextProps.isViewerMentor
+  );
+});
+
