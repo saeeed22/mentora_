@@ -57,6 +57,7 @@ const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   attendance: mentor.stats?.total_sessions ? 95 : 0, // Default if has sessions, 0 if none
   experience: mentor.mentor_profile?.experience_years ?? 0,
   price_per_session_solo: mentor.mentor_profile?.price_per_session_solo,
+  mentoring_niche: mentor.mentor_profile?.mentoring_niche || undefined,
   isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
 });
@@ -68,7 +69,7 @@ export default function ExplorePage() {
   const [selectedNiche, setSelectedNiche] = useState('all');
   const [sortBy, setSortBy] = useState<'experience' | 'price'>('experience');
   const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
-  const [mentors, setMentors] = useState<MentorCardData[]>([]);
+  const [rawMentors, setRawMentors] = useState<MentorCardData[]>([]); // Raw data from API
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -79,7 +80,7 @@ export default function ExplorePage() {
   const loadMentors = async (reset = false) => {
     if (reset) {
       setPage(1);
-      setMentors([]);
+      setRawMentors([]);
     }
 
     setIsLoading(true);
@@ -100,17 +101,16 @@ export default function ExplorePage() {
         rawData: result.data.data,
       });
 
-      // Filter mentors who meet listing criteria:
+      // Filter mentors who meet basic listing criteria:
       // - Must have experience > 0 years
       // - Must have complete profile
-      // - Must match selected niche (if not 'all')
+      // NOTE: Niche, price, and search filters are now applied client-side via useMemo
       const qualifiedMentors = result.data.data.filter(mentor => {
         const experience = mentor.mentor_profile?.experience_years ?? 0;
         const hasHeadline = mentor.mentor_profile?.headline && mentor.mentor_profile.headline.length > 0;
         const hasSkills = mentor.mentor_profile?.skills && mentor.mentor_profile.skills.length > 0;
-        const matchesNiche = selectedNiche === 'all' || mentor.mentor_profile?.mentoring_niche === selectedNiche;
 
-        return experience > 0 && hasHeadline && hasSkills && matchesNiche;
+        return experience > 0 && hasHeadline && hasSkills;
       });
 
       const cardData = qualifiedMentors.map(backendMentorToCard);
@@ -131,58 +131,65 @@ export default function ExplorePage() {
         console.log('[Explore] Cards after experience sorting:', cardData.map(c => ({ name: c.name, experience: c.experience })));
       }
 
-      // Filter by search query on client side
-      let filtered = searchQuery
-        ? cardData.filter(m =>
-          m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : cardData;
-
-      // Filter by price range on client side
-      if (priceRange !== 'all') {
-        filtered = filtered.filter(m => {
-          const price = m.price_per_session_solo || 0;
-          switch (priceRange) {
-            case '0-1000':
-              return price >= 0 && price <= 1000;
-            case '1000-2000':
-              return price > 1000 && price <= 2000;
-            case '2000-5000':
-              return price > 2000 && price <= 5000;
-            case '5000+':
-              return price > 5000;
-            default:
-              return true;
-          }
-        });
-      }
-
-      // Move logged-in mentor to the top if they exist in the list and user is a mentor
-      let finalList = filtered;
-      if (isCurrentUserMentor && currentUserId) {
-        const currentMentorIndex = filtered.findIndex(m => m.id === currentUserId);
-        if (currentMentorIndex > 0) { // Only move if not already at top
-          const currentMentor = filtered[currentMentorIndex];
-          finalList = [currentMentor, ...filtered.slice(0, currentMentorIndex), ...filtered.slice(currentMentorIndex + 1)];
-        }
-      }
-
-      // If API returns empty data, show empty state
-      if (finalList.length === 0 && !searchQuery) {
-        setMentors([]);
-      } else {
-        setMentors(prev => reset ? finalList : [...prev, ...finalList]);
-      }
+      // Store raw data - filters will be applied via useMemo
+      setRawMentors(prev => reset ? cardData : [...prev, ...cardData]);
       setHasMore(result.data.hasNext);
     } else {
       // API error - show empty state
-      setMentors([]);
+      setRawMentors([]);
       setHasMore(false);
     }
 
     setIsLoading(false);
   };
+
+  // Apply all filters client-side using useMemo for performance
+  const filteredMentors = React.useMemo(() => {
+    let filtered = [...rawMentors];
+
+    // Filter by niche
+    if (selectedNiche !== 'all') {
+      filtered = filtered.filter(mentor => mentor.mentoring_niche === selectedNiche);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(m =>
+        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by price range
+    if (priceRange !== 'all') {
+      filtered = filtered.filter(m => {
+        const price = m.price_per_session_solo || 0;
+        switch (priceRange) {
+          case '0-1000':
+            return price >= 0 && price <= 1000;
+          case '1000-2000':
+            return price > 1000 && price <= 2000;
+          case '2000-5000':
+            return price > 2000 && price <= 5000;
+          case '5000+':
+            return price > 5000;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Move logged-in mentor to the top if they exist in the list and user is a mentor
+    if (isCurrentUserMentor && currentUserId) {
+      const currentMentorIndex = filtered.findIndex(m => m.id === currentUserId);
+      if (currentMentorIndex > 0) { // Only move if not already at top
+        const currentMentor = filtered[currentMentorIndex];
+        filtered = [currentMentor, ...filtered.slice(0, currentMentorIndex), ...filtered.slice(currentMentorIndex + 1)];
+      }
+    }
+
+    return filtered;
+  }, [rawMentors, selectedNiche, searchQuery, priceRange, isCurrentUserMentor, currentUserId]);
 
   // Initial load
   useEffect(() => {
@@ -196,15 +203,14 @@ export default function ExplorePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload when filters change
+  // Only reload when sort changes (other filters are client-side now)
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Skip initial load (handled by the first useEffect)
+    if (rawMentors.length > 0) {
       loadMentors(true);
-    }, 300); // Debounce
-
-    return () => clearTimeout(timer);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedNiche, sortBy, priceRange]);
+  }, [sortBy]);
 
   return (
     <div className="space-y-6">
@@ -215,7 +221,7 @@ export default function ExplorePage() {
           Discover experienced professionals ready to guide your journey
         </p>
         <p className="text-sm text-gray-500 mt-2">
-          {mentors.length} mentors
+          {filteredMentors.length} mentors
         </p>
       </div>
 
@@ -281,17 +287,17 @@ export default function ExplorePage() {
       </Card>
 
       {/* Loading State */}
-      {isLoading && mentors.length === 0 && (
+      {isLoading && filteredMentors.length === 0 && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       )}
 
       {/* Mentors Grid */}
-      {!isLoading && mentors.length > 0 && (
+      {!isLoading && filteredMentors.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
-            {mentors.map((mentor) => (
+            {filteredMentors.map((mentor) => (
               <div key={mentor.id} className="flex justify-center items-stretch">
                 <MentorCard
                   mentor={mentor}
@@ -322,7 +328,7 @@ export default function ExplorePage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && mentors.length === 0 && (
+      {!isLoading && filteredMentors.length === 0 && (
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="p-12 text-center">
             <Search className="mx-auto h-12 w-12 text-gray-300 mb-4" />
