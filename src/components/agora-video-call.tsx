@@ -33,6 +33,63 @@ interface AgoraVideoCallProps {
     onLeave?: () => void;
 }
 
+// Sub-component for individual remote players
+function RemotePlayer({
+    user,
+    fallbackName,
+    fallbackAvatar
+}: {
+    user: IAgoraRTCRemoteUser;
+    fallbackName: string;
+    fallbackAvatar?: string;
+}) {
+    const videoRef = useRef<HTMLDivElement>(null);
+    const [isVideoMuted, setIsVideoMuted] = useState(!user.hasVideo);
+    const [isAudioMuted, setIsAudioMuted] = useState(!user.hasAudio);
+
+    useEffect(() => {
+        if (videoRef.current && user.videoTrack) {
+            user.videoTrack.play(videoRef.current);
+        }
+        return () => {
+            user.videoTrack?.stop();
+        };
+    }, [user.videoTrack]);
+
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase() || '?';
+    };
+
+    return (
+        <Card className="relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px]">
+            <CardContent className="p-0 h-full w-full relative">
+                <div
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                />
+                {(!user.hasVideo || isVideoMuted) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                        <Avatar className="h-16 w-16 sm:h-24 sm:w-24">
+                            <AvatarImage src={fallbackAvatar} alt={fallbackName} />
+                            <AvatarFallback className="text-xl sm:text-2xl bg-brand-light/20 text-brand">
+                                {getInitials(fallbackName)}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
+                )}
+                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/60 text-white px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm flex items-center gap-2">
+                    <span>{fallbackName}</span>
+                    {!user.hasAudio && <MicOff className="w-3 h-3 text-red-400" />}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 export function AgoraVideoCall({
     appId,
     channel,
@@ -55,14 +112,13 @@ export function AgoraVideoCall({
     const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
     const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
     const localVideoRef = useRef<HTMLDivElement>(null);
-    const remoteVideoRef = useRef<HTMLDivElement>(null);
 
     const getInitials = (name: string) => {
         return name
             .split(' ')
             .map((n) => n[0])
             .join('')
-            .toUpperCase();
+            .toUpperCase() || '?';
     };
 
     // Initialize and join channel
@@ -86,27 +142,21 @@ export function AgoraVideoCall({
                 client.on('user-published', async (user, mediaType) => {
                     console.log('[Agora] User published:', { uid: user.uid, mediaType });
                     await client.subscribe(user, mediaType);
-                    if (mediaType === 'video' && remoteVideoRef.current) {
-                        user.videoTrack?.play(remoteVideoRef.current);
-                    }
+
                     if (mediaType === 'audio') {
                         user.audioTrack?.play();
                     }
+
                     setRemoteUsers((prev) => {
                         const exists = prev.find((u) => u.uid === user.uid);
-                        if (exists) return prev;
+                        if (exists) return prev.map(u => u.uid === user.uid ? user : u);
                         console.log('[Agora] Adding remote user:', user.uid);
                         return [...prev, user];
                     });
                 });
 
                 client.on('user-unpublished', (user, mediaType) => {
-                    if (mediaType === 'video') {
-                        user.videoTrack?.stop();
-                    }
-                    if (mediaType === 'audio') {
-                        user.audioTrack?.stop();
-                    }
+                    setRemoteUsers((prev) => prev.map(u => u.uid === user.uid ? user : u));
                 });
 
                 client.on('user-left', (user) => {
@@ -151,7 +201,9 @@ export function AgoraVideoCall({
 
         return () => {
             // Cleanup
+            localAudioTrackRef.current?.stop();
             localAudioTrackRef.current?.close();
+            localVideoTrackRef.current?.stop();
             localVideoTrackRef.current?.close();
             clientRef.current?.leave();
         };
@@ -220,7 +272,9 @@ export function AgoraVideoCall({
     }, [isScreenSharing]);
 
     const leaveCall = useCallback(async () => {
+        localAudioTrackRef.current?.stop();
         localAudioTrackRef.current?.close();
+        localVideoTrackRef.current?.stop();
         localVideoTrackRef.current?.close();
         await clientRef.current?.leave();
         setIsJoined(false);
@@ -228,134 +282,135 @@ export function AgoraVideoCall({
         onLeave?.();
     }, [onLeave]);
 
+    // Dynamic grid classes based on participant count
+    const totalParticipants = remoteUsers.length + 1;
+    const getGridClasses = () => {
+        if (totalParticipants === 1) return 'grid-cols-1';
+        if (totalParticipants === 2) return 'grid-cols-1 md:grid-cols-2';
+        if (totalParticipants <= 4) return 'grid-cols-1 sm:grid-cols-2';
+        return 'grid-cols-2 lg:grid-cols-3';
+    };
+
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-gray-950">
             {/* Connection status */}
             {connectionState !== 'CONNECTED' && isJoined && (
-                <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-center text-sm">
+                <div className="bg-yellow-500/10 text-yellow-500 border-b border-yellow-500/20 px-4 py-2 text-center text-xs sm:text-sm animate-pulse">
                     Connection: {connectionState}
                 </div>
             )}
 
             {/* Video grid */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-900 rounded-t-2xl">
+            <div className={`flex-1 grid ${getGridClasses()} gap-2 sm:gap-4 p-2 sm:p-4 bg-gray-950 overflow-y-auto min-h-0`}>
                 {/* Local video */}
-                <Card className="relative overflow-hidden bg-gray-800 border-gray-700">
-                    <CardContent className="p-0 aspect-video">
+                <Card className="relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px]">
+                    <CardContent className="p-0 h-full w-full relative">
                         <div
                             ref={localVideoRef}
-                            className="w-full h-full"
-                            style={{ minHeight: '300px' }}
+                            className="w-full h-full object-cover"
                         />
                         {isVideoMuted && (
                             <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                                <Avatar className="h-24 w-24">
+                                <Avatar className="h-16 w-16 sm:h-24 sm:w-24">
                                     <AvatarImage src={userAvatar} alt={userName} />
-                                    <AvatarFallback className="text-2xl bg-brand-light/20 text-brand">
+                                    <AvatarFallback className="text-xl sm:text-2xl bg-brand-light/20 text-brand">
                                         {getInitials(userName)}
                                     </AvatarFallback>
                                 </Avatar>
                             </div>
                         )}
-                        <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-2">
+                        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/60 text-white px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm flex items-center gap-2">
                             <span>{userName} (You)</span>
                             {isAudioMuted && <MicOff className="w-3 h-3 text-red-400" />}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Remote video */}
-                <Card className="relative overflow-hidden bg-gray-800 border-gray-700">
-                    <CardContent className="p-0 aspect-video">
-                        {remoteUsers.length > 0 ? (
-                            <div
-                                ref={remoteVideoRef}
-                                className="w-full h-full"
-                                style={{ minHeight: '300px' }}
-                            />
-                        ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
-                                <Avatar className="h-24 w-24 mb-4">
-                                    <AvatarImage src={participantAvatar} alt={participantName} />
-                                    <AvatarFallback className="text-2xl bg-brand-light/20 text-brand">
-                                        {getInitials(participantName)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <p className="text-gray-400">Waiting for {participantName} to join...</p>
-                            </div>
-                        )}
-                        {remoteUsers.length > 0 && (
-                            <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-sm">
-                                {participantName}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* Remote users */}
+                {remoteUsers.map((user) => (
+                    <RemotePlayer
+                        key={user.uid}
+                        user={user}
+                        fallbackName={participantName}
+                        fallbackAvatar={participantAvatar}
+                    />
+                ))}
+
+                {/* Waiting placeholder if only 1 participant */}
+                {totalParticipants === 1 && (
+                    <Card className="relative overflow-hidden bg-gray-900/50 border-gray-800 border-dashed border-2 h-full min-h-[200px] sm:min-h-[300px] flex flex-col items-center justify-center text-center p-6">
+                        <Avatar className="h-16 w-16 sm:h-24 sm:w-24 mb-4 opacity-50">
+                            <AvatarImage src={participantAvatar} alt={participantName} />
+                            <AvatarFallback className="text-xl sm:text-2xl bg-gray-800 text-gray-500">
+                                {getInitials(participantName)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <p className="text-gray-500 text-sm sm:text-base max-w-[200px]">
+                            Waiting for {participantName} to join...
+                        </p>
+                    </Card>
+                )}
             </div>
 
             {/* Controls */}
-            <div className="bg-gray-800 rounded-b-2xl p-3 sm:p-4 pb-6 sm:pb-4">
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            <div className="bg-gray-900/80 backdrop-blur-md border-t border-gray-800 p-3 sm:p-4 pb-8 sm:pb-4">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 max-w-screen-md mx-auto">
                     {/* Mic toggle */}
                     <Button
                         variant={isAudioMuted ? 'destructive' : 'secondary'}
-                        size="lg"
-                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                        size="icon"
+                        className="rounded-full w-10 h-10 sm:w-14 sm:h-14 transition-all active:scale-95"
                         onClick={toggleAudio}
                     >
                         {isAudioMuted ? (
-                            <MicOff className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <MicOff className="w-5 h-5 sm:w-6 sm:h-6" />
                         ) : (
-                            <Mic className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
                     {/* Video toggle */}
                     <Button
                         variant={isVideoMuted ? 'destructive' : 'secondary'}
-                        size="lg"
-                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                        size="icon"
+                        className="rounded-full w-10 h-10 sm:w-14 sm:h-14 transition-all active:scale-95"
                         onClick={toggleVideo}
                     >
                         {isVideoMuted ? (
-                            <VideoOff className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <VideoOff className="w-5 h-5 sm:w-6 sm:h-6" />
                         ) : (
-                            <Video className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <Video className="w-5 h-5 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
                     {/* Screen share toggle */}
                     <Button
                         variant={isScreenSharing ? 'default' : 'secondary'}
-                        size="lg"
-                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                        size="icon"
+                        className="rounded-full w-10 h-10 sm:w-14 sm:h-14 transition-all active:scale-95 hidden sm:flex"
                         onClick={toggleScreenShare}
                     >
                         {isScreenSharing ? (
-                            <MonitorOff className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <MonitorOff className="w-5 h-5 sm:w-6 sm:h-6" />
                         ) : (
-                            <Monitor className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <Monitor className="w-5 h-5 sm:w-6 sm:h-6" />
                         )}
                     </Button>
 
-                    {/* Participants count */}
-                    <Button
-                        variant="secondary"
-                        size="lg"
-                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
-                    >
-                        <Users className="w-4 h-4 sm:w-6 sm:h-6" />
-                        <span className="sr-only">{remoteUsers.length + 1} participants</span>
-                    </Button>
+                    {/* Participants count indicator */}
+                    <div className="bg-gray-800 text-gray-300 rounded-full h-10 px-3 sm:px-4 flex items-center gap-2 text-xs sm:text-sm font-medium border border-gray-700">
+                        <Users className="w-4 h-4" />
+                        <span>{totalParticipants}</span>
+                    </div>
 
                     {/* Leave call */}
                     <Button
                         variant="destructive"
-                        size="lg"
-                        className="rounded-full w-12 h-12 sm:w-14 sm:h-14 sm:ml-4"
+                        size="icon"
+                        className="rounded-full w-10 h-10 sm:w-14 sm:h-14 sm:ml-4 transition-all hover:rotate-12 active:scale-95"
                         onClick={leaveCall}
                     >
-                        <PhoneOff className="w-4 h-4 sm:w-6 sm:h-6" />
+                        <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6" />
                     </Button>
                 </div>
             </div>
