@@ -50,6 +50,17 @@ type GroupPriceTier = {
   price: number;
 };
 
+const getGroupPrice = (
+  tiers: GroupPriceTier[],
+  participants: number,
+  soloPrice: number
+) => {
+  if (!tiers || tiers.length === 0) return soloPrice;
+
+  const tier = [...tiers].reverse().find(t => participants >= t.participants);
+  return tier?.price ?? soloPrice;
+};
+
 export function BookingDialog({
   open,
   onOpenChange,
@@ -68,11 +79,10 @@ export function BookingDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mentorGroupEnabled, setMentorGroupEnabled] = useState(false);
   const [mentorGroupMax, setMentorGroupMax] = useState(1);
-  const [groupParticipants, setGroupParticipants] = useState(1); // extra
-  const [slotGroupTier, setSlotGroupTier] = useState<1 | 2 | 3 | 5 | 10 | null>(1);
+  const [groupParticipants, setGroupParticipants] = useState(1);
+  const [slotGroupTier, setSlotGroupTier] = useState<1 | 2 | 3 | 5 | 10 | null>(selectedSlotGroupTier ?? 1);
   const [soloPricePKR, setSoloPricePKR] = useState<number | null>(null);
   const [groupPricePKR, setGroupPricePKR] = useState<GroupPriceTier[]>([]);
-  const [paymentGateway, setPaymentGateway] = useState<'jazzcash' | 'easypaisa' | 'payfast_pk'>('jazzcash');
   const [paymentMethod, setPaymentMethod] = useState<'free' | 'stripe'>('stripe');
   
   const [attendeeEmails, setAttendeeEmails] = useState<string[]>([]);
@@ -84,10 +94,9 @@ export function BookingDialog({
       if (res.success && res.data) {
         const mp = res.data.mentor_profile;
         const enabled = !!mp.group_enabled;
-        console.log("mp", mp);
-        
+
         setMentorGroupEnabled(enabled);
-        setMentorGroupMax(mp.group_max_participants ?? 1); // extra
+        setMentorGroupMax(mp.group_max_participants ?? 1);
         const rawPricing = mp.group_pricing ?? {};
         const pricingList: GroupPriceTier[] = Object.entries(rawPricing)
         .map(([participants, price]) => ({
@@ -99,8 +108,7 @@ export function BookingDialog({
         setGroupPricePKR(pricingList);
         setSoloPricePKR(mp.price_per_session_solo ?? 0);
         // ensure participants within range
-        setGroupParticipants(Math.min(groupParticipants, mp.group_max_participants ?? 1)); // extra
-        // safe tier sync from props
+        setGroupParticipants(prev => Math.min(prev, mp.group_max_participants ?? 1));
 
       }
     };
@@ -109,60 +117,32 @@ export function BookingDialog({
   }, [mentorId]);
 
   useEffect(() => {
-    if (selectedSlotGroupTier != null) {
-      setSlotGroupTier(selectedSlotGroupTier);
-    } else {
-      setSlotGroupTier(1); // default
-    }
-    console.log('slotGroupTier (state):', selectedSlotGroupTier);
-  }, [selectedSlotGroupTier]);
-
-  useEffect(() => {
-    console.log('soloPricePKR updated:', soloPricePKR);
-    
-
-
-  }, [soloPricePKR]);
-  useEffect(() => {
+    setSlotGroupTier(selectedSlotGroupTier ?? 1);
     // Number of attendees besides the main user
-    const numAttendees = Math.max(0, (slotGroupTier ?? 1) - 1);
-
-    // Initialize emails array if not enough elements
+    const numAttendees = Math.max(0, (selectedSlotGroupTier ?? 1) - 1);
     setAttendeeEmails((prev) => {
       const newArr = [...prev];
       while (newArr.length < numAttendees) newArr.push('');
       return newArr.slice(0, numAttendees);
     });
+    setGroupParticipants(Math.max(1, selectedSlotGroupTier ?? 1));
+  }, [selectedSlotGroupTier]);
 
-    // Reset groupParticipants to match slotGroupTier if needed
-    setGroupParticipants(Math.max(1, slotGroupTier ?? 1));
+  // A slot allows group pricing if tier > 1 (multi-person) OR mentor has group enabled and it's marked as group
+  const slotAllowsGroup =
+    Number(slotGroupTier ?? 1) > 1 ||
+    (mentorGroupEnabled && selectedSlotIsGroup);
 
-  }, [slotGroupTier]);
+  const totalParticipants = slotAllowsGroup ? Math.max(1, groupParticipants) : 1;
+  const tierPrice = getGroupPrice(groupPricePKR, totalParticipants, soloPricePKR ?? 0);
+  const totalPrice = paymentMethod === 'free' ? 0 : tierPrice;
 
-  // useEffect(() => {
-  //   setSlotGroupTier(selectedSlotGroupTier ?? 1);
-  // }, [selectedSlotGroupTier]);
-
-  const slotAllowsGroup = !!selectedSlotIsGroup && mentorGroupEnabled;
+  // Reset groupParticipants when group slot becomes unavailable
   useEffect(() => {
     if (!slotAllowsGroup) {
       setGroupParticipants(1);
     }
   }, [slotAllowsGroup]);
-
-  const getGroupPrice = (
-    tiers: GroupPriceTier[],
-    participants: number,
-    soloPrice: number
-  ) => {
-    if (!tiers.length) return soloPrice;
-
-    const tier = [...tiers]
-      .reverse()
-      .find(t => participants >= t.participants);
-
-    return tier?.price ?? soloPrice;
-  };
 
   const stripe = useStripe();
   const elements = useElements();
@@ -193,18 +173,7 @@ export function BookingDialog({
 
     try {
       // Step 1: Determine booking start time
-      let startAt: string;
-      if (selectedSlotStartTime) {
-        startAt = selectedSlotStartTime;
-      } else {
-        startAt = convertToUTCISO(selectedDate, selectedTimeSlot);
-        console.log('[Booking] Converted datetime:', { selectedDate, selectedTimeSlot, resultISO: startAt });
-      }
-      const totalParticipants = attendeeEmails.length + 1;
-      const finalPrice =
-        sessionType === 'group'
-          ? getGroupPrice(groupPricePKR, totalParticipants, soloPricePKR ?? 0)
-          : soloPricePKR ?? 0;
+      const startAt = selectedSlotStartTime || convertToUTCISO(selectedDate!, selectedTimeSlot!);
 
       // Step 2: Create booking
       const bookingPayload: any = {
@@ -213,20 +182,18 @@ export function BookingDialog({
         duration_minutes: 60,
         notes: `${sessionType}: ${topic.trim()}${goals.trim() ? '\n\nGoals: ' + goals.trim() : ''}`,
         participant_emails: attendeeEmails,
-        price: 0,
+        price: totalPrice,
       };
 
       // Include Stripe price if applicable
-      if (paymentMethod === 'stripe' && slotAllowsGroup && groupPricePKR) {
-        bookingPayload.price = (finalPrice * Math.max(1, groupParticipants)).toString();
+      if (paymentMethod === 'stripe' && totalPrice > 0) {
+        bookingPayload.price = totalPrice.toString();
       }
 
       const bookingResult = await bookingsApi.createBooking(bookingPayload);
-      console.log('[Booking] API result:', bookingResult);
 
       if (!bookingResult.success || !bookingResult.data) {
-        const errorMsg = !bookingResult.success ? (bookingResult as any).error : 'Failed to create booking';
-        throw new Error(errorMsg || 'Failed to create booking');
+        throw new Error((bookingResult as any).error || 'Failed to create booking');
       }
 
       const bookingData = bookingResult.data;
@@ -243,33 +210,6 @@ export function BookingDialog({
         if (paymentError) throw paymentError;
         if (paymentIntent?.status === 'succeeded') {
           toast.success('Payment successful! Booking confirmed.');
-        }
-      }
-      // Step 4: Other payment gateways or free bookings
-      else if (slotAllowsGroup && groupPricePKR && paymentMethod !== 'stripe') {
-        const participants = Math.max(1, groupParticipants);
-        const amountPKR = bookingPayload.price;
-        const returnUrl = `${window.location.origin}/payments/callback`;
-        const cancelUrl = `${window.location.origin}/bookings`;
-
-        const payRes = await paymentsApi.createPaymentLink({
-          booking_id: bookingData.id,
-          amount_pkr: amountPKR,
-          description: `Mentoring session with ${mentorName} (${participants} attendee${participants > 1 ? 's' : ''})`,
-          gateway: paymentGateway,
-          return_url: returnUrl,
-          cancel_url: cancelUrl,
-          metadata: { participants },
-        });
-
-        if (payRes.success && payRes.data?.payment_url) {
-          toast.success('Redirecting to payment...', { description: `Amount: PKR ${amountPKR}` });
-          onOpenChange(false);
-          window.location.href = payRes.data.payment_url;
-          return;
-        } else {
-          const errorMsg = !payRes.success ? (payRes as any).error : 'Unknown error';
-          toast.error('Failed to initiate payment', { description: errorMsg || 'Please try again later.' });
         }
       }
 
@@ -345,12 +285,10 @@ export function BookingDialog({
               {/* Price */}
               <div className="flex items-center text-sm text-gray-700">
                 <DollarSign className="h-4 w-4 mr-2 text-brand" />
-                <span className="font-medium">PKR 1500</span>
+                <span className="font-medium">PKR {slotAllowsGroup && groupPricePKR.length > 0 ? getGroupPrice(groupPricePKR, Math.max(1, groupParticipants), soloPricePKR ?? 0) : soloPricePKR ?? 1500}</span>
               </div>
             </div>
           </div>
-
-
 
           {/* Session Type */}
           <div className="space-y-2">
@@ -368,30 +306,6 @@ export function BookingDialog({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Group session options */}
-          {slotAllowsGroup && (
-            <div className="space-y-2">
-              <Label htmlFor="group-count">Attendees (including you)</Label>
-              <Select value={groupParticipants.toString()} onValueChange={(v) => setGroupParticipants(parseInt(v))}>
-                <SelectTrigger id="group-count">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: mentorGroupMax }, (_, i) => i + 1).map((n) => (
-                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {groupPricePKR && (
-                <div className="flex items-center text-sm text-gray-700 mt-2">
-                  <Wallet className="h-4 w-4 mr-2 text-brand" />
-                  <span className="font-medium">Estimated total: PKR {groupPricePKR * Math.max(1, groupParticipants)}</span>
-                </div>
-              )}
-            </div>
-
-          )}
 
           {/* Attendee Emails */}
           {attendeeEmails.length > 0 && (
@@ -483,24 +397,6 @@ export function BookingDialog({
         )}
         {/* Actions */}
         <div className="flex justify-between items-center space-x-3">
-          {/* Payment gateway extra
-          {slotAllowsGroup && groupPricePKR && (
-          <div className="w-1/2">
-            <Label htmlFor="gateway">Payment Method</Label>
-            <Select value={paymentGateway} onValueChange={(v) => setPaymentGateway(v as any)}>
-              <SelectTrigger id="gateway">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="jazzcash">JazzCash</SelectItem>
-                <SelectItem value="easypaisa">Easypaisa</SelectItem>
-                <SelectItem value="payfast_pk">PayFast PK</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          )} */}
-
-
 
           <div className="flex-1 flex justify-end space-x-3">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

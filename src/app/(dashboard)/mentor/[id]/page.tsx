@@ -306,6 +306,8 @@ export default function MentorProfilePage() {
               setSelectedSlotIndex(0);
               setSelectedSlotStartTime(slots[0].slotTimes[0]);
               setSelectedSlotIsGroup(slots[0].slotGroupFlags ? !!slots[0].slotGroupFlags[0] : null);
+              const initialTier = slots[0].slotGroupTiers ? slots[0].slotGroupTiers[0] ?? null : null;
+              setSelectedSlotGroupTier(initialTier === 1 || initialTier === 2 || initialTier === 3 || initialTier === 5 || initialTier === 10 ? initialTier : null);
             }
           }
         } else {
