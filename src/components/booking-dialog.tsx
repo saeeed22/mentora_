@@ -45,6 +45,10 @@ const SESSION_TYPES = [
   'Technical Discussion',
   'Mock Interview',
 ];
+type GroupPriceTier = {
+  participants: number;
+  price: number;
+};
 
 export function BookingDialog({
   open,
@@ -66,10 +70,11 @@ export function BookingDialog({
   const [mentorGroupMax, setMentorGroupMax] = useState(1);
   const [groupParticipants, setGroupParticipants] = useState(1); // extra
   const [slotGroupTier, setSlotGroupTier] = useState<1 | 2 | 3 | 5 | 10 | null>(1);
+  const [soloPricePKR, setSoloPricePKR] = useState<number | null>(null);
+  const [groupPricePKR, setGroupPricePKR] = useState<GroupPriceTier[]>([]);
   const [paymentGateway, setPaymentGateway] = useState<'jazzcash' | 'easypaisa' | 'payfast_pk'>('jazzcash');
-  const [paymentMethod, setPaymentMethod] = useState<'free' | 'stripe'>('free');
-  const [groupPricePKR, setGroupPricePKR] = useState<number | null>(null);
-
+  const [paymentMethod, setPaymentMethod] = useState<'free' | 'stripe'>('stripe');
+  
   const [attendeeEmails, setAttendeeEmails] = useState<string[]>([]);
 
   // Load mentor group session settings
@@ -79,15 +84,25 @@ export function BookingDialog({
       if (res.success && res.data) {
         const mp = res.data.mentor_profile;
         const enabled = !!mp.group_enabled;
+        console.log("mp", mp);
+        
         setMentorGroupEnabled(enabled);
         setMentorGroupMax(mp.group_max_participants ?? 1); // extra
-        setGroupPricePKR(mp.group_price_per_session ?? null);
+        const rawPricing = mp.group_pricing ?? {};
+        const pricingList: GroupPriceTier[] = Object.entries(rawPricing)
+        .map(([participants, price]) => ({
+          participants: Number(participants),
+          price: Number(price),
+        }))
+        .sort((a, b) => a.participants - b.participants);
+
+        setGroupPricePKR(pricingList);
+        setSoloPricePKR(mp.price_per_session_solo ?? 0);
         // ensure participants within range
         setGroupParticipants(Math.min(groupParticipants, mp.group_max_participants ?? 1)); // extra
         // safe tier sync from props
 
       }
-      console.log('slotGroupTier (state):', slotGroupTier);
     };
     loadMentor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +117,12 @@ export function BookingDialog({
     console.log('slotGroupTier (state):', selectedSlotGroupTier);
   }, [selectedSlotGroupTier]);
 
+  useEffect(() => {
+    console.log('soloPricePKR updated:', soloPricePKR);
+    
+
+
+  }, [soloPricePKR]);
   useEffect(() => {
     // Number of attendees besides the main user
     const numAttendees = Math.max(0, (slotGroupTier ?? 1) - 1);
@@ -128,6 +149,20 @@ export function BookingDialog({
       setGroupParticipants(1);
     }
   }, [slotAllowsGroup]);
+
+  const getGroupPrice = (
+    tiers: GroupPriceTier[],
+    participants: number,
+    soloPrice: number
+  ) => {
+    if (!tiers.length) return soloPrice;
+
+    const tier = [...tiers]
+      .reverse()
+      .find(t => participants >= t.participants);
+
+    return tier?.price ?? soloPrice;
+  };
 
   const stripe = useStripe();
   const elements = useElements();
@@ -165,6 +200,11 @@ export function BookingDialog({
         startAt = convertToUTCISO(selectedDate, selectedTimeSlot);
         console.log('[Booking] Converted datetime:', { selectedDate, selectedTimeSlot, resultISO: startAt });
       }
+      const totalParticipants = attendeeEmails.length + 1;
+      const finalPrice =
+        sessionType === 'group'
+          ? getGroupPrice(groupPricePKR, totalParticipants, soloPricePKR ?? 0)
+          : soloPricePKR ?? 0;
 
       // Step 2: Create booking
       const bookingPayload: any = {
@@ -173,11 +213,12 @@ export function BookingDialog({
         duration_minutes: 60,
         notes: `${sessionType}: ${topic.trim()}${goals.trim() ? '\n\nGoals: ' + goals.trim() : ''}`,
         participant_emails: attendeeEmails,
+        price: 0,
       };
 
       // Include Stripe price if applicable
       if (paymentMethod === 'stripe' && slotAllowsGroup && groupPricePKR) {
-        bookingPayload.price = (groupPricePKR * Math.max(1, groupParticipants)).toString();
+        bookingPayload.price = (finalPrice * Math.max(1, groupParticipants)).toString();
       }
 
       const bookingResult = await bookingsApi.createBooking(bookingPayload);
@@ -207,7 +248,7 @@ export function BookingDialog({
       // Step 4: Other payment gateways or free bookings
       else if (slotAllowsGroup && groupPricePKR && paymentMethod !== 'stripe') {
         const participants = Math.max(1, groupParticipants);
-        const amountPKR = groupPricePKR * participants;
+        const amountPKR = bookingPayload.price;
         const returnUrl = `${window.location.origin}/payments/callback`;
         const cancelUrl = `${window.location.origin}/bookings`;
 
