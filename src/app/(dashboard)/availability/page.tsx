@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Save, Loader2 } from 'lucide-react';
+import { Plus, Save, Loader2, Calendar, Clock, Users, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -716,24 +716,26 @@ export default function AvailabilityPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="text-center sm:text-left">
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-dark">Availability</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage your mentoring schedule and availability
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges || isSaving}
-          className="bg-brand hover:bg-brand/90 w-full sm:w-auto"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+            className="bg-brand hover:bg-brand/90 w-full sm:w-auto order-1 sm:order-2"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
       {/* Weekly Schedule */}
@@ -750,48 +752,61 @@ export default function AvailabilityPage() {
 
             return (
               <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={daySchedule.enabled}
-                      onCheckedChange={(checked) => handleDayToggle(day.key, checked)}
-                    />
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">
+                {/* Day Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                  <div className="flex items-center justify-between sm:justify-start gap-4">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={daySchedule.enabled}
+                        onCheckedChange={(checked) => handleDayToggle(day.key, checked)}
+                        className="data-[state=checked]:bg-brand"
+                      />
+                      <Label className="text-base font-bold text-gray-900">
                         {day.label}
                       </Label>
                     </div>
                     {daySchedule.enabled && daySchedule.slots.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {daySchedule.slots.length} slot{daySchedule.slots.length > 1 ? 's' : ''}
+                      <Badge variant="secondary" className="bg-brand/5 text-brand border-brand/10 font-semibold px-2 py-0.5">
+                        {daySchedule.slots.length} {daySchedule.slots.length > 1 ? 'slots' : 'slot'}
                       </Badge>
                     )}
                   </div>
+
                   {daySchedule.enabled && (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => addTimeSlot(day.key)}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto border-brand/20 text-brand hover:bg-brand/5 hover:text-brand-dark transition-all shadow-sm h-10 sm:h-9"
                     >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Slot
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Available Slot
                     </Button>
                   )}
                 </div>
 
                 {daySchedule.enabled && (
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {daySchedule.slots.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center py-4">
                         No time slots set. Click &quot;Add Slot&quot; to add availability.
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex flex-col sm:flex-row sm:flex-wrap items-start gap-2 sm:gap-2 p-2 sm:p-0 bg-gray-50 sm:bg-transparent rounded-lg sm:rounded-none">
-                          {/* Show date badge for date-specific slots */}
+                        <div key={index} className="flex flex-col md:flex-row md:items-center gap-5 p-5 md:p-3 bg-white md:bg-gray-50/30 rounded-2xl border border-gray-100 md:border-transparent md:hover:border-gray-200 transition-all relative group shadow-sm md:shadow-none">
+                          {/* Unified Delete Button (top right for both mobile and desktop) */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeTimeSlot(day.key, index)}
+                            className="absolute right-3 top-3 md:-right-2 md:-top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white md:border border-gray-200 shadow-sm hover:text-red-500 hover:bg-red-50 h-8 w-8 md:h-7 md:w-7 rounded-full z-10"
+                          >
+                            <Plus className="w-5 h-5 md:w-4 md:h-4 rotate-45" />
+                          </Button>
+
+                          {/* Date Badge for Date-Specific Slots (Desktop) */}
                           {slot.isRecurring === false && slot.specificDate && (
-                            <Badge variant="outline" className="text-xs shrink-0 w-full sm:w-auto justify-center sm:justify-start">
+                            <Badge variant="outline" className="hidden md:flex text-[10px] bg-blue-50 text-blue-700 border-blue-100 shrink-0 font-bold uppercase py-0.5">
                               📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
@@ -799,150 +814,170 @@ export default function AvailabilityPage() {
                             </Badge>
                           )}
 
-                          {/* Time selects row */}
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                          {/* Time Range Section */}
+                          <div className="w-full md:w-auto">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Time Range</Label>
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                              <div className="grid grid-cols-[1fr,auto,1fr] gap-3 w-full sm:w-auto items-center">
+                                <Select
+                                  value={slot.start}
+                                  onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
+                                >
+                                  <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {timeSlots.map((time) => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <span className="text-gray-300 text-xs font-medium">to</span>
+
+                                <Select
+                                  value={slot.end}
+                                  onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
+                                >
+                                  <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {timeSlots.map((time) => (
+                                      <SelectItem key={time} value={time}>
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Frequency Section */}
+                          <div className="w-full md:w-32">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Frequency</Label>
                             <Select
-                              value={slot.start}
-                              onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
+                              value={slot.isRecurring !== false ? 'recurring' : 'specific'}
+                              onValueChange={(value) => {
+                                updateSlotRecurringMode(day.key, index, value === 'recurring');
+                              }}
                             >
-                              <SelectTrigger className="w-full sm:w-24">
+                              <SelectTrigger className="w-full bg-white md:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {timeSlots.map((time) => (
-                                  <SelectItem key={time} value={time}>
-                                    {time}
-                                  </SelectItem>
-                                ))}
+                                <SelectItem value="recurring">Recurring</SelectItem>
+                                <SelectItem value="specific">One-Time</SelectItem>
                               </SelectContent>
                             </Select>
-                            <span className="text-gray-500 text-sm">to</span>
+                          </div>
+                          {/* Date Picker Section */}
+                          {slot.isRecurring === false && (
+                            <div className="w-full md:w-auto">
+                              <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Select Date</Label>
+                              <div className="relative">
+                                <input
+                                  type="date"
+                                  key={`${day.key}-${index}-date`}
+                                  value={slot.specificDate || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    updateSlotSpecificDate(day.key, index, value);
+                                  }}
+                                  className="w-full md:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                  min={new Date().toISOString().split('T')[0]}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {/* Session Type Section */}
+                          <div className="w-full md:w-24">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Session Type</Label>
                             <Select
-                              value={slot.end}
-                              onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
+                              value={slot.groupTier === 1 || slot.groupTier === null ? 'solo' : 'group'}
+                              onValueChange={(value) => {
+                                if (value === 'solo') {
+                                  updateSlotGroupTier(day.key, index, 1);
+                                } else {
+                                  const validTiers = Object.entries(groupPricingTiers)
+                                    .filter(([tier, price]) => Number(tier) > 1 && Number(price) > 0)
+                                    .map(([tier, _]) => Number(tier))
+                                    .sort((a, b) => a - b);
+                                  if (validTiers.length > 0) {
+                                    updateSlotGroupTier(day.key, index, validTiers[0]);
+                                  }
+                                }
+                              }}
                             >
-                              <SelectTrigger className="w-full sm:w-24">
+                              <SelectTrigger className="w-full bg-white md:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {timeSlots.map((time) => (
-                                  <SelectItem key={time} value={time}>
-                                    {time}
-                                  </SelectItem>
-                                ))}
+                                <SelectItem value="solo">Solo</SelectItem>
+                                <SelectItem
+                                  value="group"
+                                  disabled={(() => {
+                                    const validTiers = Object.entries(groupPricingTiers)
+                                      .filter(([_, price]) => Number(price) > 0);
+                                    return validTiers.length === 0;
+                                  })()}
+                                >
+                                  Group
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
 
-                          {/* Recurring vs Date-Specific Toggle */}
-                          <Select
-                            value={slot.isRecurring !== false ? 'recurring' : 'specific'}
-                            onValueChange={(value) => {
-                              updateSlotRecurringMode(day.key, index, value === 'recurring');
-                            }}
-                          >
-                            <SelectTrigger className="w-full sm:w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="recurring">Recurring</SelectItem>
-                              <SelectItem value="specific">One-Time</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {/* Date Picker for Date-Specific Slots */}
-                          {slot.isRecurring === false && (
-                            <input
-                              type="date"
-                              key={`${day.key}-${index}-date`}
-                              value={slot.specificDate || ''}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                // Call update which validates
-                                updateSlotSpecificDate(day.key, index, value);
-                                // If validation failed, the input will be cleared by the controlled component
-                              }}
-                              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm"
-                              min={new Date().toISOString().split('T')[0]}
-                            />
-                          )}
-                          {/* Session Type: Solo or Group */}
-                          <Select
-                            value={slot.groupTier === 1 || slot.groupTier === null ? 'solo' : 'group'}
-                            onValueChange={(value) => {
-                              if (value === 'solo') {
-                                updateSlotGroupTier(day.key, index, 1);
-                              } else {
-                                // When switching to group, set to first available tier
-                                const validTiers = Object.entries(groupPricingTiers)
-                                  .filter(([tier, price]) => Number(tier) > 1 && Number(price) > 0)
-                                  .map(([tier, _]) => Number(tier))
-                                  .sort((a, b) => a - b);
-                                if (validTiers.length > 0) {
-                                  updateSlotGroupTier(day.key, index, validTiers[0]);
-                                }
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-full sm:w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="solo">Solo</SelectItem>
-                              <SelectItem
-                                value="group"
-                                disabled={(() => {
-                                  const validTiers = Object.entries(groupPricingTiers)
-                                    .filter(([_, price]) => Number(price) > 0);
-                                  return validTiers.length === 0;
-                                })()}
-                              >
-                                Group
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {/* Solo Price Display - Only show if Solo is selected */}
-                          {(slot.groupTier === 1 || slot.groupTier === null) && soloPrice !== null && (
-                            <div className="flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-md w-44">
-                              <span className="text-sm font-medium text-blue-900">
-                                PKR {soloPrice}/session
-                              </span>
+                          {/* Pricing Section */}
+                          <div className="w-full md:w-auto">
+                            <div className="md:hidden mb-2">
+                              <Label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                                {slot.groupTier !== null && slot.groupTier > 1 ? 'Group Pricing' : 'Base Price'}
+                              </Label>
                             </div>
-                          )}
-                          {/* Group Tier Selection - Only show if Group is selected */}
-                          {slot.groupTier !== null && slot.groupTier > 1 && (
-                            <Select
-                              value={slot.groupTier?.toString() ?? ''}
-                              onValueChange={(value) => {
-                                updateSlotGroupTier(day.key, index, Number(value));
-                              }}
-                            >
-                              <SelectTrigger className="w-44">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(groupPricingTiers)
-                                  .filter(([_, price]) => Number(price) > 0)
-                                  .map(([tier, price]) => Number(tier))
-                                  .sort((a, b) => a - b)
-                                  .map((tier) => {
-                                    const price = groupPricingTiers[tier];
-                                    return (
-                                      <SelectItem key={tier} value={tier.toString()}>
-                                        {tier} people - PKR {price}
-                                      </SelectItem>
-                                    );
-                                  })}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeTimeSlot(day.key, index)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Remove
-                          </Button>
+                            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                              {/* Solo Price Display */}
+                              {(slot.groupTier === 1 || slot.groupTier === null) && soloPrice !== null && (
+                                <div className="flex items-center px-4 py-3 sm:py-2 bg-brand/5 border border-brand/10 rounded-lg w-full sm:w-44 h-11 sm:h-9">
+                                  <span className="text-xs font-bold text-brand truncate">
+                                    PKR {soloPrice}/session
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Group Tier Selection */}
+                              {slot.groupTier !== null && slot.groupTier > 1 && (
+                                <Select
+                                  value={slot.groupTier?.toString() ?? ''}
+                                  onValueChange={(value) => {
+                                    updateSlotGroupTier(day.key, index, Number(value));
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full sm:w-48 bg-brand/5 border-brand/10 text-brand font-bold h-11 sm:h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(groupPricingTiers)
+                                      .filter(([_, price]) => Number(price) > 0)
+                                      .map(([tier, price]) => Number(tier))
+                                      .sort((a, b) => a - b)
+                                      .map((tier) => {
+                                        const price = groupPricingTiers[tier];
+                                        return (
+                                          <SelectItem key={tier} value={tier.toString()}>
+                                            {tier} people - PKR {price}
+                                          </SelectItem>
+                                        );
+                                      })}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                          </div>
+
                         </div>
                       ))
                     )}
@@ -954,29 +989,69 @@ export default function AvailabilityPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Stats */}
-      <Card className="rounded-2xl shadow-sm bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-800">Availability Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-900">
-                {Object.values(availability.weeklySchedule).filter(day => day.enabled).length}
-              </p>
-              <p className="text-blue-700">Active days</p>
+      {/* Availability Summary */}
+      <Card className="rounded-2xl shadow-sm bg-white border-gray-100 overflow-hidden">
+        <div className="bg-brand/5 px-6 py-4 border-b border-brand/10">
+          <CardTitle className="text-brand flex items-center gap-2 text-lg">
+            <CheckCircle2 className="w-5 h-5" />
+            Availability Summary
+          </CardTitle>
+        </div>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Active Days Stat */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100/50">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">
+                  {Object.values(availability.weeklySchedule).filter(day => day.enabled).length}
+                </p>
+                <p className="text-sm font-medium text-gray-500">Active Days</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-900">
-                {Object.values(availability.weeklySchedule)
-                  .reduce((total, day) => total + day.slots.length, 0)}
-              </p>
-              <p className="text-blue-700">Total time slots</p>
+
+            {/* Total Slots Stat */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100/50">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">
+                  {Object.values(availability.weeklySchedule)
+                    .reduce((total, day) => total + day.slots.length, 0)}
+                </p>
+                <p className="text-sm font-medium text-gray-500">Total Slots</p>
+              </div>
+            </div>
+
+            {/* Recurring vs One-Time Breakdown */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100/50 sm:col-span-2 lg:col-span-1">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 shrink-0">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-end mb-1">
+                  <p className="text-sm font-medium text-gray-500">Type Breakdown</p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-[10px] bg-white border-gray-200 text-gray-600 px-2 py-0">
+                    {Object.values(availability.weeklySchedule)
+                      .flatMap(day => day.slots)
+                      .filter(s => s.isRecurring !== false).length} Recurring
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] bg-white border-gray-200 text-gray-600 px-2 py-0">
+                    {Object.values(availability.weeklySchedule)
+                      .flatMap(day => day.slots)
+                      .filter(s => s.isRecurring === false).length} One-time
+                  </Badge>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

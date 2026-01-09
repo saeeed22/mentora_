@@ -8,6 +8,7 @@ import {
     MessageCircle,
     Calendar,
     User,
+    Clock,
 } from 'lucide-react';
 import { CurrentUser } from '@/lib/api/auth';
 import { useEffect, useState } from 'react';
@@ -59,6 +60,11 @@ export function BottomNav({ user, currentPath }: BottomNavProps) {
             href: '/bookings',
             icon: Calendar,
         },
+        ...(user.role === 'mentor' ? [{
+            name: 'Availability',
+            href: '/availability',
+            icon: Clock,
+        }] : []),
         {
             name: 'Profile',
             href: '/profile',
