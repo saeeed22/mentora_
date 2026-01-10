@@ -63,8 +63,10 @@ export default function DashboardLayout({
         {/* Mobile Bottom Navigation */}
         <BottomNav user={user} currentPath={pathname} />
 
-        {/* Footer */}
-        <LandingFooter />
+        {/* Footer wrapper with bottom padding for mobile navigation */}
+        <div className="pb-20 lg:pb-0">
+          <LandingFooter />
+        </div>
       </div>
     </ReactQueryProvider>
   );

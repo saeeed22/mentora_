@@ -94,6 +94,9 @@ export const auth = {
       const tokenResponse = await apiClient.post<TokenResponse>('/v1/auth/login', data);
       console.log('[Auth] Login successful, token received');
       tokenManager.setAccessToken(tokenResponse.data.access_token);
+      if (tokenResponse.data.refresh_token) {
+        tokenManager.setRefreshToken(tokenResponse.data.refresh_token);
+      }
 
       // Fetch user profile
       console.log('[Auth] Fetching user profile from /v1/users/me...');
@@ -254,6 +257,9 @@ export const auth = {
       );
 
       tokenManager.setAccessToken(tokenResponse.data.access_token);
+      if (tokenResponse.data.refresh_token) {
+        tokenManager.setRefreshToken(tokenResponse.data.refresh_token);
+      }
 
       // Fetch user profile
       const userResponse = await apiClient.get<{

@@ -218,15 +218,15 @@ export default function MessagesPage() {
         const found = conversationList.find(conv => conv.id === c);
         if (found) {
           setSelectedConversation(found);
-          // Save to localStorage for future visits
-          localStorage.setItem('mentora_last_conversation', c);
+          // Save to sessionStorage for future visits
+          sessionStorage.setItem('mentora_last_conversation', c);
           if (!found.isSuggestedMentor) {
             loadMessages(found.id);
           }
         }
       } else {
-        // No URL parameter - check localStorage (PRIORITY 2)
-        const lastConversationId = localStorage.getItem('mentora_last_conversation');
+        // No URL parameter - check sessionStorage (PRIORITY 2)
+        const lastConversationId = sessionStorage.getItem('mentora_last_conversation');
         if (lastConversationId) {
           const found = conversationList.find(conv => conv.id === lastConversationId);
           if (found) {
@@ -240,20 +240,9 @@ export default function MessagesPage() {
           }
         }
 
-        // No URL and no valid localStorage - use defaults (PRIORITY 3)
-        if (conversationList.length > 0) {
-          const currentUser = auth.getCurrentUser();
-          if (currentUser?.role === 'mentor') {
-            const firstConv = conversationList.find(c => !c.isSuggestedMentor) || conversationList[0];
-            setSelectedConversation(firstConv);
-            if (!firstConv.isSuggestedMentor) {
-              loadMessages(firstConv.id);
-            }
-          } else {
-            // Mentees: show placeholder until a conversation is chosen
-            setSelectedConversation(null);
-          }
-        }
+        // No URL and no valid sessionStorage - use defaults (PRIORITY 3)
+        // Default to "no chat selected" for both mentors and mentees on fresh login/session
+        setSelectedConversation(null);
       }
 
       if (!result.success) {
@@ -562,9 +551,9 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conversation: ConversationOrMentor) => {
     setSelectedConversation(conversation);
-    // Save to localStorage for future visits (unless it's a suggested mentor)
+    // Save to sessionStorage for future visits (unless it's a suggested mentor)
     if (!conversation.isSuggestedMentor) {
-      localStorage.setItem('mentora_last_conversation', conversation.id);
+      sessionStorage.setItem('mentora_last_conversation', conversation.id);
     }
     // Optimistically clear unread locally when opening the conversation
     setConversations(prev => prev.map(c => c.id === conversation.id ? { ...c, unread_count: 0 } : c));
@@ -756,7 +745,10 @@ export default function MessagesPage() {
                   {/* Back button for mobile */}
                   <button
                     className="md:hidden p-1 hover:bg-gray-100 rounded"
-                    onClick={() => setSelectedConversation(null)}
+                    onClick={() => {
+                      setSelectedConversation(null);
+                      sessionStorage.removeItem('mentora_last_conversation');
+                    }}
                     aria-label="Back to conversations"
                   >
                     <ChevronLeft className="h-5 w-5" />

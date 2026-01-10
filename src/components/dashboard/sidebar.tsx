@@ -82,6 +82,8 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
   ];
 
   const handleLogout = async () => {
+    // Clear chat persistence on logout
+    sessionStorage.removeItem('mentora_last_conversation');
     await auth.logout();
     router.push('/');
   };

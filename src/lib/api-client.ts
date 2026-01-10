@@ -14,6 +14,7 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
     timeout: 30000, // 30 second timeout
+    withCredentials: true,
 });
 
 // Token management
@@ -26,6 +27,16 @@ export const tokenManager = {
     setAccessToken: (token: string): void => {
         if (typeof window === 'undefined') return;
         localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    },
+
+    getRefreshToken: (): string | null => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem(REFRESH_TOKEN_KEY);
+    },
+
+    setRefreshToken: (token: string): void => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem(REFRESH_TOKEN_KEY, token);
     },
 
     clearTokens: (): void => {
@@ -97,13 +108,26 @@ apiClient.interceptors.response.use(
 
             try {
                 // Try to refresh the token
+                const refreshToken = tokenManager.getRefreshToken();
+                const currentAccessToken = tokenManager.getAccessToken();
+
                 const response = await axios.post(
                     `${API_BASE_URL}/v1/auth/refresh`,
-                    {}
+                    refreshToken ? { refresh_token: refreshToken } : {},
+                    {
+                        headers: {
+                            'Authorization': currentAccessToken ? `Bearer ${currentAccessToken}` : undefined
+                        },
+                        withCredentials: true
+                    }
                 );
 
-                const { access_token } = response.data;
+                const { access_token, refresh_token: new_refresh_token } = response.data;
                 tokenManager.setAccessToken(access_token);
+                if (new_refresh_token) {
+                    tokenManager.setRefreshToken(new_refresh_token);
+                }
+
                 processQueue(null, access_token);
 
                 if (originalRequest.headers) {
@@ -142,7 +166,7 @@ export interface ApiError {
 
 export function parseApiError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ detail?: string | Array<{ msg: string }>; message?: string; error?: string; errors?: Array<{ msg: string }>; [key: string]: unknown }>;
+        const axiosError = error as AxiosError<{ detail?: string | Array<{ msg: string }>; message?: string; error?: string; errors?: Array<{ msg: string }>;[key: string]: unknown }>;
         const data = axiosError.response?.data;
         const detail = data?.detail;
 

@@ -418,8 +418,9 @@ export default function AvailabilityPage() {
             hasValidationErrors = true;
           }
 
-          // Check if slot is in the past (only for date-specific slots)
-          if (slot.isRecurring === false && slot.specificDate) {
+          // Check if slot is in the past (only for NEW date-specific slots)
+          // Relaxed validation: skip if slot already exists (has templateId)
+          if (slot.isRecurring === false && slot.specificDate && !slot.templateId) {
             // For date-specific slots, check if the date is in the past
             const parts = slot.specificDate.split('-');
             const slotYear = parseInt(parts[0]);
@@ -488,9 +489,9 @@ export default function AvailabilityPage() {
     setIsSaving(true);
 
     try {
-      // Save or create all slots with current start/end, group tier, and recurring mode
       const newSlots: Array<SlotData & { day: string }> = [];
       const existingSlots: Array<SlotData & { day: string }> = [];
+      const slotsToDelete: Array<string> = [];
 
       for (const [dayKey, dayData] of Object.entries(availability.weeklySchedule)) {
         if (dayData.enabled) {
@@ -502,6 +503,23 @@ export default function AvailabilityPage() {
               existingSlots.push(slotWithDay);
             }
           }
+        } else {
+          // If day is disabled, any existing templates on this day should be deleted
+          for (const slot of dayData.slots) {
+            if (slot.templateId) {
+              slotsToDelete.push(slot.templateId);
+            }
+          }
+        }
+      }
+
+      // Delete templates for disabled days
+      let deletedCount = 0;
+      for (const templateId of slotsToDelete) {
+        console.log('[Availability] Deleting template (day disabled):', templateId);
+        const result = await mentorManagementApi.deleteAvailabilityTemplate(templateId);
+        if (result.success) {
+          deletedCount++;
         }
       }
 
@@ -620,8 +638,12 @@ export default function AvailabilityPage() {
       }
 
       setHasChanges(false);
-      toast.success(`✓ Availability saved! Created ${createdCount}, updated ${updatedCount} slot(s).`);
-      console.log('[Availability] Save complete. Created:', createdCount, 'Updated:', updatedCount);
+      let successMessage = `✓ Availability saved! Created ${createdCount}, updated ${updatedCount} slot(s).`;
+      if (deletedCount > 0) {
+        successMessage += ` Removed ${deletedCount} slot(s) from disabled days.`;
+      }
+      toast.success(successMessage);
+      console.log('[Availability] Save complete. Created:', createdCount, 'Updated:', updatedCount, 'Deleted:', deletedCount);
 
       // Reload to get the new template IDs
       console.log('[Availability] Reloading templates after save...');
@@ -726,7 +748,7 @@ export default function AvailabilityPage() {
           <Button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
-            className="bg-brand hover:bg-brand/90 w-full sm:w-auto order-1 sm:order-2"
+            className={`bg-brand hover:bg-brand/90 w-auto sm:w-auto order-1 sm:order-2 fixed bottom-20 right-4 z-40 lg:static lg:z-auto shadow-lg lg:shadow-none px-6 rounded-lg transition-all h-12 lg:h-9 ${(!hasChanges && !isSaving) ? 'scale-0 opacity-0 pointer-events-none lg:scale-100 lg:opacity-100 lg:pointer-events-auto' : 'scale-100 opacity-100'}`}
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -793,20 +815,20 @@ export default function AvailabilityPage() {
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex flex-col md:flex-row md:items-center gap-5 p-5 md:p-3 bg-white md:bg-gray-50/30 rounded-2xl border border-gray-100 md:border-transparent md:hover:border-gray-200 transition-all relative group shadow-sm md:shadow-none">
+                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-5 p-5 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none">
                           {/* Unified Delete Button (top right for both mobile and desktop) */}
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => removeTimeSlot(day.key, index)}
-                            className="absolute right-3 top-3 md:-right-2 md:-top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white md:border border-gray-200 shadow-sm hover:text-red-500 hover:bg-red-50 h-8 w-8 md:h-7 md:w-7 rounded-full z-10"
+                            className="absolute right-3 top-3 lg:-right-2 lg:-top-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity bg-white lg:border border-gray-200 shadow-sm hover:text-red-500 hover:bg-red-50 h-8 w-8 lg:h-7 lg:w-7 rounded-full z-10"
                           >
                             <Plus className="w-5 h-5 md:w-4 md:h-4 rotate-45" />
                           </Button>
 
                           {/* Date Badge for Date-Specific Slots (Desktop) */}
                           {slot.isRecurring === false && slot.specificDate && (
-                            <Badge variant="outline" className="hidden md:flex text-[10px] bg-blue-50 text-blue-700 border-blue-100 shrink-0 font-bold uppercase py-0.5">
+                            <Badge variant="outline" className="hidden lg:flex text-[10px] bg-blue-50 text-blue-700 border-blue-100 shrink-0 font-bold uppercase py-0.5">
                               📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
@@ -815,9 +837,9 @@ export default function AvailabilityPage() {
                           )}
 
                           {/* Time Range Section */}
-                          <div className="w-full md:w-auto">
-                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Time Range</Label>
-                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                          <div className="w-full lg:w-auto">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Time Range</Label>
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                               <div className="grid grid-cols-[1fr,auto,1fr] gap-3 w-full sm:w-auto items-center">
                                 <Select
                                   value={slot.start}
@@ -826,7 +848,7 @@ export default function AvailabilityPage() {
                                   <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
                                     {timeSlots.map((time) => (
                                       <SelectItem key={time} value={time}>
                                         {time}
@@ -844,7 +866,7 @@ export default function AvailabilityPage() {
                                   <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
                                     {timeSlots.map((time) => (
                                       <SelectItem key={time} value={time}>
                                         {time}
@@ -857,18 +879,18 @@ export default function AvailabilityPage() {
                           </div>
 
                           {/* Frequency Section */}
-                          <div className="w-full md:w-32">
-                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Frequency</Label>
+                          <div className="w-full lg:w-32">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Frequency</Label>
                             <Select
                               value={slot.isRecurring !== false ? 'recurring' : 'specific'}
                               onValueChange={(value) => {
                                 updateSlotRecurringMode(day.key, index, value === 'recurring');
                               }}
                             >
-                              <SelectTrigger className="w-full bg-white md:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
                                 <SelectItem value="recurring">Recurring</SelectItem>
                                 <SelectItem value="specific">One-Time</SelectItem>
                               </SelectContent>
@@ -876,8 +898,8 @@ export default function AvailabilityPage() {
                           </div>
                           {/* Date Picker Section */}
                           {slot.isRecurring === false && (
-                            <div className="w-full md:w-auto">
-                              <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Select Date</Label>
+                            <div className="w-full lg:w-auto">
+                              <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Select Date</Label>
                               <div className="relative">
                                 <input
                                   type="date"
@@ -887,15 +909,15 @@ export default function AvailabilityPage() {
                                     const value = e.target.value;
                                     updateSlotSpecificDate(day.key, index, value);
                                   }}
-                                  className="w-full md:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                  className="w-full lg:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
                                   min={new Date().toISOString().split('T')[0]}
                                 />
                               </div>
                             </div>
                           )}
                           {/* Session Type Section */}
-                          <div className="w-full md:w-24">
-                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block md:hidden tracking-wider">Session Type</Label>
+                          <div className="w-full lg:w-24">
+                            <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Session Type</Label>
                             <Select
                               value={slot.groupTier === 1 || slot.groupTier === null ? 'solo' : 'group'}
                               onValueChange={(value) => {
@@ -912,10 +934,10 @@ export default function AvailabilityPage() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-full bg-white md:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
                                 <SelectItem value="solo">Solo</SelectItem>
                                 <SelectItem
                                   value="group"
@@ -932,13 +954,13 @@ export default function AvailabilityPage() {
                           </div>
 
                           {/* Pricing Section */}
-                          <div className="w-full md:w-auto">
-                            <div className="md:hidden mb-2">
+                          <div className="w-full lg:w-auto">
+                            <div className="lg:hidden mb-2">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                 {slot.groupTier !== null && slot.groupTier > 1 ? 'Group Pricing' : 'Base Price'}
                               </Label>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                               {/* Solo Price Display */}
                               {(slot.groupTier === 1 || slot.groupTier === null) && soloPrice !== null && (
                                 <div className="flex items-center px-4 py-3 sm:py-2 bg-brand/5 border border-brand/10 rounded-lg w-full sm:w-44 h-11 sm:h-9">
@@ -959,7 +981,7 @@ export default function AvailabilityPage() {
                                   <SelectTrigger className="w-full sm:w-48 bg-brand/5 border-brand/10 text-brand font-bold h-11 sm:h-9">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
                                     {Object.entries(groupPricingTiers)
                                       .filter(([_, price]) => Number(price) > 0)
                                       .map(([tier, price]) => Number(tier))
