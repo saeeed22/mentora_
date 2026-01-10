@@ -74,11 +74,6 @@ export function Sidebar({ user, currentPath }: SidebarProps) {
       icon: Calendar,
     },
     {
-      name: 'Profile',
-      href: '/profile',
-      icon: User,
-    },
-    {
       name: 'Availability',
       href: '/availability',
       icon: Clock,

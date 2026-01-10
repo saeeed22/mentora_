@@ -65,11 +65,6 @@ export function BottomNav({ user, currentPath }: BottomNavProps) {
             href: '/availability',
             icon: Clock,
         }] : []),
-        {
-            name: 'Profile',
-            href: '/profile',
-            icon: User,
-        },
     ];
 
     return (

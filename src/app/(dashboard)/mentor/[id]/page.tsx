@@ -800,13 +800,13 @@ export default function MentorProfilePage() {
                               <h4 className="font-semibold text-gray-900">
                                 {milestone.title}
                               </h4>
-                              <button className="text-sm text-brand hover:underline">
+                              <button className="text-sm text-brand hover:underline py-2 px-1 min-w-[44px] text-left">
                                 See credentials →
                               </button>
                             </div>
                             <p className="text-sm text-gray-600">{milestone.date}</p>
                           </div>
-                        ))}
+                        ))} 
                       </div>
                     </CardContent>
                   </Card>
@@ -840,7 +840,7 @@ export default function MentorProfilePage() {
                               <p className="text-sm text-yellow-600 font-medium mb-2">
                                 {badge.date}
                               </p>
-                              <button className="text-sm text-brand hover:underline">
+                              <button className="text-sm text-brand hover:underline py-2 px-1 min-w-[44px] text-left">
                                 See credentials →
                               </button>
                             </div>
@@ -949,7 +949,7 @@ export default function MentorProfilePage() {
                   {/* Date Selector */}
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">Select a date</h4>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {availableSlots.map((slot) => {
                         const date = new Date(slot.date);
                         const day = date.getDate();

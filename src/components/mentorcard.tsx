@@ -78,7 +78,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
 
   const cardContent = (
     <div
-      className={`rounded-xl border ${isOwnCard ? 'border-brand/30 bg-brand-light/5' : 'border-gray-200 bg-white'} shadow-sm w-[260px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer`}
+      className={`rounded-xl border ${isOwnCard ? 'border-brand/30 bg-brand-light/5' : 'border-gray-200 bg-white'} shadow-sm w-full max-w-[280px] sm:max-w-[300px] h-full flex flex-col hover:shadow-md transition-shadow cursor-pointer`}
     >
 
       {/* Image */}
