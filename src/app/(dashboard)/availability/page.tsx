@@ -773,7 +773,7 @@ export default function AvailabilityPage() {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
 
             return (
-              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4 overflow-hidden">
                 {/* Day Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div className="flex items-center justify-between sm:justify-start gap-4">
@@ -910,6 +910,7 @@ export default function AvailabilityPage() {
                                     updateSlotSpecificDate(day.key, index, value);
                                   }}
                                   className="w-full lg:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                  style={{ maxWidth: '100%', boxSizing: 'border-box' }}
                                   min={new Date().toISOString().split('T')[0]}
                                 />
                               </div>
