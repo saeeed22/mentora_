@@ -816,25 +816,16 @@ export default function AvailabilityPage() {
                     ) : (
                       daySchedule.slots.map((slot, index) => (
                         <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-3 p-3 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none overflow-hidden">
-                          {/* Unified Delete Button (Clean X, no circle) */}
+                          {/* Delete Button - Always visible */}
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => removeTimeSlot(day.key, index)}
-                            className="absolute right-2 top-2 lg:-right-2 lg:-top-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 hover:bg-transparent h-8 w-8 lg:h-7 lg:w-7 z-10"
+                            className="absolute right-2 top-2 text-gray-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 z-10 transition-colors"
+                            title="Remove slot"
                           >
-                            <Plus className="w-5 h-5 md:w-4 md:h-4 rotate-45" />
+                            <Plus className="w-5 h-5 rotate-45" />
                           </Button>
-
-                          {/* Date Badge for Date-Specific Slots (Desktop) */}
-                          {slot.isRecurring === false && slot.specificDate && (
-                            <Badge variant="outline" className="hidden lg:flex text-[10px] bg-blue-50 text-blue-700 border-blue-100 shrink-0 font-bold uppercase py-0.5">
-                              📅 {new Date(slot.specificDate + 'T00:00:00').toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </Badge>
-                          )}
 
                           {/* Time Range Section */}
                           <div className="w-full lg:w-auto min-w-0">
