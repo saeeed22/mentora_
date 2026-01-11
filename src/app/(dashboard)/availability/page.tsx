@@ -898,9 +898,9 @@ export default function AvailabilityPage() {
                           </div>
                           {/* Date Picker Section */}
                           {slot.isRecurring === false && (
-                            <div className="w-full lg:w-auto">
+                            <div className="w-full lg:w-auto min-w-0 overflow-hidden">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Select Date</Label>
-                              <div className="relative w-full">
+                              <div className="relative w-full overflow-hidden">
                                 <input
                                   type="date"
                                   key={`${day.key}-${index}-date`}
@@ -909,7 +909,7 @@ export default function AvailabilityPage() {
                                     const value = e.target.value;
                                     updateSlotSpecificDate(day.key, index, value);
                                   }}
-                                  className="w-full lg:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                  className="w-full max-w-full lg:w-auto px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9 box-border"
                                   min={new Date().toISOString().split('T')[0]}
                                 />
                               </div>
