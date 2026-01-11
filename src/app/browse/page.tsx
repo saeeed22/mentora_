@@ -11,6 +11,7 @@ import type { MentorDetailResponse } from '@/lib/types';
 import LandingHeader from '@/components/landing/header';
 import LandingFooter from '@/components/landing/footer';
 import Link from 'next/link';
+import { auth } from '@/lib/api/auth';
 import {
   Select,
   SelectContent,
@@ -18,6 +19,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Mentoring niche categories (same as explore page)
+const MENTORING_NICHES = [
+  { value: 'web_dev', label: 'Web Development' },
+  { value: 'mobile_dev', label: 'Mobile Development' },
+  { value: 'backend', label: 'Backend' },
+  { value: 'frontend', label: 'Frontend' },
+  { value: 'fullstack', label: 'Full Stack' },
+  { value: 'devops', label: 'DevOps' },
+  { value: 'data_science', label: 'Data Science' },
+  { value: 'machine_learning', label: 'Machine Learning' },
+  { value: 'cloud', label: 'Cloud Computing' },
+  { value: 'ai_llm', label: 'AI & LLM' },
+  { value: 'blockchain', label: 'Blockchain' },
+  { value: 'product', label: 'Product Management' },
+  { value: 'design', label: 'Design (UI/UX)' },
+  { value: 'entrepreneurship', label: 'Entrepreneurship' },
+  { value: 'business', label: 'Business' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'other', label: 'Other' },
+];
 
 // Convert backend mentor to card format
 const backendMentorToCard = (mentor: MentorDetailResponse) => ({
@@ -37,20 +61,27 @@ const backendMentorToCard = (mentor: MentorDetailResponse) => ({
   isTopRated: (mentor.mentor_profile?.rating_avg ?? 0) >= 4.8,
   isAvailableASAP: true,
   groupEnabled: !!mentor.mentor_profile?.group_enabled,
+  mentoring_niche: mentor.mentor_profile?.mentoring_niche || undefined,
 });
 
 type MentorCardData = ReturnType<typeof backendMentorToCard>;
 
 export default function BrowseMentorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSkill, setSelectedSkill] = useState('all');
-  const [sortBy, setSortBy] = useState<'rating' | 'experience' | 'price'>('rating');
+  const [selectedNiche, setSelectedNiche] = useState('all');
   const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
+  const [experienceRange, setExperienceRange] = useState<'all' | '1-2' | '2-4' | '4-7' | '7-10' | '10+'>('all');
   const [mentors, setMentors] = useState<MentorCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [skills, setSkills] = useState<string[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check if user is logged in on mount
+  useEffect(() => {
+    const currentUser = auth.getCurrentUser();
+    setIsLoggedIn(!!currentUser);
+  }, []);
 
   // Load mentors from API
   const loadMentors = async (reset = false) => {
@@ -64,8 +95,6 @@ export default function BrowseMentorsPage() {
     const result = await mentorsApi.searchMentors({
       page: reset ? 1 : page,
       limit: 20,
-      sort: sortBy,
-      skills: selectedSkill !== 'all' ? [selectedSkill] : undefined,
     });
 
     if (result.success && result.data) {
@@ -90,6 +119,11 @@ export default function BrowseMentorsPage() {
         )
         : cardData;
 
+      // Filter by niche on client side
+      if (selectedNiche !== 'all') {
+        filtered = filtered.filter(m => m.mentoring_niche === selectedNiche);
+      }
+
       // Filter by price range on client side
       if (priceRange !== 'all') {
         filtered = filtered.filter(m => {
@@ -109,41 +143,40 @@ export default function BrowseMentorsPage() {
         });
       }
 
+      // Filter by experience range on client side
+      if (experienceRange !== 'all') {
+        filtered = filtered.filter(m => {
+          const exp = m.experience || 0;
+          switch (experienceRange) {
+            case '1-2':
+              return exp >= 1 && exp <= 2;
+            case '2-4':
+              return exp > 2 && exp <= 4;
+            case '4-7':
+              return exp > 4 && exp <= 7;
+            case '7-10':
+              return exp > 7 && exp <= 10;
+            case '10+':
+              return exp > 10;
+            default:
+              return true;
+          }
+        });
+      }
+
       if (filtered.length === 0 && !searchQuery && priceRange === 'all') {
         setMentors([]);
-        setSkills([]);
       } else {
         setMentors(prev => reset ? filtered : [...prev, ...filtered]);
-        // Extract ALL unique skills from qualified mentors (not just current page)
-        const allSkills = qualifiedMentors.flatMap(m => m.mentor_profile.skills);
-        setSkills(Array.from(new Set(allSkills)).sort());
       }
       setHasMore(result.data.hasNext);
     } else {
       setMentors([]);
       setHasMore(false);
-      setSkills([]);
     }
 
     setIsLoading(false);
   };
-
-  // Load all available skills on mount
-  useEffect(() => {
-    const loadAllSkills = async () => {
-      // Fetch a larger set to get all skills
-      const result = await mentorsApi.searchMentors({ page: 1, limit: 100 });
-      if (result.success && result.data) {
-        const qualifiedMentors = result.data.data.filter(mentor => {
-          const experience = mentor.mentor_profile?.experience_years ?? 0;
-          return experience > 0 && mentor.mentor_profile?.skills?.length;
-        });
-        const allSkills = qualifiedMentors.flatMap(m => m.mentor_profile.skills);
-        setSkills(Array.from(new Set(allSkills)).sort());
-      }
-    };
-    loadAllSkills();
-  }, []);
 
   // Initial load
   useEffect(() => {
@@ -159,7 +192,7 @@ export default function BrowseMentorsPage() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedSkill, sortBy, priceRange]);
+  }, [searchQuery, selectedNiche, priceRange, experienceRange]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -179,25 +212,27 @@ export default function BrowseMentorsPage() {
           </div>
         </div>
 
-        {/* CTA Banner */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Ready to connect with a mentor?
-              </h2>
-              <p className="text-gray-600">
-                Sign up now to book sessions and start your mentorship journey
-              </p>
+        {/* CTA Banner - Only show for non-logged-in users */}
+        {!isLoggedIn && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Ready to connect with a mentor?
+                </h2>
+                <p className="text-gray-600">
+                  Sign up now to book sessions and start your mentorship journey
+                </p>
+              </div>
+              <Button
+                className="bg-brand hover:bg-brand/90 whitespace-nowrap"
+                asChild
+              >
+                <Link href="/signup">Signup Now</Link>
+              </Button>
             </div>
-            <Button
-              className="bg-brand hover:bg-brand/90 whitespace-nowrap"
-              asChild
-            >
-              <Link href="/signup">Signup Now</Link>
-            </Button>
           </div>
-        </div>
+        )}
 
         {/* Search and Filters */}
         <Card className="rounded-2xl shadow-sm mb-8">
@@ -217,16 +252,16 @@ export default function BrowseMentorsPage() {
                 </div>
               </div>
 
-              {/* Skill Filter */}
-              <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+              {/* Niche Filter */}
+              <Select value={selectedNiche} onValueChange={setSelectedNiche}>
                 <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="All Skills" />
+                  <SelectValue placeholder="All Niches" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Skills</SelectItem>
-                  {skills.map(skill => (
-                    <SelectItem key={skill} value={skill}>
-                      {skill}
+                  <SelectItem value="all">All Niches</SelectItem>
+                  {MENTORING_NICHES.map((niche) => (
+                    <SelectItem key={niche.value} value={niche.value}>
+                      {niche.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -246,15 +281,18 @@ export default function BrowseMentorsPage() {
                 </SelectContent>
               </Select>
 
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              {/* Experience Range Filter */}
+              <Select value={experienceRange} onValueChange={(v) => setExperienceRange(v as typeof experienceRange)}>
                 <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue />
+                  <SelectValue placeholder="All Experience" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="experience">Most Experienced</SelectItem>
-                  <SelectItem value="price">Price: Low to High</SelectItem>
+                  <SelectItem value="all">Any Experience</SelectItem>
+                  <SelectItem value="1-2">1-2 years</SelectItem>
+                  <SelectItem value="2-4">2-4 years</SelectItem>
+                  <SelectItem value="4-7">4-7 years</SelectItem>
+                  <SelectItem value="7-10">7-10 years</SelectItem>
+                  <SelectItem value="10+">10+ years</SelectItem>
                 </SelectContent>
               </Select>
             </div>

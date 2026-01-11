@@ -773,7 +773,7 @@ export default function AvailabilityPage() {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
 
             return (
-              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4 overflow-hidden">
+              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                 {/* Day Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div className="flex items-center justify-between sm:justify-start gap-4">
@@ -815,7 +815,7 @@ export default function AvailabilityPage() {
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-5 p-5 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none overflow-hidden">
+                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-5 p-5 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none">
                           {/* Unified Delete Button (Clean X, no circle) */}
                           <Button
                             size="icon"
@@ -898,7 +898,7 @@ export default function AvailabilityPage() {
                           </div>
                           {/* Date Picker Section */}
                           {slot.isRecurring === false && (
-                            <div className="w-full lg:w-auto min-w-0 overflow-hidden">
+                            <div className="w-full lg:w-auto min-w-0">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Select Date</Label>
                               <input
                                 type="date"
@@ -908,7 +908,7 @@ export default function AvailabilityPage() {
                                   const value = e.target.value;
                                   updateSlotSpecificDate(day.key, index, value);
                                 }}
-                                className="w-full box-border px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                className="w-full max-w-full box-border px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
                                 min={new Date().toISOString().split('T')[0]}
                               />
                             </div>

@@ -88,7 +88,7 @@ const MentorCard: React.FC<MentorCardProps> = ({
           alt={mentor.name}
           width={260}
           height={200}
-          className="rounded-t-xl object-cover w-full h-[200px]"
+          className="rounded-t-xl object-cover object-top w-full h-[240px]"
         />
       </div>
 

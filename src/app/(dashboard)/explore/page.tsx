@@ -71,6 +71,7 @@ export default function ExplorePage() {
   const [selectedNiche, setSelectedNiche] = useState('all');
   const [sortBy, setSortBy] = useState<'experience' | 'price'>('experience');
   const [priceRange, setPriceRange] = useState<'all' | '0-1000' | '1000-2000' | '2000-5000' | '5000+'>('all');
+  const [experienceRange, setExperienceRange] = useState<'all' | '1-2' | '2-4' | '4-7' | '7-10' | '10+'>('all');
   const [rawMentors, setRawMentors] = useState<MentorCardData[]>([]); // Raw data from API
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -181,6 +182,27 @@ export default function ExplorePage() {
       });
     }
 
+    // Filter by experience range
+    if (experienceRange !== 'all') {
+      filtered = filtered.filter(m => {
+        const exp = m.experience || 0;
+        switch (experienceRange) {
+          case '1-2':
+            return exp >= 1 && exp <= 2;
+          case '2-4':
+            return exp > 2 && exp <= 4;
+          case '4-7':
+            return exp > 4 && exp <= 7;
+          case '7-10':
+            return exp > 7 && exp <= 10;
+          case '10+':
+            return exp > 10;
+          default:
+            return true;
+        }
+      });
+    }
+
     // Move logged-in mentor to the top if they exist in the list and user is a mentor
     if (isCurrentUserMentor && currentUserId) {
       const currentMentorIndex = filtered.findIndex(m => m.id === currentUserId);
@@ -191,7 +213,7 @@ export default function ExplorePage() {
     }
 
     return filtered;
-  }, [rawMentors, selectedNiche, debouncedSearchQuery, priceRange, isCurrentUserMentor, currentUserId]);
+  }, [rawMentors, selectedNiche, debouncedSearchQuery, priceRange, experienceRange, isCurrentUserMentor, currentUserId]);
 
   // Initial load
   useEffect(() => {
@@ -274,13 +296,17 @@ export default function ExplorePage() {
                 </SelectContent>
               </Select>
 
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <Select value={experienceRange} onValueChange={(v) => setExperienceRange(v as typeof experienceRange)}>
                 <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder="Experience" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="experience">Most Experience</SelectItem>
-                  <SelectItem value="price">Price</SelectItem>
+                  <SelectItem value="all">Any Experience</SelectItem>
+                  <SelectItem value="1-2">1-2 years</SelectItem>
+                  <SelectItem value="2-4">2-4 years</SelectItem>
+                  <SelectItem value="4-7">4-7 years</SelectItem>
+                  <SelectItem value="7-10">7-10 years</SelectItem>
+                  <SelectItem value="10+">10+ years</SelectItem>
                 </SelectContent>
               </Select>
             </div>
