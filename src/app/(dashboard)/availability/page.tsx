@@ -761,19 +761,19 @@ export default function AvailabilityPage() {
       </div>
 
       {/* Weekly Schedule */}
-      <Card className="rounded-2xl shadow-sm">
+      <Card className="rounded-2xl shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle>Weekly Schedule</CardTitle>
           <CardDescription>
             Set your recurring weekly availability or one-time date-specific slots
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 overflow-x-hidden">
           {daysToShow.map((day) => {
             const daySchedule = availability.weeklySchedule[day.key as keyof typeof availability.weeklySchedule];
 
             return (
-              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+              <div key={day.key} className="border border-gray-200 rounded-lg p-3 sm:p-4 overflow-hidden">
                 {/* Day Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div className="flex items-center justify-between sm:justify-start gap-4">
@@ -808,14 +808,14 @@ export default function AvailabilityPage() {
                 </div>
 
                 {daySchedule.enabled && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-hidden">
                     {daySchedule.slots.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center py-4">
                         No time slots set. Click &quot;Add Slot&quot; to add availability.
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-4 p-3 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none overflow-hidden">
+                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-3 p-3 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none overflow-hidden">
                           {/* Unified Delete Button (Clean X, no circle) */}
                           <Button
                             size="icon"
@@ -896,21 +896,19 @@ export default function AvailabilityPage() {
                           </div>
                           {/* Date Picker Section */}
                           {slot.isRecurring === false && (
-                            <div className="w-full lg:w-auto lg:flex-1 lg:max-w-[180px] min-w-0 overflow-hidden">
+                            <div className="w-full lg:w-auto lg:flex-1 lg:max-w-[180px] min-w-0 max-w-full">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Select Date</Label>
-                              <div className="relative w-full overflow-hidden">
-                                <input
-                                  type="date"
-                                  key={`${day.key}-${index}-date`}
-                                  value={slot.specificDate || ''}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    updateSlotSpecificDate(day.key, index, value);
-                                  }}
-                                  className="w-full px-2 sm:px-3 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9 box-border"
-                                  min={new Date().toISOString().split('T')[0]}
-                                />
-                              </div>
+                              <input
+                                type="date"
+                                key={`${day.key}-${index}-date`}
+                                value={slot.specificDate || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  updateSlotSpecificDate(day.key, index, value);
+                                }}
+                                className="w-full px-2 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9 [&::-webkit-date-and-time-value]:text-left [&::-webkit-calendar-picker-indicator]:opacity-70"
+                                min={new Date().toISOString().split('T')[0]}
+                              />
                             </div>
                           )}
                           {/* Session Type Section */}
