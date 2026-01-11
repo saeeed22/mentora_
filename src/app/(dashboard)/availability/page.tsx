@@ -815,7 +815,7 @@ export default function AvailabilityPage() {
                       </p>
                     ) : (
                       daySchedule.slots.map((slot, index) => (
-                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-5 p-5 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none">
+                        <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-5 p-4 lg:p-3 bg-white lg:bg-gray-50/30 rounded-2xl border border-gray-100 lg:border-transparent lg:hover:border-gray-200 transition-all relative group shadow-sm lg:shadow-none overflow-hidden">
                           {/* Unified Delete Button (Clean X, no circle) */}
                           <Button
                             size="icon"
@@ -837,49 +837,47 @@ export default function AvailabilityPage() {
                           )}
 
                           {/* Time Range Section */}
-                          <div className="w-full lg:w-auto">
+                          <div className="w-full lg:w-auto min-w-0">
                             <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Time Range</Label>
-                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                              <div className="grid grid-cols-[1fr,auto,1fr] gap-3 w-full sm:w-auto items-center">
-                                <Select
-                                  value={slot.start}
-                                  onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
-                                >
-                                  <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                            <div className="grid grid-cols-[1fr,auto,1fr] gap-2 sm:gap-3 items-center max-w-full">
+                              <Select
+                                value={slot.start}
+                                onValueChange={(value) => updateTimeSlot(day.key, index, 'start', value)}
+                              >
+                                <SelectTrigger className="w-full min-w-0 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
+                                  {timeSlots.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
 
-                                <span className="text-gray-300 text-xs font-medium">to</span>
+                              <span className="text-gray-300 text-xs font-medium shrink-0">to</span>
 
-                                <Select
-                                  value={slot.end}
-                                  onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
-                                >
-                                  <SelectTrigger className="w-full sm:w-28 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              <Select
+                                value={slot.end}
+                                onValueChange={(value) => updateTimeSlot(day.key, index, 'end', value)}
+                              >
+                                <SelectTrigger className="w-full min-w-0 bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
+                                  {timeSlots.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
 
                           {/* Frequency Section */}
-                          <div className="w-full lg:w-32">
+                          <div className="w-full lg:w-32 min-w-0">
                             <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Frequency</Label>
                             <Select
                               value={slot.isRecurring !== false ? 'recurring' : 'specific'}
@@ -887,7 +885,7 @@ export default function AvailabilityPage() {
                                 updateSlotRecurringMode(day.key, index, value === 'recurring');
                               }}
                             >
-                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9 min-w-0">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
@@ -898,7 +896,7 @@ export default function AvailabilityPage() {
                           </div>
                           {/* Date Picker Section */}
                           {slot.isRecurring === false && (
-                            <div className="w-full lg:w-auto min-w-0">
+                            <div className="w-full lg:w-auto lg:flex-1 lg:max-w-[180px]">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Select Date</Label>
                               <input
                                 type="date"
@@ -908,13 +906,13 @@ export default function AvailabilityPage() {
                                   const value = e.target.value;
                                   updateSlotSpecificDate(day.key, index, value);
                                 }}
-                                className="w-full max-w-full box-border px-4 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
+                                className="w-full px-3 py-3 sm:py-2 border border-gray-200 rounded-lg text-sm bg-gray-50/50 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all h-11 sm:h-9"
                                 min={new Date().toISOString().split('T')[0]}
                               />
                             </div>
                           )}
                           {/* Session Type Section */}
-                          <div className="w-full lg:w-24">
+                          <div className="w-full lg:w-24 min-w-0">
                             <Label className="text-[10px] text-gray-400 uppercase font-bold mb-2 block lg:hidden tracking-wider">Session Type</Label>
                             <Select
                               value={slot.groupTier === 1 || slot.groupTier === null ? 'solo' : 'group'}
@@ -932,7 +930,7 @@ export default function AvailabilityPage() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9">
+                              <SelectTrigger className="w-full bg-white lg:bg-gray-50/50 border-gray-200 h-11 sm:h-9 min-w-0">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
@@ -952,16 +950,16 @@ export default function AvailabilityPage() {
                           </div>
 
                           {/* Pricing Section */}
-                          <div className="w-full lg:w-auto">
+                          <div className="w-full lg:w-auto lg:flex-1 lg:max-w-[200px] min-w-0">
                             <div className="lg:hidden mb-2">
                               <Label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                 {slot.groupTier !== null && slot.groupTier > 1 ? 'Group Pricing' : 'Base Price'}
                               </Label>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto min-w-0">
                               {/* Solo Price Display */}
                               {(slot.groupTier === 1 || slot.groupTier === null) && soloPrice !== null && (
-                                <div className="flex items-center px-4 py-3 sm:py-2 bg-brand/5 border border-brand/10 rounded-lg w-full sm:w-44 h-11 sm:h-9">
+                                <div className="flex items-center px-3 py-3 sm:py-2 bg-brand/5 border border-brand/10 rounded-lg w-full h-11 sm:h-9 min-w-0">
                                   <span className="text-xs font-bold text-brand truncate">
                                     PKR {soloPrice}/session
                                   </span>
@@ -976,7 +974,7 @@ export default function AvailabilityPage() {
                                     updateSlotGroupTier(day.key, index, Number(value));
                                   }}
                                 >
-                                  <SelectTrigger className="w-full sm:w-48 bg-brand/5 border-brand/10 text-brand font-bold h-11 sm:h-9">
+                                  <SelectTrigger className="w-full bg-brand/5 border-brand/10 text-brand font-bold h-11 sm:h-9 min-w-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent className="w-[var(--radix-select-trigger-width)]" collisionPadding={10}>
