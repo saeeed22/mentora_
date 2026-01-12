@@ -300,14 +300,13 @@ export default function BookingsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleMessage(booking)}>
                       Message {isUserMentor ? 'Mentee' : 'Mentor'}
                     </DropdownMenuItem>
                     {/* Mentor: Confirm pending booking */}
                     {isUserMentor && booking.status === 'pending' && (
                       <DropdownMenuItem onClick={() => handleConfirmBooking(booking.id)}>
-                        <Check className="w-4 h-4 mr-2" />
+                        
                         Confirm Booking
                       </DropdownMenuItem>
                     )}
@@ -363,7 +362,7 @@ export default function BookingsPage() {
           {isUserMentor && booking.status === 'pending' && (
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
               <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleConfirmBooking(booking.id)}>
-                <Check className="w-4 h-4 mr-2" />
+                
                 Confirm Booking
               </Button>
               <Button variant="outline" onClick={() => handleMessage(booking)}>
