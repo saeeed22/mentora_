@@ -284,15 +284,24 @@ export function AgoraVideoCall({
 
     // Dynamic grid classes based on participant count
     const totalParticipants = remoteUsers.length + 1;
+    // For visual layout, count the waiting placeholder as a visual element
+    const visualElements = remoteUsers.length === 0 ? 2 : totalParticipants;
     const getGridClasses = () => {
-        if (totalParticipants === 1) return 'grid-cols-1';
-        if (totalParticipants === 2) return 'grid-cols-1 md:grid-cols-2';
-        if (totalParticipants <= 4) return 'grid-cols-1 sm:grid-cols-2';
+        if (visualElements === 1) return 'grid-cols-1';
+        if (visualElements === 2) return 'grid-cols-1 md:grid-cols-2';
+        if (visualElements === 3) return 'grid-cols-1 sm:grid-cols-2'; // 1 large top, 2 small bottom
+        if (visualElements <= 4) return 'grid-cols-1 sm:grid-cols-2';
         return 'grid-cols-2 lg:grid-cols-3';
     };
 
+    // For 3 participants, make local video span full width on desktop
+    const getLocalVideoClasses = () => {
+        if (visualElements === 3) return 'sm:col-span-2'; // Span both columns
+        return '';
+    };
+
     return (
-        <div className="flex flex-col h-[100dvh] bg-gray-950">
+        <div className="flex flex-col h-[80dvh] bg-gray-950">
             {/* Connection status */}
             {connectionState !== 'CONNECTED' && isJoined && (
                 <div className="bg-yellow-500/10 text-yellow-500 border-b border-yellow-500/20 px-4 py-2 text-center text-xs sm:text-sm animate-pulse">
@@ -303,7 +312,7 @@ export function AgoraVideoCall({
             {/* Video grid */}
             <div className={`flex-1 grid ${getGridClasses()} gap-2 sm:gap-4 p-2 sm:p-4 bg-gray-950 overflow-y-auto min-h-0`}>
                 {/* Local video */}
-                <Card className="relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px]">
+                <Card className={`relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px] ${getLocalVideoClasses()}`}>
                     <CardContent className="p-0 h-full w-full relative">
                         <div
                             ref={localVideoRef}
