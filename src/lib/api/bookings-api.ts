@@ -27,6 +27,11 @@ export interface BookingResponse {
     status: BookingStatus;
     created_at: string;
     updated_at?: string | null;
+    // Payment information
+    is_paid: boolean;
+    price: string; // Price as string (e.g., "800.00")
+    booking_code?: string;
+    participant_emails?: string[];
 }
 
 export interface BookingWithDetails extends BookingResponse {

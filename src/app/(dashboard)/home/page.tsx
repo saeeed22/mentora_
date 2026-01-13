@@ -221,6 +221,10 @@ export default function DashboardHomePage() {
     // - Session hasn't ended yet
     const canJoin = isConfirmed && (now < endTime);
 
+    // Check if session is paid
+    const price = parseFloat(booking.price || '0');
+    const isPaid = price > 0;
+
     return {
       id: booking.id,
       status: booking.status,
@@ -233,6 +237,7 @@ export default function DashboardHomePage() {
       canJoin,
       isConfirmed,
       startTime,
+      isPaid,
     };
   });
 
@@ -357,7 +362,7 @@ export default function DashboardHomePage() {
                         <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
                       </Avatar>
                       <div className="sm:ml-4 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
                           {session.status === 'pending' && (
                             <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -367,6 +372,11 @@ export default function DashboardHomePage() {
                           {session.isConfirmed && (
                             <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
                               Confirmed
+                            </span>
+                          )}
+                          {session.isPaid && (
+                            <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full">
+                              Paid
                             </span>
                           )}
                         </div>

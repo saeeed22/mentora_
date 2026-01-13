@@ -138,6 +138,22 @@ export default function BookingsPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  const getPaidBadge = (booking: BookingWithUserInfo) => {
+    // Check if booking has a price (paid session, not free)
+    const price = parseFloat(booking.price || '0');
+    
+    if (price <= 0) return null; // Don't show badge for free sessions
+    
+    return (
+      <Badge 
+        variant="default" 
+        className="bg-amber-500 hover:bg-amber-600 text-white border-0 whitespace-nowrap text-xs"
+      >
+        Paid
+      </Badge>
+    );
+  };
+
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
     const today = new Date();
@@ -286,6 +302,8 @@ export default function BookingsPage() {
             </div>
             <div className="flex items-center flex-wrap gap-2">
               {getStatusBadge(booking.status)}
+              {/* Show "Paid" badge for paid sessions (not free) */}
+              {getPaidBadge(booking)}
               {/* Show "Ready to Join" indicator for confirmed sessions that haven't ended */}
               {booking.status === 'confirmed' && !sessionEnded && (
                 <Badge variant="default" className="bg-green-600 whitespace-nowrap">
