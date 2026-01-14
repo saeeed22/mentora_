@@ -185,11 +185,6 @@ export function BookingDialog({
         price: totalPrice,
       };
 
-      // Include Stripe price if applicable
-      if (paymentMethod === 'stripe' && totalPrice > 0) {
-        bookingPayload.price = totalPrice.toString();
-      }
-
       const bookingResult = await bookingsApi.createBooking(bookingPayload);
 
       if (!bookingResult.success || !bookingResult.data) {
@@ -199,7 +194,9 @@ export function BookingDialog({
       const bookingData = bookingResult.data;
 
       // Step 3: Stripe payment flow
-      if (paymentMethod === 'stripe' && (bookingData as any).client_secret && stripe && elements) {
+      if (paymentMethod === 'stripe' && totalPrice > 0 && (bookingData as any).client_secret && stripe && elements) {
+        bookingPayload.price = totalPrice;
+
         const card = elements.getElement(CardElement);
         if (!card) throw new Error('Card element not found');
 
@@ -285,7 +282,7 @@ export function BookingDialog({
               {/* Price */}
               <div className="flex items-center text-sm text-gray-700">
                 <DollarSign className="h-4 w-4 mr-2 text-brand" />
-                <span className="font-medium">PKR {slotAllowsGroup && groupPricePKR.length > 0 ? getGroupPrice(groupPricePKR, Math.max(1, groupParticipants), soloPricePKR ?? 0) : soloPricePKR ?? 1500}</span>
+                <span className="font-medium">PKR {paymentMethod === 'free' ? 0 : (slotAllowsGroup && groupPricePKR.length > 0 ? getGroupPrice(groupPricePKR, Math.max(1, groupParticipants), soloPricePKR ?? 0) : soloPricePKR ?? 1500)}</span>
               </div>
             </div>
           </div>
