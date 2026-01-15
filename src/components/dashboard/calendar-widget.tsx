@@ -46,7 +46,7 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
           try {
             const userResult = await users.getUserById(participantId);
             if (userResult.success && userResult.data) {
-              enhanced.participantName = userResult.data.email.split('@')[0];
+              enhanced.participantName = userResult.data.profile?.full_name || userResult.data.email?.split("@")[0] || (isMentor ? 'Mentee' : 'Mentor');
             }
           } catch {
             enhanced.participantName = isMentor ? 'Mentee' : 'Mentor';

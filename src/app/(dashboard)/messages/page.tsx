@@ -33,6 +33,7 @@ import { mentorsApi } from '@/lib/api/mentors-api';
 import { MentorDetailResponse } from '@/lib/types';
 import { auth } from '@/lib/api/auth';
 import { tokenManager } from '@/lib/api-client';
+import HumanDate from '@/components/HumanDate'
 
 // Extended conversation type to include suggested mentors
 interface ConversationOrMentor extends ConversationResponse {
@@ -624,11 +625,12 @@ export default function MessagesPage() {
     );
   }
 
+
   return (
     <div className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] flex bg-white rounded-2xl shadow-sm overflow-hidden">
       {/* Conversations Sidebar */}
       <div className={`${selectedConversation ? 'hidden md:block' : 'block'
-        } w-full md:w-80 border-r border-gray-200 flex flex-col`}>
+        } w-full md:w-80 border-r border-gray-200 flex flex-col overflow-y-auto`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Messages</h2>
@@ -645,7 +647,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           {filteredConversations.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               <p>No conversations yet</p>
@@ -714,7 +716,7 @@ export default function MessagesPage() {
                           )}
                           {!conversation.isSuggestedMentor && (
                             <span className="text-xs text-gray-500">
-                              {new Date(lastTimestamp).toLocaleDateString()}
+                              <HumanDate timestamp={new Date(lastTimestamp).getTime()} />
                             </span>
                           )}
                         </div>
@@ -809,7 +811,7 @@ export default function MessagesPage() {
                   <p>No messages yet. Start the conversation!</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto">
                   {messages.map((message) => {
                     const currentUser = auth.getCurrentUser();
                     const isYou = currentUser && message.sender_id === currentUser.id;

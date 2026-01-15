@@ -173,6 +173,7 @@ export interface BackendUser {
   is_active: boolean;
   is_verified: boolean;
   created_at: string;
+  profile?: BackendProfile | null;
 }
 
 export interface BackendProfile {

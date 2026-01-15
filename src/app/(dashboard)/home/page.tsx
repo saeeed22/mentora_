@@ -88,7 +88,7 @@ export default function DashboardHomePage() {
             try {
               const mentorResult = await users.getUserById(booking.mentor_id);
               if (mentorResult.success && mentorResult.data) {
-                enhanced.mentorName = mentorResult.data.email.split('@')[0];
+                enhanced.mentorName = mentorResult.data.profile?.full_name || mentorResult.data.email?.split("@")[0] || "Mentor";
               }
             } catch {
               enhanced.mentorName = 'Mentor';
@@ -98,7 +98,7 @@ export default function DashboardHomePage() {
             try {
               const menteeResult = await users.getUserById(booking.mentee_id);
               if (menteeResult.success && menteeResult.data) {
-                enhanced.menteeName = menteeResult.data.email.split('@')[0];
+                enhanced.menteeName = menteeResult.data.profile?.full_name || menteeResult.data.email?.split("@")[0] || "Mentee";
               }
             } catch {
               enhanced.menteeName = 'Mentee';
