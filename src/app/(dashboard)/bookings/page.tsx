@@ -310,6 +310,13 @@ export default function BookingsPage() {
                   Ready to Join
                 </Badge>
               )}
+
+              {booking.participant_emails && (
+                <Badge variant="default" className={booking.participant_emails.length > 1 ? "bg-green-800 whitespace-nowrap" : "bg-blue-600 whitespace-nowrap"}>
+                  {booking.participant_emails.length > 1 ? 'Group' : 'Solo'}
+                </Badge>
+              )}
+
               {showActions && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
