@@ -964,18 +964,18 @@ export default function MentorProfilePage() {
                               const tier = slot.slotGroupTiers?.[0] ?? null;
                               setSelectedSlotGroupTier(tier === 1 || tier === 2 || tier === 3 || tier === 5 || tier === 10 ? tier : null);
                             }}
-                            className={`p-3 rounded-lg border-2 text-center transition-colors ${selectedDate === slot.date
-                              ? 'border-brand bg-brand-light/10'
-                              : 'border-gray-200 hover:border-gray-300'
+                            className={`p-2.5 rounded-xl border-2 text-center transition-all duration-200 ${selectedDate === slot.date
+                              ? 'border-brand bg-brand-light/5 shadow-sm ring-1 ring-brand/20'
+                              : 'border-gray-100 hover:border-gray-200 bg-gray-50/50'
                               }`}
                           >
-                            <div className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">
+                            <div className="text-[10px] sm:text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">
                               {slot.dayName}
                             </div>
-                            <div className="text-base sm:text-lg font-bold text-brand-dark mb-1">
+                            <div className="text-base sm:text-lg font-bold text-brand-dark leading-tight">
                               {day} {date.toLocaleDateString('en-US', { month: 'short' })}
                             </div>
-                            <div className="text-[10px] sm:text-xs text-brand font-medium">
+                            <div className="mt-1.5 text-[10px] sm:text-xs text-brand font-medium bg-brand/5 py-0.5 rounded-full">
                               {slot.slots.length} slots
                             </div>
                           </button>
@@ -1010,22 +1010,22 @@ export default function MentorProfilePage() {
                                 setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
                                 setSelectedSlotGroupTier(groupTier === 1 || groupTier === 2 || groupTier === 3 || groupTier === 5 || groupTier === 10 ? groupTier : null);
                               }}
-                              className={`p-2.5 sm:p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
-                                ? 'border-brand bg-brand-light/10'
-                                : 'border-gray-200 hover:border-gray-300'
+                              className={`p-3 rounded-xl border-2 transition-all duration-200 ${selectedSlotIndex === idx
+                                ? 'border-brand bg-brand-light/5 shadow-sm ring-1 ring-brand/20'
+                                : 'border-gray-100 hover:border-gray-200 bg-gray-50/50'
                                 }`}
                             >
-                              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1">
-                                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
+                              <div className="flex flex-row items-center justify-between gap-2">
+                                <span className={`text-sm sm:text-base font-bold ${selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
                                   }`}>
                                   {time}
                                 </span>
                                 {isGroup ? (
-                                  <Badge variant="secondary" className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-700 border-emerald-200 py-0 px-1.5 h-auto">
+                                  <Badge variant="secondary" className="w-fit text-[10px] sm:text-xs bg-emerald-100 text-emerald-700 border-emerald-200 py-0.5 px-2 h-auto font-semibold">
                                     Group of {groupTier}
                                   </Badge>
                                 ) : (
-                                  <Badge variant="secondary" className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 border-blue-200 py-0 px-1.5 h-auto">
+                                  <Badge variant="secondary" className="w-fit text-[10px] sm:text-xs bg-blue-50 text-blue-600 border-blue-100 py-0.5 px-2 h-auto font-semibold">
                                     Solo
                                   </Badge>
                                 )}
@@ -1040,7 +1040,7 @@ export default function MentorProfilePage() {
                   {/* Book Button */}
                   <Button
                     onClick={handleBooking}
-                    className="w-full bg-brand hover:bg-brand/90 py-4 sm:py-6 text-base sm:text-lg font-medium h-auto whitespace-normal"
+                    className="w-full bg-brand hover:bg-brand/90 py-4 sm:py-6 text-base sm:text-lg font-medium h-auto whitespace-normal rounded-xl shadow-md transition-all active:scale-[0.98]"
                   >
                     <span className="hidden xs:inline">Book Session for </span>
                     <span className="xs:hidden">Book for </span>

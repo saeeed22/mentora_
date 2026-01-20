@@ -46,16 +46,16 @@ export default function DashboardLayout({
 
   return (
     <ReactQueryProvider>
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className={`min-h-screen bg-white flex flex-col ${pathname === '/messages' ? 'h-screen overflow-hidden' : ''}`}>
         {/* Global Header above sidebar */}
         <Header user={user} />
 
         {/* Content row: compact sidebar + page content */}
-        <div className="flex flex-1">
+        <div className={`flex flex-1 ${pathname === '/messages' ? 'overflow-hidden' : ''}`}>
           <Sidebar user={user} currentPath={pathname} />
 
           {/* Main Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 pb-20 lg:pb-6">
+          <main className={`flex-1 min-w-0 ${pathname === '/messages' ? 'p-2 sm:p-4 pb-20 lg:pb-0' : 'p-4 sm:p-6 lg:p-8 pb-20 lg:pb-6'}`}>
             {children}
           </main>
         </div>
@@ -64,9 +64,11 @@ export default function DashboardLayout({
         <BottomNav user={user} currentPath={pathname} />
 
         {/* Footer wrapper with bottom padding for mobile navigation */}
-        <div className="pb-20 lg:pb-0">
-          <LandingFooter />
-        </div>
+        {pathname !== '/messages' && (
+          <div className="pb-20 lg:pb-0">
+            <LandingFooter />
+          </div>
+        )}
       </div>
     </ReactQueryProvider>
   );

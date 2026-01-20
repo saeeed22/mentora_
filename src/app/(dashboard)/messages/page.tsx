@@ -103,25 +103,20 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const initialScrollDone = useRef(false);
   const shouldScrollOnSend = useRef(false);
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-scroll to latest message (skip initial load to avoid jumping)
+  // Auto-scroll to top (which is bottom in column-reverse) when sending a message
   useEffect(() => {
-    if (!initialScrollDone.current) {
-      initialScrollDone.current = true;
-      return;
-    }
+    if (messages.length === 0 || !chatScrollRef.current) return;
 
+    // With flex-direction: column-reverse, scrollTop = 0 is at the bottom (newest)
+    // We only need to scroll when sending a message
     if (shouldScrollOnSend.current) {
-      if (chatScrollRef.current) {
-        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-      }
+      chatScrollRef.current.scrollTop = 0;
       shouldScrollOnSend.current = false;
     }
   }, [messages]);
@@ -551,7 +546,11 @@ export default function MessagesPage() {
   };
 
   const handleSelectConversation = (conversation: ConversationOrMentor) => {
+    if (selectedConversation?.id === conversation.id) return;
+
     setSelectedConversation(conversation);
+    setMessages([]); // Clear messages immediately for clean transition
+
     // Save to sessionStorage for future visits (unless it's a suggested mentor)
     if (!conversation.isSuggestedMentor) {
       sessionStorage.setItem('mentora_last_conversation', conversation.id);
@@ -627,10 +626,10 @@ export default function MessagesPage() {
 
 
   return (
-    <div className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] flex bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div className="h-full flex bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
       {/* Conversations Sidebar */}
       <div className={`${selectedConversation ? 'hidden md:block' : 'block'
-        } w-full md:w-80 border-r border-gray-200 flex flex-col overflow-y-auto`}>
+        } w-full md:w-80 border-r border-gray-200 flex flex-col overflow-y-auto no-scrollbar`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Messages</h2>
@@ -779,14 +778,14 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-end" ref={chatScrollRef}>
+            {/* Messages - flex-col-reverse makes newest messages appear at bottom naturally */}
+            <div className="flex-1 overflow-y-auto p-4 no-scrollbar flex flex-col-reverse" ref={chatScrollRef}>
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 </div>
               ) : selectedConversation.isSuggestedMentor ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8">
                   <div className="mb-4">
                     <Avatar className="h-20 w-20 mx-auto mb-4">
                       <AvatarImage src={getParticipantAvatar(selectedConversation)} alt={getParticipantName(selectedConversation)} />
@@ -807,11 +806,11 @@ export default function MessagesPage() {
                   <p className="text-gray-500 mb-4">Start a conversation with this mentor</p>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-gray-500">
+                <div className="flex-1 flex items-center justify-center text-gray-500 py-8">
                   <p>No messages yet. Start the conversation!</p>
                 </div>
               ) : (
-                <div className="space-y-3 overflow-y-auto">
+                <div className="space-y-3">
                   {messages.map((message) => {
                     const currentUser = auth.getCurrentUser();
                     const isYou = currentUser && message.sender_id === currentUser.id;
@@ -851,8 +850,6 @@ export default function MessagesPage() {
                   })}
                 </div>
               )}
-              {/* Scroll anchor - always at bottom */}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}
