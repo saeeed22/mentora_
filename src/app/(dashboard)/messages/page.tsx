@@ -421,17 +421,25 @@ export default function MessagesPage() {
         console.log('[Messages] WebSocket connected, skipping redundant markAsRead call');
       }
 
-      // Always mark as read regardless of WebSocket status (ensures backend is updated)
+      // Always zero unread locally once messages are viewed and mark last_message as read
+      setConversations(prev => prev.map(c => {
+        if (c.id === conversationId && c.last_message) {
+          return { ...c, unread_count: 0, last_message: { ...c.last_message, is_read: true } };
+        }
+        return c;
+      }));
+
+      // Mark messages as read on the server up to the latest message from the other participant
       const viewer = auth.getCurrentUser();
       const latestOther = result.data.data.find(m => m.sender_id !== viewer?.id);
-
-      // Always zero unread locally once messages are viewed
-      setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c));
-
       if (latestOther) {
-        console.log('[Messages] Calling markAsRead for message:', latestOther.id);
+        console.log('[Messages] Calling markAsRead for latest other message:', latestOther.id);
         const readResult = await messagingApi.markAsRead(conversationId, latestOther.id);
         console.log('[Messages] markAsRead result:', readResult);
+        if (readResult.success) {
+          // Ensure local conversations reflect server-side read state
+          setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread_count: 0, last_message: { ...(c.last_message ?? {}), is_read: true } } : c));
+        }
       }
     }
     if (!options?.silent) {
@@ -531,8 +539,19 @@ export default function MessagesPage() {
             const currentUser = auth.getCurrentUser();
             const normalized = normalizeUnreadForSelf(convResult.data!.data, currentUser);
             const updated = filterConversationsForRole(normalized, currentUser);
+            
+            // Preserve unread_count = 0 for currently selected conversation and other marked-as-read conversations
+            const merged = updated.map(updatedConv => {
+              const prevConv = prev.find(p => p.id === updatedConv.id);
+              // If this conversation was already marked as read locally (unread_count = 0), keep it that way
+              if (prevConv && prevConv.unread_count === 0) {
+                return { ...updatedConv, unread_count: 0 };
+              }
+              return updatedConv;
+            });
+            
             const suggested = prev.filter(c => c.isSuggestedMentor);
-            return [...updated, ...suggested];
+            return [...merged, ...suggested];
           });
         }
       });
