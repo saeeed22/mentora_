@@ -20,7 +20,11 @@ interface BookingWithInfo extends BookingResponse {
 }
 
 export function CalendarWidget({ userRole }: CalendarWidgetProps) {
-  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
   const [userBookings, setUserBookings] = useState<BookingWithInfo[]>([]);
   const [availabilityTemplates, setAvailabilityTemplates] = useState<AvailabilityTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,21 +61,6 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
       );
 
       setUserBookings(enhancedBookings);
-
-      // Auto-jump to the week of the next upcoming booking
-      const upcoming = enhancedBookings
-        .filter(b => b.status === 'confirmed' || b.status === 'pending')
-        .filter(b => new Date(b.start_at).getTime() >= Date.now())
-        .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
-
-      if (upcoming.length > 0) {
-        const next = new Date(upcoming[0].start_at);
-        const start = new Date(next);
-        const dow = start.getDay();
-        start.setDate(start.getDate() - dow); // set to Sunday
-        start.setHours(0, 0, 0, 0);
-        setCurrentWeekStart(start);
-      }
     }
 
     // For mentors, load their availability templates
@@ -89,14 +78,11 @@ export function CalendarWidget({ userRole }: CalendarWidgetProps) {
     loadBookings();
   }, [loadBookings]);
 
-  // Get the current week's dates
+  // Get the current week's dates starting from today
   const getWeekDates = () => {
     const dates = [];
     const start = new Date(currentWeekStart);
-
-    // Get to the start of the week (Sunday)
-    const dayOfWeek = start.getDay();
-    start.setDate(start.getDate() - dayOfWeek);
+    start.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(start);

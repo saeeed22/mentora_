@@ -507,17 +507,36 @@ export default function DashboardHomePage() {
                       <AvatarFallback>{getInitials(session.mentorName)}</AvatarFallback>
                     </Avatar>
                     <div className="sm:ml-4 flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
-                      <p className="text-sm text-gray-600">{session.topic}</p>
-                      <div className="flex items-center mt-1 text-xs text-gray-500">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {session.date} at {session.time}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium text-gray-900">{session.mentorName}</h4>
+                          {session.status === 'pending' && (
+                            <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                              Pending
+                            </span>
+                          )}
+                          {session.isConfirmed && (
+                            <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                              Confirmed
+                            </span>
+                          )}
+                          {session.isPaid && (
+                            <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full">
+                              Paid
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">{session.topic}</p>
+                        <div className="flex items-center mt-1 text-xs text-gray-500">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {session.date} at {session.time}
+                        </div>
                       </div>
-                    </div>
+                    
                     <Button size="sm" className="bg-brand hover:bg-brand/90 w-full sm:w-auto" onClick={() => router.push(`/session/${session.id}`)}>
                       <Video className="w-4 h-4 mr-1" />
                       Join
                     </Button>
+                    
                   </div>
                 ))
               )}
