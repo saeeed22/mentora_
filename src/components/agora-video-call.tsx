@@ -65,7 +65,7 @@ function RemotePlayer({
     };
 
     return (
-        <Card className="relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-video shadow-2xl">
+        <Card className="relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-[4/3] sm:aspect-video shadow-2xl transition-all hover:ring-2 hover:ring-brand/50">
             <CardContent className="p-0 h-full w-full relative">
                 <div
                     ref={videoRef}
@@ -73,16 +73,16 @@ function RemotePlayer({
                 />
                 {(!user.hasVideo || isVideoMuted) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                        <Avatar className="h-12 w-12 sm:h-20 sm:w-20 transition-all">
+                        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 transition-all">
                             <AvatarImage src={fallbackAvatar} alt={fallbackName} />
-                            <AvatarFallback className="text-lg sm:text-xl bg-brand-light/20 text-brand">
+                            <AvatarFallback className="text-xl sm:text-xl bg-brand-light/20 text-brand">
                                 {getInitials(fallbackName)}
                             </AvatarFallback>
                         </Avatar>
                     </div>
                 )}
-                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10">
-                    <span className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{fallbackName}</span>
+                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10 max-w-[90%]">
+                    <span className="font-medium truncate">{fallbackName}</span>
                     {!user.hasAudio && <MicOff className="w-3 h-3 text-red-400 shrink-0" />}
                 </div>
             </CardContent>
@@ -290,8 +290,17 @@ export function AgoraVideoCall({
     const getGridClasses = () => {
         if (visualElements === 1) return 'grid-cols-1 max-w-4xl mx-auto';
         if (visualElements === 2) return 'grid-cols-1 md:grid-cols-2';
-        if (visualElements <= 4) return 'grid-cols-2';
+        // For odd numbers > 1, use 2 columns and custom spanning logic
+        if (visualElements % 2 !== 0) return 'grid-cols-2';
         return 'grid-cols-2 lg:grid-cols-3';
+    };
+
+    const getItemClasses = (index: number) => {
+        // If odd number of elements and this is the first one, span full width on mobile/small grids
+        if (visualElements % 2 !== 0 && visualElements > 1 && index === 0) {
+            return 'col-span-2';
+        }
+        return '';
     };
 
     return (
@@ -307,7 +316,7 @@ export function AgoraVideoCall({
             <div className="flex-1 flex items-center justify-center p-2 sm:p-4 bg-gray-950 min-h-0 overflow-hidden">
                 <div className={`w-full h-full grid ${getGridClasses()} gap-2 sm:gap-4 overflow-y-auto content-center no-scrollbar`}>
                     {/* Local video */}
-                    <Card className="relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-video shadow-2xl">
+                    <Card className={`relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-[4/3] sm:aspect-video shadow-2xl transition-all hover:ring-2 hover:ring-brand/50 ${getItemClasses(0)}`}>
                         <CardContent className="p-0 h-full w-full relative">
                             <div
                                 ref={localVideoRef}
@@ -315,37 +324,38 @@ export function AgoraVideoCall({
                             />
                             {isVideoMuted && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                                    <Avatar className="h-12 w-12 sm:h-20 sm:w-20 transition-all">
+                                    <Avatar className="h-16 w-16 sm:h-20 sm:w-20 transition-all">
                                         <AvatarImage src={userAvatar} alt={userName} />
-                                        <AvatarFallback className="text-lg sm:text-xl bg-brand-light/20 text-brand">
+                                        <AvatarFallback className="text-xl sm:text-xl bg-brand-light/20 text-brand">
                                             {getInitials(userName)}
                                         </AvatarFallback>
                                     </Avatar>
                                 </div>
                             )}
-                            <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10">
-                                <span className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{userName} (You)</span>
+                            <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10 max-w-[90%]">
+                                <span className="font-medium truncate">{userName} (You)</span>
                                 {isAudioMuted && <MicOff className="w-3 h-3 text-red-400 shrink-0" />}
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Remote users */}
-                    {remoteUsers.map((user) => (
-                        <RemotePlayer
-                            key={user.uid}
-                            user={user}
-                            fallbackName={participantName}
-                            fallbackAvatar={participantAvatar}
-                        />
+                    {remoteUsers.map((user, index) => (
+                        <div key={user.uid} className={getItemClasses(index + 1)}>
+                            <RemotePlayer
+                                user={user}
+                                fallbackName={participantName}
+                                fallbackAvatar={participantAvatar}
+                            />
+                        </div>
                     ))}
 
                     {/* Waiting placeholder if only 1 participant */}
                     {totalParticipants === 1 && (
-                        <Card className="relative overflow-hidden bg-gray-900/50 border-gray-800 border-dashed border-2 w-full h-full aspect-video flex flex-col items-center justify-center text-center p-6">
-                            <Avatar className="h-12 w-12 sm:h-20 sm:w-20 mb-4 opacity-50">
+                        <Card className={`relative overflow-hidden bg-gray-900/50 border-gray-800 border-dashed border-2 w-full h-full aspect-[4/3] sm:aspect-video flex flex-col items-center justify-center text-center p-6 ${getItemClasses(1)}`}>
+                            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mb-4 opacity-50">
                                 <AvatarImage src={participantAvatar} alt={participantName} />
-                                <AvatarFallback className="text-lg sm:text-xl bg-gray-800 text-gray-500">
+                                <AvatarFallback className="text-xl sm:text-xl bg-gray-800 text-gray-500">
                                     {getInitials(participantName)}
                                 </AvatarFallback>
                             </Avatar>
