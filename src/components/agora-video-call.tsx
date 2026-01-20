@@ -290,15 +290,21 @@ export function AgoraVideoCall({
     const getGridClasses = () => {
         if (visualElements === 1) return 'grid-cols-1 max-w-4xl mx-auto';
         if (visualElements === 2) return 'grid-cols-1 md:grid-cols-2';
-        // For odd numbers > 1, use 2 columns and custom spanning logic
-        if (visualElements % 2 !== 0) return 'grid-cols-2';
-        return 'grid-cols-2 lg:grid-cols-3';
+        if (visualElements === 3) return 'grid-cols-2 lg:grid-cols-3'; // 2 on mobile, 3 on larger screens
+        if (visualElements === 4) return 'grid-cols-2';
+        // For larger counts, use dynamic columns
+        if (visualElements % 2 !== 0) return 'grid-cols-2 lg:grid-cols-3';
+        return 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
     };
 
     const getItemClasses = (index: number) => {
-        // If odd number of elements and this is the first one, span full width on mobile/small grids
+        // If odd number of elements and this is the first one, span full width ONLY on mobile
+        // because on desktop we have enough width for 3 columns.
         if (visualElements % 2 !== 0 && visualElements > 1 && index === 0) {
-            return 'col-span-2';
+            // For 3 people: Mobile (2 cols) -> span. Desktop (3 cols) -> don't span.
+            if (visualElements === 3) return 'col-span-2 lg:col-span-1';
+            // For 5+ people: Keep logic similar, span on smaller screens if in 2-col mode.
+            return 'col-span-2 lg:col-span-1';
         }
         return '';
     };

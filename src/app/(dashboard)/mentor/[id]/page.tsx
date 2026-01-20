@@ -522,8 +522,8 @@ export default function MentorProfilePage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Left Section - Tabs and Content */}
           <div className="flex-1 min-w-0">
             <Tabs defaultValue="overview" className="w-full">
@@ -806,7 +806,7 @@ export default function MentorProfilePage() {
                             </div>
                             <p className="text-sm text-gray-600">{milestone.date}</p>
                           </div>
-                        ))} 
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
@@ -868,7 +868,7 @@ export default function MentorProfilePage() {
             {/* Statistics */}
             {backendMentor && (backendMentor.stats?.total_sessions > 0 || backendMentor.mentor_profile?.rating_avg > 0) && (
               <Card className="rounded-2xl shadow-sm bg-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="text-lg font-bold text-brand-dark mb-4">Statistics</h3>
                   <div className="space-y-4">
                     {/* Sessions Completed */}
@@ -938,7 +938,7 @@ export default function MentorProfilePage() {
             {/* Booking Widget */}
             {availableSlots && availableSlots.length > 0 && !isViewerMentor && (
               <Card className="rounded-2xl shadow-sm bg-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="text-lg font-bold text-brand-dark mb-2">
                     Available sessions
                   </h3>
@@ -949,7 +949,7 @@ export default function MentorProfilePage() {
                   {/* Date Selector */}
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">Select a date</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 mini:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {availableSlots.map((slot) => {
                         const date = new Date(slot.date);
                         const day = date.getDate();
@@ -969,13 +969,13 @@ export default function MentorProfilePage() {
                               : 'border-gray-200 hover:border-gray-300'
                               }`}
                           >
-                            <div className="text-xs text-gray-600 font-medium mb-1">
+                            <div className="text-[10px] sm:text-xs text-gray-600 font-medium mb-1">
                               {slot.dayName}
                             </div>
-                            <div className="text-lg font-bold text-brand-dark mb-1">
+                            <div className="text-base sm:text-lg font-bold text-brand-dark mb-1">
                               {day} {date.toLocaleDateString('en-US', { month: 'short' })}
                             </div>
-                            <div className="text-xs text-brand font-medium">
+                            <div className="text-[10px] sm:text-xs text-brand font-medium">
                               {slot.slots.length} slots
                             </div>
                           </button>
@@ -1010,22 +1010,22 @@ export default function MentorProfilePage() {
                                 setSelectedSlotIsGroup(selectedDateSlots.slotGroupFlags ? !!selectedDateSlots.slotGroupFlags[idx] : null);
                                 setSelectedSlotGroupTier(groupTier === 1 || groupTier === 2 || groupTier === 3 || groupTier === 5 || groupTier === 10 ? groupTier : null);
                               }}
-                              className={`p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
+                              className={`p-2.5 sm:p-3 rounded-lg border-2 text-left transition-colors ${selectedSlotIndex === idx
                                 ? 'border-brand bg-brand-light/10'
                                 : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className={`text-sm font-semibold ${selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
+                              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1">
+                                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${selectedSlotIndex === idx ? 'text-brand' : 'text-gray-900'
                                   }`}>
                                   {time}
                                 </span>
                                 {isGroup ? (
-                                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                                  <Badge variant="secondary" className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-700 border-emerald-200 py-0 px-1.5 h-auto">
                                     Group of {groupTier}
                                   </Badge>
                                 ) : (
-                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                                  <Badge variant="secondary" className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 border-blue-200 py-0 px-1.5 h-auto">
                                     Solo
                                   </Badge>
                                 )}
@@ -1040,9 +1040,10 @@ export default function MentorProfilePage() {
                   {/* Book Button */}
                   <Button
                     onClick={handleBooking}
-                    className="w-full bg-brand hover:bg-brand/90 py-6 text-lg font-medium"
+                    className="w-full bg-brand hover:bg-brand/90 py-4 sm:py-6 text-base sm:text-lg font-medium h-auto whitespace-normal"
                   >
-                    Book Session for{' '}
+                    <span className="hidden xs:inline">Book Session for </span>
+                    <span className="xs:hidden">Book for </span>
                     {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', {
                       day: 'numeric',
                       month: 'short',
