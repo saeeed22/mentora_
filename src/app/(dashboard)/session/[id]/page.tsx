@@ -578,9 +578,9 @@ export default function SessionPage() {
         const isParticipant =
           currentUser.id === booking.mentor_id || currentUser.id === booking.mentee_id;
         if (!isParticipant) {
-        //  setError('You are not a participant in this session.');
-        // setLoading(false);
-        //  return;
+          //  setError('You are not a participant in this session.');
+          // setLoading(false);
+          //  return;
         }
 
         // 3) Ensure booking is confirmed
@@ -743,8 +743,7 @@ export default function SessionPage() {
       </div>
 
       {/* Agora Video Call */}
-      <div className="rounded-2xl overflow-hidden" style={{ minHeight: '60dvh' }}>
-        {/* Height adjusted for mobile with bottom nav */}
+      <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-gray-950">
         <AgoraVideoCall
           appId={sessionInfo.appId}
           channel={sessionInfo.channel}

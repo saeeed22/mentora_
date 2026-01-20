@@ -65,7 +65,7 @@ function RemotePlayer({
     };
 
     return (
-        <Card className="relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px]">
+        <Card className="relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-video shadow-2xl">
             <CardContent className="p-0 h-full w-full relative">
                 <div
                     ref={videoRef}
@@ -73,17 +73,17 @@ function RemotePlayer({
                 />
                 {(!user.hasVideo || isVideoMuted) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                        <Avatar className="h-16 w-16 sm:h-24 sm:w-24">
+                        <Avatar className="h-12 w-12 sm:h-20 sm:w-20 transition-all">
                             <AvatarImage src={fallbackAvatar} alt={fallbackName} />
-                            <AvatarFallback className="text-xl sm:text-2xl bg-brand-light/20 text-brand">
+                            <AvatarFallback className="text-lg sm:text-xl bg-brand-light/20 text-brand">
                                 {getInitials(fallbackName)}
                             </AvatarFallback>
                         </Avatar>
                     </div>
                 )}
-                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/60 text-white px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm flex items-center gap-2">
-                    <span>{fallbackName}</span>
-                    {!user.hasAudio && <MicOff className="w-3 h-3 text-red-400" />}
+                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10">
+                    <span className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{fallbackName}</span>
+                    {!user.hasAudio && <MicOff className="w-3 h-3 text-red-400 shrink-0" />}
                 </div>
             </CardContent>
         </Card>
@@ -286,79 +286,75 @@ export function AgoraVideoCall({
     const totalParticipants = remoteUsers.length + 1;
     // For visual layout, count the waiting placeholder as a visual element
     const visualElements = remoteUsers.length === 0 ? 2 : totalParticipants;
+
     const getGridClasses = () => {
-        if (visualElements === 1) return 'grid-cols-1';
+        if (visualElements === 1) return 'grid-cols-1 max-w-4xl mx-auto';
         if (visualElements === 2) return 'grid-cols-1 md:grid-cols-2';
-        if (visualElements === 3) return 'grid-cols-1 sm:grid-cols-2'; // 1 large top, 2 small bottom
-        if (visualElements <= 4) return 'grid-cols-1 sm:grid-cols-2';
+        if (visualElements <= 4) return 'grid-cols-2';
         return 'grid-cols-2 lg:grid-cols-3';
     };
 
-    // For 3 participants, make local video span full width on desktop
-    const getLocalVideoClasses = () => {
-        if (visualElements === 3) return 'sm:col-span-2'; // Span both columns
-        return '';
-    };
-
     return (
-        <div className="flex flex-col h-[80dvh] bg-gray-950">
+        <div className="flex flex-col h-[100dvh] md:h-[90dvh] bg-gray-950 overflow-hidden">
             {/* Connection status */}
             {connectionState !== 'CONNECTED' && isJoined && (
-                <div className="bg-yellow-500/10 text-yellow-500 border-b border-yellow-500/20 px-4 py-2 text-center text-xs sm:text-sm animate-pulse">
+                <div className="bg-yellow-500/10 text-yellow-500 border-b border-yellow-500/20 px-4 py-2 text-center text-xs sm:text-sm animate-pulse z-10">
                     Connection: {connectionState}
                 </div>
             )}
 
             {/* Video grid */}
-            <div className={`flex-1 grid ${getGridClasses()} gap-2 sm:gap-4 p-2 sm:p-4 bg-gray-950 overflow-y-auto min-h-0`}>
-                {/* Local video */}
-                <Card className={`relative overflow-hidden bg-gray-800 border-gray-700 h-full min-h-[200px] sm:min-h-[300px] ${getLocalVideoClasses()}`}>
-                    <CardContent className="p-0 h-full w-full relative">
-                        <div
-                            ref={localVideoRef}
-                            className="w-full h-full object-cover"
-                        />
-                        {isVideoMuted && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                                <Avatar className="h-16 w-16 sm:h-24 sm:w-24">
-                                    <AvatarImage src={userAvatar} alt={userName} />
-                                    <AvatarFallback className="text-xl sm:text-2xl bg-brand-light/20 text-brand">
-                                        {getInitials(userName)}
-                                    </AvatarFallback>
-                                </Avatar>
+            <div className="flex-1 flex items-center justify-center p-2 sm:p-4 bg-gray-950 min-h-0 overflow-hidden">
+                <div className={`w-full h-full grid ${getGridClasses()} gap-2 sm:gap-4 overflow-y-auto content-center no-scrollbar`}>
+                    {/* Local video */}
+                    <Card className="relative overflow-hidden bg-gray-800 border-gray-700 w-full h-full aspect-video shadow-2xl">
+                        <CardContent className="p-0 h-full w-full relative">
+                            <div
+                                ref={localVideoRef}
+                                className="w-full h-full object-cover"
+                            />
+                            {isVideoMuted && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                                    <Avatar className="h-12 w-12 sm:h-20 sm:w-20 transition-all">
+                                        <AvatarImage src={userAvatar} alt={userName} />
+                                        <AvatarFallback className="text-lg sm:text-xl bg-brand-light/20 text-brand">
+                                            {getInitials(userName)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </div>
+                            )}
+                            <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/40 backdrop-blur-md text-white px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm flex items-center gap-2 border border-white/10">
+                                <span className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{userName} (You)</span>
+                                {isAudioMuted && <MicOff className="w-3 h-3 text-red-400 shrink-0" />}
                             </div>
-                        )}
-                        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/60 text-white px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm flex items-center gap-2">
-                            <span>{userName} (You)</span>
-                            {isAudioMuted && <MicOff className="w-3 h-3 text-red-400" />}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Remote users */}
-                {remoteUsers.map((user) => (
-                    <RemotePlayer
-                        key={user.uid}
-                        user={user}
-                        fallbackName={participantName}
-                        fallbackAvatar={participantAvatar}
-                    />
-                ))}
-
-                {/* Waiting placeholder if only 1 participant */}
-                {totalParticipants === 1 && (
-                    <Card className="relative overflow-hidden bg-gray-900/50 border-gray-800 border-dashed border-2 h-full min-h-[200px] sm:min-h-[300px] flex flex-col items-center justify-center text-center p-6">
-                        <Avatar className="h-16 w-16 sm:h-24 sm:w-24 mb-4 opacity-50">
-                            <AvatarImage src={participantAvatar} alt={participantName} />
-                            <AvatarFallback className="text-xl sm:text-2xl bg-gray-800 text-gray-500">
-                                {getInitials(participantName)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <p className="text-gray-500 text-sm sm:text-base max-w-[200px]">
-                            Waiting for {participantName} to join...
-                        </p>
+                        </CardContent>
                     </Card>
-                )}
+
+                    {/* Remote users */}
+                    {remoteUsers.map((user) => (
+                        <RemotePlayer
+                            key={user.uid}
+                            user={user}
+                            fallbackName={participantName}
+                            fallbackAvatar={participantAvatar}
+                        />
+                    ))}
+
+                    {/* Waiting placeholder if only 1 participant */}
+                    {totalParticipants === 1 && (
+                        <Card className="relative overflow-hidden bg-gray-900/50 border-gray-800 border-dashed border-2 w-full h-full aspect-video flex flex-col items-center justify-center text-center p-6">
+                            <Avatar className="h-12 w-12 sm:h-20 sm:w-20 mb-4 opacity-50">
+                                <AvatarImage src={participantAvatar} alt={participantName} />
+                                <AvatarFallback className="text-lg sm:text-xl bg-gray-800 text-gray-500">
+                                    {getInitials(participantName)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <p className="text-gray-500 text-xs sm:text-sm max-w-[200px]">
+                                Waiting for {participantName} to join...
+                            </p>
+                        </Card>
+                    )}
+                </div>
             </div>
 
             {/* Controls */}
