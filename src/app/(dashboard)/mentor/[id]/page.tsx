@@ -117,10 +117,17 @@ interface MentorProfile {
 function convertBackendSlots(backendSlots: BackendAvailabilitySlot[]): AvailabilitySlot[] {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const slotsByDate = new Map<string, { display: string; iso: string; isGroup?: boolean; groupTier?: number | null }[]>();
+  const now = new Date();
 
   backendSlots.forEach(slot => {
     // Parse the ISO string and extract date/time components to avoid timezone shifts
     const startDate = new Date(slot.start_at);
+
+    // Check if slot time is in the past - exclude it
+    if (startDate <= now) {
+      console.log('[convertBackendSlots] Filtering out past slot:', slot.start_at);
+      return; // Skip this slot
+    }
 
     // Use UTC methods to extract the date to prevent timezone conversion issues
     const year = startDate.getUTCFullYear();

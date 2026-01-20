@@ -58,9 +58,10 @@ const keyToWeekday: Record<string, number> = {
   friday: 4, saturday: 5, sunday: 6,
 };
 
-const timeSlots = Array.from({ length: 24 }, (_, i) => {
-  const hour = i.toString().padStart(2, '0');
-  return `${hour}:00`;
+const timeSlots = Array.from({ length: 96 }, (_, i) => {
+  const hours = Math.floor(i / 4).toString().padStart(2, '0');
+  const minutes = ((i % 4) * 15).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 });
 
 const daysOfWeek = [
