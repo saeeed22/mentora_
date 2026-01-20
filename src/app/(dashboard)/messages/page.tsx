@@ -34,6 +34,7 @@ import { MentorDetailResponse } from '@/lib/types';
 import { auth } from '@/lib/api/auth';
 import { tokenManager } from '@/lib/api-client';
 import HumanDate from '@/components/HumanDate'
+import Link from 'next/link'
 
 // Extended conversation type to include suggested mentors
 interface ConversationOrMentor extends ConversationResponse {
@@ -448,20 +449,20 @@ export default function MessagesPage() {
         if (readResult.success) {
           // Ensure local conversations reflect server-side read state
           setConversations(prev =>
-          prev.map(c => {
-            if (c.id === conversationId && c.last_message) {
-              return {
-                ...c,
-                unread_count: 0,
-                last_message: {
-                  ...c.last_message,
-                  is_read: true,
-                },
-              };
-            }
-            return c;
-          })
-        );
+            prev.map(c => {
+              if (c.id === conversationId && c.last_message) {
+                return {
+                  ...c,
+                  unread_count: 0,
+                  last_message: {
+                    ...c.last_message,
+                    is_read: true,
+                  },
+                };
+              }
+              return c;
+            })
+          );
 
         }
       }
@@ -622,6 +623,15 @@ export default function MessagesPage() {
     if (conversation.participants && currentUser) {
       const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
       return otherParticipant?.avatar_url;
+    }
+    return undefined;
+  };
+
+  const getParticipantId = (conversation: ConversationResponse) => {
+    const currentUser = auth.getCurrentUser();
+    if (conversation.participants && currentUser) {
+      const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
+      return otherParticipant?.id;
     }
     return undefined;
   };
@@ -797,15 +807,20 @@ export default function MessagesPage() {
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={getParticipantAvatar(selectedConversation)}
-                      alt={getParticipantName(selectedConversation)}
-                    />
-                    <AvatarFallback className="bg-brand-light/20 text-brand">
-                      {getInitials(getParticipantName(selectedConversation))}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Link
+                    href={`/mentor/${getParticipantId(selectedConversation)}`}
+                    className="hover:opacity-80 transition-opacity"
+                  >
+                    <Avatar className="h-10 w-10 cursor-pointer">
+                      <AvatarImage
+                        src={getParticipantAvatar(selectedConversation)}
+                        alt={getParticipantName(selectedConversation)}
+                      />
+                      <AvatarFallback className="bg-brand-light/20 text-brand">
+                        {getInitials(getParticipantName(selectedConversation))}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
                   <div>
                     <h3 className="font-medium text-gray-900">
                       {getParticipantName(selectedConversation)}
